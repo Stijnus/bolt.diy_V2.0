@@ -16,6 +16,12 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
 
   if (!open) return null
 
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      onClose()
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setError(null)
@@ -53,8 +59,14 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl shadow-2xl max-w-md w-full">
+    <div
+      className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fadeIn"
+      onClick={handleBackdropClick}
+    >
+      <div
+        className="bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-xl shadow-2xl max-w-md w-full animate-slideUp"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="flex justify-between items-center p-6 border-b border-bolt-elements-borderColor">
           <h2 className="text-2xl font-bold text-bolt-elements-textPrimary">
             {mode === 'signin' ? 'Sign In' : 'Sign Up'}

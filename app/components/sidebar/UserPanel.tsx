@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { createPortal } from 'react-dom'
 import { useAuth } from '~/lib/contexts/AuthContext'
 import { LoginModal } from '~/components/auth/LoginModal'
 
@@ -36,7 +37,10 @@ export function UserPanel() {
             Sign in to save and sync your projects
           </p>
         </div>
-        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
+        {typeof document !== 'undefined' && createPortal(
+          <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />,
+          document.body
+        )}
       </>
     )
   }
