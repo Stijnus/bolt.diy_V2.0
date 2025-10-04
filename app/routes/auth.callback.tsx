@@ -9,14 +9,17 @@ export const loader: LoaderFunction = async ({ request, context }) => {
 
   if (code) {
     try {
-      const { supabase } = createSupabaseServerClient(request, context)
+      const { supabase, headers } = createSupabaseServerClient(request, context)
       const { error } = await supabase.auth.exchangeCodeForSession(code)
-      
+
       if (error) {
         console.error('Auth callback error:', error)
         // Redirect to home with error (you could add error query param)
         return redirect('/?auth_error=callback_failed')
       }
+
+      // Return redirect with auth cookies set
+      return redirect(next, { headers })
     } catch (error) {
       console.error('Auth callback exception:', error)
       return redirect('/?auth_error=callback_exception')
