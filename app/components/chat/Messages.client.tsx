@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import React from 'react';
 import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
@@ -8,7 +8,7 @@ interface MessagesProps {
   id?: string;
   className?: string;
   isStreaming?: boolean;
-  messages?: Message[];
+  messages?: UIMessage[];
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: MessagesProps, ref) => {
@@ -18,7 +18,13 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
     <div id={id} ref={ref} className={props.className}>
       {messages.length > 0
         ? messages.map((message, index) => {
-            const { role, content } = message;
+            const role = message.role;
+            const content = Array.isArray((message as any).parts)
+              ? (message as any).parts
+                  .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+                  .map((p: any) => p.text)
+                  .join('')
+              : (message as any).content ?? '';
             const isUserMessage = role === 'user';
             const isFirst = index === 0;
             const isLast = index === messages.length - 1;

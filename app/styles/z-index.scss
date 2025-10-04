@@ -1,4 +1,4 @@
-$zIndexMax: 999;
+$zIndexMax: 999 !default;
 
 .z-logo {
   z-index: $zIndexMax - 1;

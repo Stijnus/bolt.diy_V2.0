@@ -174,8 +174,9 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   );
 });
 
+import type React from 'react';
 interface ViewProps extends HTMLMotionProps<'div'> {
-  children: JSX.Element;
+  children: React.ReactNode;
 }
 
 const View = memo(({ children, ...props }: ViewProps) => {

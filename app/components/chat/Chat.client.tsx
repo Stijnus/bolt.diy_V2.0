@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
-import type { Message } from 'ai';
-import { useChat } from 'ai/react';
+import type { UIMessage } from 'ai';
+import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
 import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
@@ -60,8 +60,8 @@ export function Chat() {
 }
 
 interface ChatProps {
-  initialMessages: Message[];
-  storeMessageHistory: (messages: Message[]) => Promise<void>;
+  initialMessages: UIMessage[];
+  storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
 }
 
 export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
@@ -75,17 +75,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  const { messages, isLoading, input, handleInputChange, setInput, stop, append } = useChat({
-    api: '/api/chat',
-    onError: (error) => {
-      logger.error('Request failed\n\n', error);
-      toast.error('There was an error processing your request');
-    },
-    onFinish: () => {
-      logger.debug('Finished streaming');
-    },
-    initialMessages,
-  });
+  const { messages, status, stop, sendMessage } = useChat({ messages: initialMessages });
+  const isLoading = status === 'streaming';
+  const [input, setInput] = useState('');
+  const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value);
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
@@ -146,7 +139,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setChatStarted(true);
   };
 
-  const sendMessage = async (_event: React.UIEvent, messageInput?: string) => {
+  const sendMessageHandler = async (_event: React.UIEvent, messageInput?: string) => {
     const _input = messageInput || input;
 
     if (_input.length === 0 || isLoading) {
@@ -170,29 +163,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     if (fileModifications !== undefined) {
       const diff = fileModificationsToHTML(fileModifications);
-
-      /**
-       * If we have file modifications we append a new user message manually since we have to prefix
-       * the user input with the file modifications and we don't want the new user input to appear
-       * in the prompt. Using `append` is almost the same as `handleSubmit` except that we have to
-       * manually reset the input and we'd have to manually pass in file attachments. However, those
-       * aren't relevant here.
-       */
-      append({ role: 'user', content: `${diff}\n\n${_input}` });
-
-      /**
-       * After sending a new message we reset all modifications since the model
-       * should now be aware of all the changes.
-       */
+      await sendMessage({ role: 'user', parts: [{ type: 'text', text: `${diff}\n\n${_input}` }] } as any);
       workbenchStore.resetAllFileModifications();
     } else {
-      append({ role: 'user', content: _input });
+      await sendMessage({ role: 'user', parts: [{ type: 'text', text: _input }] } as any);
     }
 
     setInput('');
-
     resetEnhancer();
-
     textareaRef.current?.blur();
   };
 
@@ -208,20 +186,22 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       isStreaming={isLoading}
       enhancingPrompt={enhancingPrompt}
       promptEnhanced={promptEnhanced}
-      sendMessage={sendMessage}
+      sendMessage={sendMessageHandler}
       messageRef={messageRef}
       scrollRef={scrollRef}
       handleInputChange={handleInputChange}
       handleStop={abort}
       messages={messages.map((message, i) => {
         if (message.role === 'user') {
-          return message;
+          return message as UIMessage;
         }
 
+        // For assistant messages, replace content text with parsedMessages, preserving other fields
         return {
-          ...message,
-          content: parsedMessages[i] || '',
-        };
+          ...(message as any),
+          // Provide a simple text part for UIMessage in AI SDK v5
+          parts: [{ type: 'text', text: parsedMessages[i] || '' }],
+        } as UIMessage;
       })}
       enhancePrompt={() => {
         enhancePrompt(input, (input) => {

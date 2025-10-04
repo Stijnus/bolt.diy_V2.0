@@ -1,4 +1,4 @@
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
 
@@ -44,7 +44,7 @@ export async function getAll(db: IDBDatabase): Promise<ChatHistoryItem[]> {
 export async function setMessages(
   db: IDBDatabase,
   id: string,
-  messages: Message[],
+  messages: UIMessage[],
   urlId?: string,
   description?: string,
 ): Promise<void> {

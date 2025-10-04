@@ -23,7 +23,7 @@ export interface TerminalProps {
 export const Terminal = memo(
   forwardRef<TerminalRef, TerminalProps>(({ className, theme, readonly, onTerminalReady, onTerminalResize }, ref) => {
     const terminalElementRef = useRef<HTMLDivElement>(null);
-    const terminalRef = useRef<XTerm>();
+    const terminalRef = useRef<XTerm | null>(null);
 
     useEffect(() => {
       const element = terminalElementRef.current!;
@@ -64,7 +64,8 @@ export const Terminal = memo(
     }, []);
 
     useEffect(() => {
-      const terminal = terminalRef.current!;
+      const terminal = terminalRef.current;
+      if (!terminal) return;
 
       // we render a transparent cursor in case the terminal is readonly
       terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
@@ -75,7 +76,8 @@ export const Terminal = memo(
     useImperativeHandle(ref, () => {
       return {
         reloadStyles: () => {
-          const terminal = terminalRef.current!;
+          const terminal = terminalRef.current;
+          if (!terminal) return;
           terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
         },
       };

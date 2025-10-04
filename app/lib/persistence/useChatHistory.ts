@@ -1,7 +1,7 @@
 import { useLoaderData, useNavigate } from '@remix-run/react';
 import { useState, useEffect } from 'react';
 import { atom } from 'nanostores';
-import type { Message } from 'ai';
+import type { UIMessage } from 'ai';
 import { toast } from 'react-toastify';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
@@ -10,7 +10,7 @@ export interface ChatHistoryItem {
   id: string;
   urlId?: string;
   description?: string;
-  messages: Message[];
+  messages: UIMessage[];
   timestamp: string;
 }
 
@@ -25,7 +25,7 @@ export function useChatHistory() {
   const navigate = useNavigate();
   const { id: mixedId } = useLoaderData<{ id?: string }>();
 
-  const [initialMessages, setInitialMessages] = useState<Message[]>([]);
+  const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
 
@@ -63,7 +63,7 @@ export function useChatHistory() {
   return {
     ready: !mixedId || ready,
     initialMessages,
-    storeMessageHistory: async (messages: Message[]) => {
+    storeMessageHistory: async (messages: UIMessage[]) => {
       if (!db || messages.length === 0) {
         return;
       }
