@@ -5,6 +5,7 @@ import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { UserMenu } from '~/components/auth/UserMenu';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -24,7 +25,7 @@ export function Header() {
         <div className="i-ph:sidebar-simple-duotone text-xl" />
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
           <img
-            src={theme === 'dark' ? '/brand/logo-full-dark.png' : '/brand/logo-full-light.png'}
+            src="/logo.svg"
             alt="BoltDYI"
             className="h-8"
           />
@@ -33,15 +34,20 @@ export function Header() {
       <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
         <ClientOnly>{() => <ChatDescription />}</ClientOnly>
       </span>
-      {chat.started && (
+      <div className="flex items-center gap-2">
+        {chat.started && (
+          <ClientOnly>
+            {() => (
+              <div className="mr-1">
+                <HeaderActionButtons />
+              </div>
+            )}
+          </ClientOnly>
+        )}
         <ClientOnly>
-          {() => (
-            <div className="mr-1">
-              <HeaderActionButtons />
-            </div>
-          )}
+          {() => <UserMenu />}
         </ClientOnly>
-      )}
+      </div>
     </header>
   );
 }
