@@ -73,9 +73,9 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
           </h2>
           <button
             onClick={onClose}
-            className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors"
+            className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 transition-colors rounded-lg p-1.5"
           >
-            <div className="i-ph:x text-2xl" />
+            <div className="i-ph:x text-xl" />
           </button>
         </div>
 
