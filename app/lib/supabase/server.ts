@@ -13,14 +13,23 @@ interface Env {
 
 export function createSupabaseServerClient(request: Request, context: AppLoadContext) {
   const cookies = parse(request.headers.get('Cookie') ?? '')
-  const env = context.env as Env
+  
+  // In development, context.env might be undefined, so we fall back to process.env
+  const env = (context.env as Env) || process.env as any
+  
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  const supabaseAnonKey = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables for server client')
+  }
   
   // For server-side operations, we need to handle cookie management
   const headers = new Headers()
 
   const supabase = createServerClient<Database>(
-    env.SUPABASE_URL,
-    env.SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get(key) {
@@ -41,11 +50,18 @@ export function createSupabaseServerClient(request: Request, context: AppLoadCon
 
 // Alternative simplified version for basic operations
 export function createSupabaseServerClientSimple(context: AppLoadContext) {
-  const env = context.env as Env
+  const env = (context.env as Env) || process.env as any
+  
+  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL
+  const supabaseAnonKey = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY
+  
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Missing Supabase environment variables for server client')
+  }
   
   return createServerClient<Database>(
-    env.SUPABASE_URL,
-    env.SUPABASE_ANON_KEY,
+    supabaseUrl,
+    supabaseAnonKey,
     {
       cookies: {
         get() { return undefined },

@@ -7,6 +7,7 @@ import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
+import { MigrationBanner } from '~/components/migration/MigrationBanner';
 
 import styles from './BaseChat.module.scss';
 
@@ -86,6 +87,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 'h-full flex flex-col': chatStarted,
               })}
             >
+              <ClientOnly>
+                {() => (
+                  <div className="w-full max-w-chat mx-auto mb-4">
+                    <MigrationBanner />
+                  </div>
+                )}
+              </ClientOnly>
               <ClientOnly>
                 {() => {
                   return chatStarted ? (
