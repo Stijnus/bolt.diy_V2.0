@@ -7,6 +7,7 @@ import { WORK_DIR } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import FileTree from './FileTree';
+import { File as FileIcon, ChevronRight } from 'lucide-react';
 
 const WORK_DIR_REGEX = new RegExp(`^${WORK_DIR.split('/').slice(0, -1).join('/').replaceAll('/', '\\/')}/`);
 
@@ -97,11 +98,11 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                   })}
                   onClick={() => handleSegmentClick(index)}
                 >
-                  {isLast && <div className="i-ph:file-duotone" />}
+                  {isLast && <FileIcon className="w-4 h-4" />}
                   {segment}
                 </span>
               </DropdownMenu.Trigger>
-              {index > 0 && !isLast && <span className="i-ph:caret-right inline-block mx-1" />}
+              {index > 0 && !isLast && <ChevronRight className="w-4 h-4 inline-block mx-1" />}
               <AnimatePresence>
                 {isActive && (
                   <DropdownMenu.Portal>

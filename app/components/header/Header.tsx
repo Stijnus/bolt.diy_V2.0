@@ -5,6 +5,8 @@ import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
+import { UserMenu } from '~/components/auth/UserMenu';
+import { PanelLeft } from 'lucide-react';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -21,7 +23,7 @@ export function Header() {
       )}
     >
       <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <div className="i-ph:sidebar-simple-duotone text-xl" />
+        <PanelLeft className="w-5 h-5" />
         <a href="/" className="text-2xl font-semibold text-accent flex items-center">
           <img
             src="/logo.svg"
@@ -43,6 +45,9 @@ export function Header() {
             )}
           </ClientOnly>
         )}
+        <ClientOnly>
+          {() => <UserMenu />}
+        </ClientOnly>
       </div>
     </header>
   );

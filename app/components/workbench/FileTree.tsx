@@ -2,6 +2,7 @@ import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
+import { ChevronRight, ChevronDown, File as FileIcon, Circle } from 'lucide-react';
 
 const logger = createScopedLogger('FileTree');
 
@@ -168,10 +169,7 @@ function Folder({ folder: { depth, name }, collapsed, selected = false, onClick 
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames({
-        'i-ph:caret-right scale-98': collapsed,
-        'i-ph:caret-down scale-98': !collapsed,
-      })}
+      icon={collapsed ? <ChevronRight className="w-4 h-4 scale-98" /> : <ChevronDown className="w-4 h-4 scale-98" />}
       onClick={onClick}
     >
       {name}
@@ -194,9 +192,13 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
-      iconClasses={classNames('i-ph:file-duotone scale-98', {
-        'group-hover:text-bolt-elements-item-contentActive': !selected,
-      })}
+      icon={
+        <FileIcon
+          className={classNames('w-4 h-4 scale-98', {
+            'group-hover:text-bolt-elements-item-contentActive': !selected,
+          })}
+        />
+      }
       onClick={onClick}
     >
       <div
@@ -205,7 +207,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         })}
       >
         <div className="flex-1 truncate pr-2">{name}</div>
-        {unsavedChanges && <span className="i-ph:circle-fill scale-68 shrink-0 text-orange-500" />}
+        {unsavedChanges && <Circle className="w-2 h-2 shrink-0 text-orange-500 fill-current" />}
       </div>
     </NodeButton>
   );
@@ -213,13 +215,13 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
 
 interface ButtonProps {
   depth: number;
-  iconClasses: string;
+  icon: ReactNode;
   children: ReactNode;
   className?: string;
   onClick?: () => void;
 }
 
-function NodeButton({ depth, iconClasses, onClick, className, children }: ButtonProps) {
+function NodeButton({ depth, icon, onClick, className, children }: ButtonProps) {
   return (
     <button
       className={classNames(
@@ -229,7 +231,7 @@ function NodeButton({ depth, iconClasses, onClick, className, children }: Button
       style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
       onClick={() => onClick?.()}
     >
-      <div className={classNames('scale-120 shrink-0', iconClasses)}></div>
+      <div className="scale-120 shrink-0">{icon}</div>
       <div className="truncate w-full text-left">{children}</div>
     </button>
   );

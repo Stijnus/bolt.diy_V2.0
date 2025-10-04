@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { createPortal } from 'react-dom'
 import { useAuth } from '~/lib/contexts/AuthContext'
 import { LoginModal } from '~/components/auth/LoginModal'
+import { LogIn, ChevronUp, ChevronDown, FolderOpen, Home, LogOut } from 'lucide-react'
 
 export function UserPanel() {
   const { user, signOut, loading } = useAuth()
@@ -30,7 +31,7 @@ export function UserPanel() {
             onClick={() => setLoginOpen(true)}
             className="w-full flex items-center justify-center gap-2 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover rounded-lg px-4 py-2.5 font-medium transition-all"
           >
-            <div className="i-ph:sign-in-bold text-lg" />
+            <LogIn className="w-4 h-4" />
             Sign In
           </button>
           <p className="text-xs text-bolt-elements-textTertiary text-center mt-2">
@@ -72,9 +73,11 @@ export function UserPanel() {
           </div>
           <div className="text-xs text-bolt-elements-textTertiary truncate">{user.email}</div>
         </div>
-        <div
-          className={`i-ph:caret-${menuOpen ? 'up' : 'down'}-bold text-bolt-elements-textTertiary transition-transform`}
-        />
+        {menuOpen ? (
+          <ChevronUp className="w-4 h-4 text-bolt-elements-textTertiary transition-transform" />
+        ) : (
+          <ChevronDown className="w-4 h-4 text-bolt-elements-textTertiary transition-transform" />
+        )}
       </button>
 
       {/* Expanded Menu */}
@@ -85,14 +88,14 @@ export function UserPanel() {
               href="/projects"
               className="flex items-center gap-3 px-3 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-sidebar-buttonBackgroundHover rounded-md transition-all group"
             >
-              <div className="i-ph:folder-open-duotone text-lg group-hover:scale-110 transition-transform" />
+              <FolderOpen className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-medium">My Projects</span>
             </a>
             <a
               href="/"
               className="flex items-center gap-3 px-3 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-sidebar-buttonBackgroundHover rounded-md transition-all group"
             >
-              <div className="i-ph:house-duotone text-lg group-hover:scale-110 transition-transform" />
+              <Home className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-medium">Home</span>
             </a>
             <hr className="border-bolt-elements-borderColor my-2" />
@@ -100,7 +103,7 @@ export function UserPanel() {
               onClick={handleSignOut}
               className="w-full flex items-center gap-3 px-3 py-2 text-sm text-bolt-elements-textSecondary hover:text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-background/10 rounded-md transition-all group"
             >
-              <div className="i-ph:sign-out-bold text-lg group-hover:scale-110 transition-transform" />
+              <LogOut className="w-4 h-4 group-hover:scale-110 transition-transform" />
               <span className="font-medium">Sign Out</span>
             </button>
           </div>

@@ -2,6 +2,7 @@ import { memo, useEffect, useState } from 'react';
 import { bundledLanguages, codeToHtml, isSpecialLang, type BundledLanguage, type SpecialLanguage } from 'shiki';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger } from '~/utils/logger';
+import { Clipboard } from 'lucide-react';
 
 import styles from './CodeBlock.module.scss';
 
@@ -71,7 +72,7 @@ export const CodeBlock = memo(
               title="Copy Code"
               onClick={() => copyToClipboard()}
             >
-              <div className="i-ph:clipboard-text-duotone"></div>
+              <Clipboard className="w-4 h-4" />
             </button>
           )}
         </div>

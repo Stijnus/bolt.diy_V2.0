@@ -7,6 +7,7 @@ import type { ActionState } from '~/lib/runtime/action-runner';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
+import { ChevronUp, ChevronDown, Loader2, Circle, Check, X } from 'lucide-react';
 
 const highlighterOptions = {
   langs: ['shell'],
@@ -75,7 +76,7 @@ export const Artifact = memo(({ messageId }: ArtifactProps) => {
               onClick={toggleActions}
             >
               <div className="p-4">
-                <div className={showActions ? 'i-ph:caret-up-bold' : 'i-ph:caret-down-bold'}></div>
+                {showActions ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
               </div>
             </motion.button>
           )}
@@ -151,13 +152,13 @@ const ActionList = memo(({ actions }: ActionListProps) => {
               <div className="flex items-center gap-1.5 text-sm">
                 <div className={classNames('text-lg', getIconColor(action.status))}>
                   {status === 'running' ? (
-                    <div className="i-svg-spinners:90-ring-with-bg"></div>
+                    <Loader2 className="w-5 h-5 animate-spin" />
                   ) : status === 'pending' ? (
-                    <div className="i-ph:circle-duotone"></div>
+                    <Circle className="w-5 h-5" />
                   ) : status === 'complete' ? (
-                    <div className="i-ph:check"></div>
+                    <Check className="w-5 h-5" />
                   ) : status === 'failed' || status === 'aborted' ? (
-                    <div className="i-ph:x"></div>
+                    <X className="w-5 h-5" />
                   ) : null}
                 </div>
                 {type === 'file' ? (

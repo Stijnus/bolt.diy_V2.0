@@ -16,6 +16,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 import { EditorPanel } from './EditorPanel';
 import { Preview } from './Preview';
+import { Terminal, XCircle } from 'lucide-react';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -128,12 +129,12 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                       workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
                     }}
                   >
-                    <div className="i-ph:terminal" />
+                    <Terminal className="w-4 h-4" />
                     Toggle Terminal
                   </PanelHeaderButton>
                 )}
                 <IconButton
-                  icon="i-ph:x-circle"
+                  icon={XCircle}
                   className="-mr-1"
                   size="xl"
                   onClick={() => {

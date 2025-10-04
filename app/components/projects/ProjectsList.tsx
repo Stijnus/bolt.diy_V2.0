@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { projectService } from '~/lib/services/projects'
 import type { Database } from '~/lib/supabase/types'
 import { toast } from 'react-toastify'
+import { Loader2, FolderOpen, Share2, Trash2 } from 'lucide-react'
 
 type Project = Database['public']['Tables']['projects']['Row']
 
@@ -41,7 +42,7 @@ export function ProjectsList() {
   if (loading) {
     return (
       <div className="flex items-center justify-center p-8">
-        <div className="i-ph:spinner animate-spin text-2xl text-bolt-elements-textSecondary" />
+        <Loader2 className="w-8 h-8 animate-spin text-bolt-elements-textSecondary" />
       </div>
     )
   }
@@ -49,7 +50,7 @@ export function ProjectsList() {
   if (projects.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center p-8 text-center">
-        <div className="i-ph:folder-open-duotone text-6xl text-bolt-elements-textTertiary mb-4" />
+        <FolderOpen className="w-16 h-16 text-bolt-elements-textTertiary mb-4" />
         <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-2">No projects yet</h3>
         <p className="text-sm text-bolt-elements-textSecondary">Create your first project to get started</p>
       </div>
@@ -95,7 +96,7 @@ export function ProjectsList() {
               }}
               className="flex-1 btn btn-sm bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
             >
-              <div className="i-ph:folder-open" />
+              <FolderOpen className="w-4 h-4" />
               Open
             </button>
             <button
@@ -105,13 +106,13 @@ export function ProjectsList() {
               }}
               className="btn btn-sm bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover"
             >
-              <div className="i-ph:share-network" />
+              <Share2 className="w-4 h-4" />
             </button>
             <button
               onClick={() => handleDelete(project.id, project.name)}
               className="btn btn-sm bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover"
             >
-              <div className="i-ph:trash" />
+              <Trash2 className="w-4 h-4" />
             </button>
           </div>
         </div>

@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+import { Code2 } from 'lucide-react';
 
 interface HeaderActionButtonsProps {}
 
@@ -36,7 +37,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
             workbenchStore.showWorkbench.set(!showWorkbench);
           }}
         >
-          <div className="i-ph:code-bold" />
+          <Code2 className="w-4 h-4" />
         </Button>
       </div>
     </div>

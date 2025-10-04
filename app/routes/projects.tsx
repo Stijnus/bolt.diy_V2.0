@@ -3,6 +3,7 @@ import { ProjectsList } from '~/components/projects/ProjectsList'
 import { CreateProjectDialog } from '~/components/projects/CreateProjectDialog'
 import { useAuth } from '~/lib/contexts/AuthContext'
 import { ClientOnly } from 'remix-utils/client-only'
+import { Loader2, KeyRound, Plus } from 'lucide-react'
 
 export default function ProjectsPage() {
   const { user, loading } = useAuth()
@@ -12,7 +13,7 @@ export default function ProjectsPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-bolt-elements-background-depth-1">
-        <div className="i-ph:spinner animate-spin text-4xl text-bolt-elements-textSecondary" />
+        <Loader2 className="w-10 h-10 animate-spin text-bolt-elements-textSecondary" />
       </div>
     )
   }
@@ -20,7 +21,7 @@ export default function ProjectsPage() {
   if (!user) {
     return (
       <div className="flex flex-col items-center justify-center h-screen bg-bolt-elements-background-depth-1 p-4">
-        <div className="i-ph:lock-key-duotone text-6xl text-bolt-elements-textTertiary mb-4" />
+        <KeyRound className="w-16 h-16 text-bolt-elements-textTertiary mb-4" />
         <h1 className="text-2xl font-bold text-bolt-elements-textPrimary mb-2">Sign In Required</h1>
         <p className="text-bolt-elements-textSecondary text-center mb-6">
           You need to be signed in to view and manage your projects.
@@ -49,7 +50,7 @@ export default function ProjectsPage() {
             onClick={() => setCreateDialogOpen(true)}
             className="btn bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
           >
-            <div className="i-ph:plus" />
+            <Plus className="w-4 h-4" />
             New Project
           </button>
         </div>

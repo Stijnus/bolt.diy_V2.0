@@ -23,6 +23,7 @@ import { isMobile } from '~/utils/mobile';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import { FolderTree, Save, History, Terminal as TerminalIcon, Plus, ChevronDown } from 'lucide-react';
 
 interface EditorPanelProps {
   files?: FileMap;
@@ -129,7 +130,7 @@ export const EditorPanel = memo(
             <Panel defaultSize={20} minSize={10} collapsible>
               <div className="flex flex-col border-r border-bolt-elements-borderColor h-full">
                 <PanelHeader>
-                  <div className="i-ph:tree-structure-duotone shrink-0" />
+                  <FolderTree className="w-4 h-4 shrink-0" />
                   Files
                 </PanelHeader>
                 <FileTree
@@ -152,11 +153,11 @@ export const EditorPanel = memo(
                     {activeFileUnsaved && (
                       <div className="flex gap-1 ml-auto -mr-1.5">
                         <PanelHeaderButton onClick={onFileSave}>
-                          <div className="i-ph:floppy-disk-duotone" />
+                          <Save className="w-4 h-4" />
                           Save
                         </PanelHeaderButton>
                         <PanelHeaderButton onClick={onFileReset}>
-                          <div className="i-ph:clock-counter-clockwise-duotone" />
+                          <History className="w-4 h-4" />
                           Reset
                         </PanelHeaderButton>
                       </div>
@@ -215,15 +216,15 @@ export const EditorPanel = memo(
                       )}
                       onClick={() => setActiveTerminal(index)}
                     >
-                      <div className="i-ph:terminal-window-duotone text-lg" />
+                      <TerminalIcon className="w-4 h-4" />
                       Terminal {terminalCount > 1 && index + 1}
                     </button>
                   );
                 })}
-                {terminalCount < MAX_TERMINALS && <IconButton icon="i-ph:plus" size="md" onClick={addTerminal} />}
+                {terminalCount < MAX_TERMINALS && <IconButton icon={Plus} size="md" onClick={addTerminal} />}
                 <IconButton
                   className="ml-auto"
-                  icon="i-ph:caret-down"
+                  icon={ChevronDown}
                   title="Close"
                   size="md"
                   onClick={() => workbenchStore.toggleTerminal(false)}

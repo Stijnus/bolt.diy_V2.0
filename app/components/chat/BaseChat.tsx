@@ -8,6 +8,7 @@ import { classNames } from '~/utils/classNames';
 import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
 import { MigrationBanner } from '~/components/migration/MigrationBanner';
+import { Loader2, CornerDownLeft } from 'lucide-react';
 
 import styles from './BaseChat.module.scss';
 
@@ -171,7 +172,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       >
                         {enhancingPrompt ? (
                           <>
-                            <div className="i-svg-spinners:90-ring-with-bg text-bolt-elements-loader-progress text-xl"></div>
+                            <Loader2 className="w-5 h-5 text-bolt-elements-loader-progress animate-spin" />
                             <div className="ml-1.5">Enhancing prompt...</div>
                           </>
                         ) : (
@@ -205,7 +206,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
                       >
                         {examplePrompt.text}
-                        <div className="i-ph:arrow-bend-down-left" />
+                        <CornerDownLeft className="w-4 h-4" />
                       </button>
                     );
                   })}

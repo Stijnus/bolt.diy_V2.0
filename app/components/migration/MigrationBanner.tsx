@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { migrateIndexedDBToSupabase, hasLocalChats, type MigrationResult } from '~/lib/migration/migrate-to-supabase'
 import { useAuth } from '~/lib/contexts/AuthContext'
 import { toast } from 'react-toastify'
+import { Database, Upload, Loader2, X } from 'lucide-react'
 
 export function MigrationBanner() {
   const { user } = useAuth()
@@ -81,7 +82,7 @@ export function MigrationBanner() {
       <div className="flex items-start justify-between gap-4">
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-2">
-            <div className="i-ph:database-duotone text-xl text-bolt-elements-button-primary-background" />
+            <Database className="w-5 h-5 text-bolt-elements-button-primary-background" />
             <h3 className="font-semibold text-bolt-elements-textPrimary">Local chat history detected</h3>
           </div>
           <p className="text-sm text-bolt-elements-textSecondary mb-3">
@@ -122,12 +123,12 @@ export function MigrationBanner() {
           >
             {migrating ? (
               <>
-                <div className="i-ph:spinner animate-spin" />
+                <Loader2 className="w-4 h-4 animate-spin" />
                 Migrating...
               </>
             ) : (
               <>
-                <div className="i-ph:upload-simple" />
+                <Upload className="w-4 h-4" />
                 Migrate Now
               </>
             )}
@@ -138,7 +139,7 @@ export function MigrationBanner() {
             className="btn btn-sm text-sm h-[34px] text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary disabled:opacity-50"
             title="Dismiss this banner"
           >
-            <div className="i-ph:x text-lg" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>

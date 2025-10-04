@@ -1,5 +1,6 @@
 import { memo } from 'react';
-import { classNames } from '~/utils/classNames';
+import type { LucideIcon } from 'lucide-react';
+import { cn } from '~/lib/utils';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
 
@@ -13,8 +14,8 @@ interface BaseIconButtonProps {
   onClick?: (event: React.MouseEvent<HTMLButtonElement, MouseEvent>) => void;
 }
 
-type IconButtonWithoutChildrenProps = {
-  icon: string;
+type IconButtonWithIconProps = {
+  icon: LucideIcon;
   children?: undefined;
 } & BaseIconButtonProps;
 
@@ -23,11 +24,11 @@ type IconButtonWithChildrenProps = {
   children: React.ReactNode;
 } & BaseIconButtonProps;
 
-type IconButtonProps = IconButtonWithoutChildrenProps | IconButtonWithChildrenProps;
+type IconButtonProps = IconButtonWithIconProps | IconButtonWithChildrenProps;
 
 export const IconButton = memo(
   ({
-    icon,
+    icon: Icon,
     size = 'xl',
     className,
     iconClassName,
@@ -39,11 +40,9 @@ export const IconButton = memo(
   }: IconButtonProps) => {
     return (
       <button
-        className={classNames(
+        className={cn(
           'flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed',
-          {
-            [classNames('opacity-30', disabledClassName)]: disabled,
-          },
+          disabled && cn('opacity-30', disabledClassName),
           className,
         )}
         title={title}
@@ -56,22 +55,20 @@ export const IconButton = memo(
           onClick?.(event);
         }}
       >
-        {children ? children : <div className={classNames(icon, getIconSize(size), iconClassName)}></div>}
+        {children ? children : Icon && <Icon className={cn(getIconSize(size), iconClassName)} />}
       </button>
     );
   },
 );
 
 function getIconSize(size: IconSize) {
-  if (size === 'sm') {
-    return 'text-sm';
-  } else if (size === 'md') {
-    return 'text-md';
-  } else if (size === 'lg') {
-    return 'text-lg';
-  } else if (size === 'xl') {
-    return 'text-xl';
-  } else {
-    return 'text-2xl';
-  }
+  const sizeMap = {
+    sm: 'w-4 h-4',
+    md: 'w-5 h-5',
+    lg: 'w-6 h-6',
+    xl: 'w-7 h-7',
+    xxl: 'w-8 h-8',
+  };
+
+  return sizeMap[size];
 }

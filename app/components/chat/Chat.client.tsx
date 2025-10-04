@@ -12,6 +12,7 @@ import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
 import { BaseChat } from './BaseChat';
+import { X, Check, AlertTriangle } from 'lucide-react';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -32,7 +33,7 @@ export function Chat() {
         closeButton={({ closeToast }) => {
           return (
             <button className="Toastify__close-button" onClick={closeToast}>
-              <div className="i-ph:x text-lg" />
+              <X className="w-4 h-4" />
             </button>
           );
         }}
@@ -42,10 +43,10 @@ export function Chat() {
            */
           switch (type) {
             case 'success': {
-              return <div className="i-ph:check-bold text-bolt-elements-icon-success text-2xl" />;
+              return <Check className="w-6 h-6 text-bolt-elements-icon-success" />;
             }
             case 'error': {
-              return <div className="i-ph:warning-circle-bold text-bolt-elements-icon-error text-2xl" />;
+              return <AlertTriangle className="w-6 h-6 text-bolt-elements-icon-error" />;
             }
           }
 

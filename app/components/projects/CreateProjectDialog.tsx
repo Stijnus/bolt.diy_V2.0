@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { projectService } from '~/lib/services/projects'
 import { toast } from 'react-toastify'
+import { X, Lock, Globe, Loader2 } from 'lucide-react'
 
 interface CreateProjectDialogProps {
   open: boolean
@@ -56,7 +57,7 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
             onClick={onClose}
             className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
           >
-            <div className="i-ph:x text-xl" />
+            <X className="w-5 h-5" />
           </button>
         </div>
 
@@ -107,7 +108,7 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
                   className="mr-2"
                 />
                 <div className="flex items-center gap-2">
-                  <div className="i-ph:lock text-lg" />
+                  <Lock className="w-4 h-4" />
                   <span className="text-bolt-elements-textPrimary">Private</span>
                 </div>
               </label>
@@ -121,7 +122,7 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
                   className="mr-2"
                 />
                 <div className="flex items-center gap-2">
-                  <div className="i-ph:globe text-lg" />
+                  <Globe className="w-4 h-4" />
                   <span className="text-bolt-elements-textPrimary">Public</span>
                 </div>
               </label>
@@ -144,7 +145,7 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
             >
               {loading ? (
                 <>
-                  <div className="i-ph:spinner animate-spin inline-block mr-2" />
+                  <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" />
                   Creating...
                 </>
               ) : (
