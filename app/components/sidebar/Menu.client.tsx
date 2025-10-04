@@ -9,6 +9,7 @@ import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
 import { HistoryItem } from './HistoryItem';
 import { binDates } from './date-binning';
+import { UserPanel } from './UserPanel';
 
 const menuVariants = {
   closed: {
@@ -163,9 +164,11 @@ export function Menu() {
             </Dialog>
           </DialogRoot>
         </div>
-        <div className="flex items-center border-t border-bolt-elements-borderColor p-4">
-          <ThemeSwitch className="ml-auto" />
+        <div className="flex items-center justify-between px-4 py-3 border-t border-bolt-elements-borderColor">
+          <span className="text-xs text-bolt-elements-textTertiary font-medium">Theme</span>
+          <ThemeSwitch />
         </div>
+        <UserPanel />
       </div>
     </motion.div>
   );

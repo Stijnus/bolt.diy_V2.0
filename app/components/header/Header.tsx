@@ -5,7 +5,6 @@ import { themeStore } from '~/lib/stores/theme';
 import { classNames } from '~/utils/classNames';
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
-import { UserMenu } from '~/components/auth/UserMenu';
 
 export function Header() {
   const chat = useStore(chatStore);
@@ -44,9 +43,6 @@ export function Header() {
             )}
           </ClientOnly>
         )}
-        <ClientOnly>
-          {() => <UserMenu />}
-        </ClientOnly>
       </div>
     </header>
   );
