@@ -3,6 +3,7 @@ import { motion, type Variants } from 'framer-motion';
 import * as React from 'react';
 
 import { buttonVariants } from './Button';
+import { VisuallyHidden } from './VisuallyHidden';
 import { cn } from '~/lib/utils';
 import { cubicEasingFn } from '~/utils/easings';
 
@@ -65,7 +66,7 @@ AlertDialogOverlay.displayName = AlertDialogPrimitive.Overlay.displayName;
 const AlertDialogContent = React.forwardRef<
   React.ElementRef<typeof AlertDialogPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof AlertDialogPrimitive.Content>
->(({ className, ...props }, ref) => (
+>(({ className, children, ...props }, ref) => (
   <AlertDialogPortal>
     <AlertDialogOverlay />
     <AlertDialogPrimitive.Content asChild {...props}>
@@ -79,7 +80,9 @@ const AlertDialogContent = React.forwardRef<
         animate="open"
         exit="closed"
         variants={contentVariants}
-      />
+      >
+        {children}
+      </motion.div>
     </AlertDialogPrimitive.Content>
   </AlertDialogPortal>
 ));
@@ -151,4 +154,5 @@ export {
   AlertDialogDescription,
   AlertDialogAction,
   AlertDialogCancel,
+  VisuallyHidden,
 };

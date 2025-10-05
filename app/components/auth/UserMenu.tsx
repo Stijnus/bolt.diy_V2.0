@@ -2,7 +2,6 @@ import { ChevronDown, FolderOpen, Home, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoginModal } from './LoginModal';
-import { getAvatarUrl } from '~/utils/avatar';
 import { Button } from '~/components/ui/Button';
 import {
   DropdownMenu,
@@ -13,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '~/components/ui/DropdownMenu';
 import { useAuth } from '~/lib/contexts/AuthContext';
+import { getAvatarUrl } from '~/utils/avatar';
 import { classNames } from '~/utils/classNames';
 
 export function UserMenu() {

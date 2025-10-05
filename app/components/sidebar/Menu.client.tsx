@@ -1,5 +1,5 @@
 import { motion, type Variants } from 'framer-motion';
-import { MessageSquarePlus, Sparkles, TrendingUp } from 'lucide-react';
+import { MessageSquarePlus, FolderKanban } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -10,6 +10,8 @@ import { binDates } from './date-binning';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Separator } from '~/components/ui/Separator';
+import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { useAuth } from '~/lib/contexts/AuthContext';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
@@ -42,6 +44,7 @@ export function Menu() {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+  const { user } = useAuth();
 
   const loadEntries = useCallback(() => {
     if (db) {
@@ -123,9 +126,12 @@ export function Menu() {
               <p className="text-xs text-bolt-elements-textSecondary">Workspace</p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-bolt-elements-icon-success/30 bg-bolt-elements-icon-success/10 px-3 py-1.5 text-xs font-semibold text-bolt-elements-icon-success">
-            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></div>
-            Live
+          <div className="flex items-center gap-3">
+            <ThemeSwitch className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors" />
+            <div className="flex items-center gap-2 rounded-full border border-bolt-elements-icon-success/30 bg-bolt-elements-icon-success/10 px-3 py-1.5 text-xs font-semibold text-bolt-elements-icon-success">
+              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></div>
+              Live
+            </div>
           </div>
         </div>
       </div>
@@ -145,27 +151,21 @@ export function Menu() {
             </a>
           </Button>
 
-          {/* Pro Tip Callout */}
-          <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
-            <div className="relative flex items-start gap-3">
-              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
-                <Sparkles className="h-5 w-5" />
-              </div>
-              <div className="min-w-0 flex-1 space-y-1">
-                <div className="flex items-center gap-2">
-                  <p className="text-sm font-bold text-bolt-elements-textPrimary">Pro tip</p>
-                  <TrendingUp className="h-4 w-4 text-primary" />
-                </div>
-                <p className="text-xs leading-relaxed text-bolt-elements-textSecondary">
-                  Drop files or type{' '}
-                  <code className="rounded-md bg-bolt-elements-background-depth-1 px-1.5 py-0.5 text-xs font-semibold text-primary">
-                    /deploy
-                  </code>{' '}
-                  to spin up a live preview instantly.
-                </p>
-              </div>
-            </div>
-          </div>
+          {/* My Projects Button */}
+          {user ? (
+            <Button
+              asChild
+              variant="outline"
+              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor"
+              size="lg"
+            >
+              <a href="/projects" className="flex items-center gap-2.5 font-semibold">
+                <FolderKanban className="h-5 w-5" />
+                My Projects
+              </a>
+            </Button>
+          ) : null}
+
         </div>
 
         {/* History Section Header */}

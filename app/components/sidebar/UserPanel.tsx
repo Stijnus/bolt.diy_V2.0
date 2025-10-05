@@ -1,9 +1,8 @@
-import { ChevronDown, ChevronUp, FolderOpen, Home, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, LogIn, LogOut, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoginModal } from '~/components/auth/LoginModal';
 import { Button } from '~/components/ui/Button';
-import { Separator } from '~/components/ui/Separator';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { getAvatarUrl } from '~/utils/avatar';
 
@@ -11,7 +10,6 @@ export function UserPanel() {
   const { user, signOut, loading } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
 
   if (loading) {
     return (
@@ -94,7 +92,7 @@ export function UserPanel() {
             src={getAvatarUrl(user)}
             alt={user.email || 'User'}
             className="h-10 w-10 rounded-full ring-2 ring-bolt-elements-borderColor transition-all group-hover:ring-bolt-elements-borderColorActive"
-onError={(e) => {
+            onError={(e) => {
               // Fallback to generated avatar if the original fails to load
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`;
             }}
@@ -116,22 +114,7 @@ onError={(e) => {
 
       {/* Expanded Menu */}
       {menuOpen && (
-        <div className="space-y-1 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-3">
-          <a
-            href="/projects"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
-          >
-            <FolderOpen className="h-4 w-4" />
-            My Projects
-          </a>
-          <a
-            href="/"
-            className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
-          >
-            <Home className="h-4 w-4" />
-            Home
-          </a>
-          <Separator className="my-2" />
+        <div className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-3">
           <button
             type="button"
             onClick={handleSignOut}
