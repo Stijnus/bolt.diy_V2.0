@@ -142,7 +142,7 @@ export function Menu() {
           {/* New Chat Button */}
           <Button
             asChild
-            className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg"
+            className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg btn-ripple transition-smooth hover:scale-[1.02]"
             size="lg"
           >
             <a href="/" className="flex items-center gap-2.5 font-semibold">
@@ -156,7 +156,7 @@ export function Menu() {
             <Button
               asChild
               variant="outline"
-              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor"
+              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
               size="lg"
             >
               <a href="/projects" className="flex items-center gap-2.5 font-semibold">

@@ -228,6 +228,12 @@ export default {
           transition:
             'background-color 150ms cubic-bezier(0.4, 0, 0.2, 1), border-color 150ms cubic-bezier(0.4, 0, 0.2, 1), color 150ms cubic-bezier(0.4, 0, 0.2, 1)',
         },
+        '.transition-smooth': {
+          transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+        },
+        '.transition-bounce': {
+          transition: 'all 0.4s cubic-bezier(0.68, -0.55, 0.265, 1.55)',
+        },
         '.kdb': {
           backgroundColor: 'var(--bolt-elements-code-background)',
           color: 'var(--bolt-elements-code-text)',
@@ -236,6 +242,12 @@ export default {
           paddingLeft: '0.375rem',
           paddingRight: '0.375rem',
           borderRadius: '0.375rem',
+        },
+        '.text-balance': {
+          textWrap: 'balance',
+        },
+        '.backdrop-blur-glass': {
+          backdropFilter: 'blur(12px) saturate(180%)',
         },
       });
     },

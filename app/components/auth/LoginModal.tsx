@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Loader2, Github, ArrowLeft } from 'lucide-react';
+import { AlertCircle, Loader2, Github, ArrowLeft, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
@@ -74,6 +74,8 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
 
   const schema = mode === 'reset' ? resetSchema : mode === 'signup' ? signUpSchema : signInSchema;
 
@@ -92,8 +94,27 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       setError(null);
       setLoading(false);
       setResetSuccess(false);
+      setShowPassword(false);
+      setPasswordStrength(null);
     }
   }, [open, form]);
+
+  const checkPasswordStrength = (password: string) => {
+    if (!password) {
+      setPasswordStrength(null);
+      return;
+    }
+
+    let strength = 0;
+    if (password.length >= 8) strength++;
+    if (/[A-Z]/.test(password)) strength++;
+    if (/[0-9]/.test(password)) strength++;
+    if (/[^A-Za-z0-9]/.test(password)) strength++;
+
+    if (strength <= 1) setPasswordStrength('weak');
+    else if (strength === 2 || strength === 3) setPasswordStrength('medium');
+    else setPasswordStrength('strong');
+  };
 
   const oauthProviders = useMemo<OAuthProvider[]>(
     () => [
@@ -151,7 +172,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
 
   return (
     <DialogRoot open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
-      <Dialog className="max-w-md overflow-hidden">
+      <Dialog className="max-w-md overflow-hidden backdrop-blur-glass animate-scaleIn">
         <DialogTitle className="flex-col items-start gap-2 border-none px-8 pt-8 pb-2">
           <div className="w-full">
             {mode === 'reset' ? (
@@ -195,10 +216,14 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                     key={provider.key}
                     variant="outline"
                     size="lg"
-                    className="w-full justify-center gap-3 border-bolt-elements-borderColor bg-transparent font-semibold transition-all hover:bg-bolt-elements-background-depth-2 hover:border-bolt-elements-borderColorActive"
+                    className={`w-full justify-center gap-3 font-semibold transition-all btn-ripple group ${
+                      provider.key === 'github'
+                        ? 'border-gray-700 bg-gray-900 text-white hover:bg-gray-800 hover:border-gray-600'
+                        : 'border-blue-500/30 bg-white text-gray-900 hover:bg-blue-50 hover:border-blue-500/50'
+                    }`}
                     onClick={() => handleOAuth(provider.key)}
                   >
-                    <provider.icon className="h-5 w-5 flex-shrink-0" />
+                    <provider.icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${provider.key === 'github' ? 'text-white' : ''}`} />
                     <span>{provider.label}</span>
                   </Button>
                 ))}
@@ -245,16 +270,43 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                     <FormItem>
                       <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Password</FormLabel>
                       <FormControl>
-                        <Input
-                          type="password"
-                          placeholder={mode === 'signup' ? 'Create a strong password' : 'Enter your password'}
-                          {...field}
-                          disabled={loading}
-                          className="h-12 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-base transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background"
-                        />
+                        <div className="relative">
+                          <Input
+                            type={showPassword ? 'text' : 'password'}
+                            placeholder={mode === 'signup' ? 'Create a strong password' : 'Enter your password'}
+                            {...field}
+                            onChange={(e) => {
+                              field.onChange(e);
+                              if (mode === 'signup') checkPasswordStrength(e.target.value);
+                            }}
+                            disabled={loading}
+                            className="h-12 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 pr-12 text-base transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="absolute right-4 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
+                          >
+                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                          </button>
+                        </div>
                       </FormControl>
                       <FormMessage className="text-xs" />
-                      {mode === 'signup' && (
+                      {mode === 'signup' && field.value && (
+                        <div className="space-y-2">
+                          <div className="flex gap-1">
+                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'weak' ? 'bg-red-500' : passwordStrength ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
+                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'medium' || passwordStrength === 'strong' ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
+                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'strong' ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
+                          </div>
+                          <p className={`text-xs ${passwordStrength === 'weak' ? 'text-red-500' : passwordStrength === 'medium' ? 'text-orange-500' : 'text-bolt-elements-icon-success'}`}>
+                            {passwordStrength === 'weak' && 'Weak password'}
+                            {passwordStrength === 'medium' && 'Medium password'}
+                            {passwordStrength === 'strong' && 'Strong password'}
+                          </p>
+                        </div>
+                      )}
+                      {mode === 'signup' && !field.value && (
                         <p className="text-xs text-bolt-elements-textTertiary">
                           At least 6 characters, one uppercase letter, and one number
                         </p>
@@ -321,7 +373,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
         {mode !== 'reset' && (
           <div className="flex items-center justify-center gap-1.5 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/50 px-8 py-5 text-sm">
             <span className="text-bolt-elements-textSecondary">
-              {mode === 'signin' ? 'New to Bolt?' : 'Already have an account?'}
+              {mode === 'signin' ? 'New to BoltDIY?' : 'Already have an account?'}
             </span>
             <button
               type="button"

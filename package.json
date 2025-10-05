@@ -1,6 +1,6 @@
 {
-  "name": "bolt",
-  "description": "StackBlitz AI Agent",
+  "name": "boltdiy-v2",
+  "description": "BoltDIY V2.0 - AI-Powered Development Platform",
   "private": true,
   "license": "MIT",
   "packageManager": "pnpm@10.18.0",

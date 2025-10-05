@@ -1,5 +1,6 @@
 import type { UIMessage } from 'ai';
-import { Loader2, Sparkles } from 'lucide-react';
+import { motion } from 'framer-motion';
+import { Loader2, Sparkles, Zap, Code2, Rocket } from 'lucide-react';
 import React, { type RefCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import styles from './BaseChat.module.scss';
@@ -7,6 +8,9 @@ import { Messages } from './Messages.client';
 import { SendButton } from './SendButton.client';
 import { MigrationBanner } from '~/components/migration/MigrationBanner';
 import { Menu } from '~/components/sidebar/Menu.client';
+import { AnimatedBadge } from '~/components/ui/AnimatedBadge';
+import { FeatureCard } from '~/components/ui/FeatureCard';
+import { GradientText } from '~/components/ui/GradientText';
 import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
@@ -65,37 +69,69 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div
+              <motion.div
                 id="intro"
-                className="mx-auto mt-[14vh] flex w-full max-w-3xl flex-col items-center gap-8 px-6 text-center"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.6 }}
+                className="mx-auto mt-[12vh] flex w-full max-w-4xl flex-col items-center gap-10 px-6 text-center"
               >
-                <span className="inline-flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-bolt-elements-textTertiary">
-                  Powered by Bolt
-                </span>
-                <div className="space-y-4">
-                  <h1 className="text-5xl font-semibold tracking-tight text-bolt-elements-textPrimary sm:text-6xl">
-                    Where ideas begin and launch
-                  </h1>
-                  <p className="text-lg text-bolt-elements-textSecondary">
-                    Design, develop, and deploy in one canvas. Craft a prompt, hand off tasks to Bolt, and iterate
-                    together in real time.
-                  </p>
+                {/* Hero Badge */}
+                <AnimatedBadge variant="pulse" pulse size="md" className="animate-slideInFromBottom">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  BoltDIY V2.0
+                </AnimatedBadge>
+
+                {/* Hero Content */}
+                <div className="space-y-6">
+                  <motion.h1
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.1 }}
+                    className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
+                  >
+                    Where <GradientText>ideas begin</GradientText>
+                    <br />
+                    and launch
+                  </motion.h1>
+
+                  <motion.p
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: 0.2 }}
+                    className="mx-auto max-w-2xl text-lg text-bolt-elements-textSecondary sm:text-xl text-balance"
+                  >
+                    Design, develop, and deploy in one canvas. Craft a prompt, hand off tasks to AI, and iterate
+                    together in real time with BoltDIY V2.0.
+                  </motion.p>
                 </div>
-                <div className="grid w-full gap-4 sm:grid-cols-2">
-                  <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/80 px-5 py-4 text-left shadow-sm">
-                    <p className="text-sm font-semibold text-bolt-elements-textPrimary">Instant previews</p>
-                    <p className="mt-2 text-xs text-bolt-elements-textSecondary">
-                      Run `/deploy` or drag in a repo to preview every change without leaving the chat.
-                    </p>
-                  </div>
-                  <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/80 px-5 py-4 text-left shadow-sm">
-                    <p className="text-sm font-semibold text-bolt-elements-textPrimary">Project memory</p>
-                    <p className="mt-2 text-xs text-bolt-elements-textSecondary">
-                      Bolt remembers your context, keeps track of files, and suggests next steps.
-                    </p>
-                  </div>
+
+                {/* Feature Cards Grid */}
+                <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <FeatureCard
+                    icon={Zap}
+                    title="Instant Previews"
+                    description="See every change in real-time without leaving the chat. Deploy with a single command."
+                    gradient
+                    delay={0.3}
+                  />
+                  <FeatureCard
+                    icon={Code2}
+                    title="Smart Context"
+                    description="BoltDIY remembers your project, tracks files, and suggests next steps intelligently."
+                    gradient
+                    delay={0.4}
+                  />
+                  <FeatureCard
+                    icon={Rocket}
+                    title="Ship Faster"
+                    description="From idea to deployment in minutes. AI handles the heavy lifting while you focus on creativity."
+                    gradient
+                    delay={0.5}
+                    className="sm:col-span-2 lg:col-span-1"
+                  />
                 </div>
-              </div>
+              </motion.div>
             )}
             <div
               className={classNames('px-6 pt-10 sm:pt-12', {
@@ -149,7 +185,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="How can Bolt help you today?"
+                    placeholder="How can BoltDIY help you today?"
                     translate="no"
                   />
                   <ClientOnly>

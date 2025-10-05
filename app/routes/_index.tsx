@@ -5,7 +5,10 @@ import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 
 export const meta: MetaFunction = () => {
-  return [{ title: 'Bolt' }, { name: 'description', content: 'Talk with Bolt, an AI assistant from StackBlitz' }];
+  return [
+    { title: 'BoltDIY V2.0 - AI-Powered Development Platform' },
+    { name: 'description', content: 'BoltDIY V2.0: Build, iterate, and deploy with AI. Your intelligent development companion.' }
+  ];
 };
 
 export const loader = () => json({});
