@@ -7,9 +7,11 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
-import { useChatHistory } from '~/lib/persistence';
+import { chatId, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
+import { currentModel, setChatModel } from '~/lib/stores/model';
 import { workbenchStore } from '~/lib/stores/workbench';
+import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
@@ -60,7 +62,7 @@ export function Chat() {
 
 interface ChatProps {
   initialMessages: UIMessage[];
-  storeMessageHistory: (messages: UIMessage[]) => Promise<void>;
+  storeMessageHistory: (messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>;
 }
 
 export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
@@ -71,10 +73,18 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
 
   const { showChat } = useStore(chatStore);
+  const modelSelection = useStore(currentModel);
+  const activeChatId = useStore(chatId);
 
   const [animationScope, animate] = useAnimate();
 
-  const { messages, status, stop, sendMessage } = useChat({ messages: initialMessages });
+  const { messages, status, stop, sendMessage } = useChat({
+    messages: initialMessages,
+    body: {
+      model: modelSelection.fullId,
+    } as Record<string, unknown>,
+  } as any);
+
   const isLoading = status === 'streaming';
   const [input, setInput] = useState('');
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value);
@@ -92,9 +102,27 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     parseMessages(messages, isLoading);
 
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages, modelSelection.fullId).catch((error) => toast.error(error.message));
     }
-  }, [messages, isLoading, parseMessages]);
+  }, [messages, isLoading, parseMessages, initialMessages.length, modelSelection.fullId, storeMessageHistory]);
+
+  useEffect(() => {
+    if (!activeChatId) {
+      return;
+    }
+
+    setChatModel(activeChatId, modelSelection.provider, modelSelection.modelId);
+  }, [activeChatId, modelSelection.provider, modelSelection.modelId]);
+
+  useEffect(() => {
+    if (!activeChatId || messages.length === 0) {
+      return;
+    }
+
+    storeMessageHistory(messages, modelSelection.fullId).catch((error) => {
+      console.warn('Failed to persist model preference', error);
+    });
+  }, [activeChatId, modelSelection.fullId, storeMessageHistory]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -128,10 +156,23 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    await Promise.all([
-      animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }),
-      animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }),
-    ]);
+    // Check if elements exist before animating
+    const examplesEl = document.querySelector('#examples');
+    const introEl = document.querySelector('#intro');
+
+    const animations = [];
+
+    if (examplesEl) {
+      animations.push(animate('#examples', { opacity: 0, display: 'none' }, { duration: 0.1 }));
+    }
+
+    if (introEl) {
+      animations.push(animate('#intro', { opacity: 0, flex: 1 }, { duration: 0.2, ease: cubicEasingFn }));
+    }
+
+    if (animations.length > 0) {
+      await Promise.all(animations);
+    }
 
     chatStore.setKey('started', true);
 

@@ -115,56 +115,100 @@ export class FilesStore {
   async #init() {
     const webcontainer = await this.#webcontainer;
 
+    logger.info(`Initializing file watcher for ${WORK_DIR}`);
+
     // initial snapshot
     await this.#refreshAllFiles();
 
-    // watch for changes
-    webcontainer.fs.watch(WORK_DIR, { recursive: true }, () => {
+    // watch for changes - use '.' for current workdir
+    webcontainer.fs.watch('.', { recursive: true }, (event, filename) => {
+      logger.debug(`File system change detected: ${event} ${filename || ''}`);
+
       // coalesce bursts of events
       clearTimeout((this as any)._watchTimeout);
       (this as any)._watchTimeout = setTimeout(() => {
+        logger.debug('Refreshing all files...');
         this.#refreshAllFiles().catch((e) => logger.error('Failed to refresh files', e));
       }, 100);
     });
+
+    logger.info('File watcher initialized successfully');
   }
 
   async #refreshAllFiles() {
     const webcontainer = await this.#webcontainer;
 
-    // export JSON tree
-    const tree = await webcontainer.export(WORK_DIR, { format: 'json' as const });
+    try {
+      // export JSON tree - use '.' for current workdir
+      logger.debug('Exporting file tree from WebContainer...');
 
-    const newMap: FileMap = {};
+      const tree = await webcontainer.export('.', { format: 'json' as const });
 
-    let size = 0;
+      const newMap: FileMap = {};
 
-    const walk = async (prefix: string, node: any) => {
-      if (!node) {
-        return;
-      }
+      let size = 0;
 
-      const entries = Object.entries(node) as Array<[string, any]>;
-
-      for (const [name, entry] of entries) {
-        const fullPath = `${prefix}/${name}`.replace(/\\/g, '/');
-
-        if (entry && typeof entry === 'object' && 'directory' in entry) {
-          newMap[fullPath] = { type: 'folder' };
-          await walk(fullPath, entry.directory);
-        } else if (entry && typeof entry === 'object' && 'file' in entry) {
-          const contentUint8 = entry.file.contents as Uint8Array;
-          const isBinary = getEncoding(convertToBuffer(contentUint8), { chunkLength: 100 }) === 'binary';
-          const content = !isBinary ? this.#decodeFileContent(contentUint8) : '';
-          newMap[fullPath] = { type: 'file', content, isBinary };
-          size++;
+      const walk = async (prefix: string, node: any) => {
+        if (!node) {
+          logger.debug(`Walk: node is null/undefined for prefix ${prefix}`);
+          return;
         }
-      }
-    };
 
-    await walk(WORK_DIR, (tree as any).directory ?? {});
+        const entries = Object.entries(node) as Array<[string, any]>;
+        logger.debug(`Walk: processing ${entries.length} entries at ${prefix}`);
 
-    this.files.set(newMap);
-    this.#size = size;
+        for (const [name, entry] of entries) {
+          const fullPath = `${prefix}/${name}`.replace(/\\/g, '/');
+
+          if (entry && typeof entry === 'object' && 'directory' in entry) {
+            logger.debug(`Found folder: ${fullPath}`);
+            newMap[fullPath] = { type: 'folder' };
+            await walk(fullPath, entry.directory);
+          } else if (entry && typeof entry === 'object' && 'file' in entry) {
+            const fileEntry = entry.file as { contents?: string | Uint8Array; symlink?: string };
+
+            if ('symlink' in fileEntry && typeof fileEntry.symlink === 'string') {
+              logger.debug(`Skipping symlink: ${fullPath} -> ${fileEntry.symlink}`);
+              continue;
+            }
+
+            const contents = fileEntry.contents;
+
+            if (typeof contents === 'string') {
+              logger.debug(`Found file: ${fullPath} (text)`);
+              newMap[fullPath] = { type: 'file', content: contents, isBinary: false };
+              size++;
+              continue;
+            }
+
+            if (contents instanceof Uint8Array) {
+              const isBinary = getEncoding(convertToBuffer(contents), { chunkLength: 100 }) === 'binary';
+              const content = !isBinary ? this.#decodeFileContent(contents) : '';
+              logger.debug(`Found file: ${fullPath} (${isBinary ? 'binary' : 'text'})`);
+              newMap[fullPath] = { type: 'file', content, isBinary };
+              size++;
+              continue;
+            }
+
+            logger.warn(`File entry without readable contents skipped: ${fullPath}`);
+          }
+        }
+      };
+
+      // when exporting '.', tree IS the directory content, not tree.directory
+      const rootContent = (tree as any).directory || tree;
+      logger.debug('Root content type:', typeof rootContent, 'keys:', Object.keys(rootContent || {}));
+
+      await walk(WORK_DIR, rootContent);
+
+      logger.debug(`Setting ${size} files to store, map keys:`, Object.keys(newMap));
+      this.files.set(newMap);
+      this.#size = size;
+
+      logger.info(`Refreshed ${size} files`);
+    } catch (error) {
+      logger.error('Error refreshing files:', error);
+    }
   }
 
   #decodeFileContent(buffer?: Uint8Array) {

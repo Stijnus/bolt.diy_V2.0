@@ -54,7 +54,7 @@ export async function migrateIndexedDBToSupabase(): Promise<MigrationResult> {
   // check which chats already exist in Supabase to avoid duplicates
   const { data: existingChats } = await supabase.from('chats').select('url_id').eq('user_id', user.id);
 
-  const existingUrlIds = new Set(existingChats?.map((c) => c.url_id) || []);
+  const existingUrlIds = new Set(existingChats?.map((c: any) => c.url_id) || []);
 
   // migrate each chat to Supabase
   for (const chat of chats) {

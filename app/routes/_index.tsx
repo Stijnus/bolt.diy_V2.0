@@ -7,7 +7,10 @@ import { Header } from '~/components/header/Header';
 export const meta: MetaFunction = () => {
   return [
     { title: 'BoltDIY V2.0 - AI-Powered Development Platform' },
-    { name: 'description', content: 'BoltDIY V2.0: Build, iterate, and deploy with AI. Your intelligent development companion.' }
+    {
+      name: 'description',
+      content: 'BoltDIY V2.0: Build, iterate, and deploy with AI. Your intelligent development companion.',
+    },
   ];
 };
 

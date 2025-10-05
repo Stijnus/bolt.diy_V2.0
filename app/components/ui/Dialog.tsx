@@ -1,45 +1,11 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
-import { motion, type Variants } from 'framer-motion';
 import { X } from 'lucide-react';
 import React, { memo, type ReactNode } from 'react';
+
 import { IconButton } from './IconButton';
 import { classNames } from '~/utils/classNames';
-import { cubicEasingFn } from '~/utils/easings';
 
 export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
-
-const transition = {
-  duration: 0.15,
-  ease: cubicEasingFn,
-};
-
-export const dialogBackdropVariants = {
-  closed: {
-    opacity: 0,
-    transition,
-  },
-  open: {
-    opacity: 1,
-    transition,
-  },
-} satisfies Variants;
-
-export const dialogVariants = {
-  closed: {
-    x: '-50%',
-    y: '-40%',
-    scale: 0.96,
-    opacity: 0,
-    transition,
-  },
-  open: {
-    x: '-50%',
-    y: '-50%',
-    scale: 1,
-    opacity: 1,
-    transition,
-  },
-} satisfies Variants;
 
 interface DialogButtonProps {
   type: 'primary' | 'secondary' | 'danger';
@@ -47,51 +13,45 @@ interface DialogButtonProps {
   onClick?: (event: React.UIEvent) => void;
 }
 
-export const DialogButton = memo(({ type, children, onClick }: DialogButtonProps) => {
-  return (
-    <button
-      className={classNames(
-        'inline-flex h-[35px] items-center justify-center rounded-lg px-4 text-sm leading-none focus:outline-none',
-        {
-          'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover':
-            type === 'primary',
-          'bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover':
-            type === 'secondary',
-          'bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover':
-            type === 'danger',
-        },
-      )}
-      onClick={onClick}
-    >
-      {children}
-    </button>
-  );
-});
+export const DialogButton = memo(({ type, children, onClick }: DialogButtonProps) => (
+  <button
+    className={classNames(
+      'inline-flex h-[35px] items-center justify-center rounded-lg px-4 text-sm leading-none focus:outline-none',
+      {
+        'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover':
+          type === 'primary',
+        'bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover':
+          type === 'secondary',
+        'bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover':
+          type === 'danger',
+      },
+    )}
+    onClick={onClick}
+  >
+    {children}
+  </button>
+));
 
-export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.DialogTitleProps) => {
-  return (
-    <RadixDialog.Title
-      className={classNames(
-        'px-5 py-4 flex items-center justify-between border-b border-bolt-elements-borderColor text-lg font-semibold leading-6 text-bolt-elements-textPrimary',
-        className,
-      )}
-      {...props}
-    >
-      {children}
-    </RadixDialog.Title>
-  );
-});
+export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.DialogTitleProps) => (
+  <RadixDialog.Title
+    className={classNames(
+      'px-5 py-4 flex items-center justify-between border-b border-bolt-elements-borderColor text-lg font-semibold leading-6 text-bolt-elements-textPrimary',
+      className,
+    )}
+    {...props}
+  >
+    {children}
+  </RadixDialog.Title>
+));
 
-export const DialogDescription = memo(({ className, children, ...props }: RadixDialog.DialogDescriptionProps) => {
-  return (
-    <RadixDialog.Description
-      className={classNames('px-5 py-4 text-bolt-elements-textPrimary text-base', className)}
-      {...props}
-    >
-      {children}
-    </RadixDialog.Description>
-  );
-});
+export const DialogDescription = memo(({ className, children, ...props }: RadixDialog.DialogDescriptionProps) => (
+  <RadixDialog.Description
+    className={classNames('px-5 py-4 text-bolt-elements-textPrimary text-base', className)}
+    {...props}
+  >
+    {children}
+  </RadixDialog.Description>
+));
 
 interface DialogProps {
   children: ReactNode | ReactNode[];
@@ -103,32 +63,20 @@ interface DialogProps {
 export const Dialog = memo(({ className, children, onBackdrop, onClose }: DialogProps) => {
   return (
     <RadixDialog.Portal>
-      <RadixDialog.Overlay onClick={onBackdrop} asChild>
-        <motion.div
-          className="bg-black/70 fixed inset-0 z-[999]"
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogBackdropVariants}
-        />
-      </RadixDialog.Overlay>
-      <RadixDialog.Content asChild>
-        <motion.div
+      <RadixDialog.Overlay onClick={onBackdrop} className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm" />
+      <RadixDialog.Content className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
+        <div
           className={classNames(
-            'fixed top-[50%] left-[50%] z-[999] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] border border-bolt-elements-borderColor rounded-[var(--radius)] bg-bolt-elements-bg-depth-1 shadow-xl focus:outline-none overflow-hidden',
+            'relative max-h-[85vh] w-full max-w-[450px] overflow-hidden rounded-[var(--radius)] border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 shadow-xl focus:outline-none',
             className,
           )}
           style={{ backgroundColor: 'var(--bolt-elements-bg-depth-1)' }}
-          initial="closed"
-          animate="open"
-          exit="closed"
-          variants={dialogVariants}
         >
           {children}
           <RadixDialog.Close asChild onClick={onClose}>
-            <IconButton icon={X} className="absolute top-[12px] right-[12px] z-10" />
+            <IconButton icon={X} className="absolute right-3 top-3 z-10" />
           </RadixDialog.Close>
-        </motion.div>
+        </div>
       </RadixDialog.Content>
     </RadixDialog.Portal>
   );

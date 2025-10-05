@@ -47,17 +47,24 @@ export async function setMessages(
   messages: UIMessage[],
   urlId?: string,
   description?: string,
+  model?: string,
+  timestamp?: string,
+  origin: 'local' | 'remote' = 'local',
 ): Promise<void> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
+
+    const recordTimestamp = timestamp ?? new Date().toISOString();
 
     const request = store.put({
       id,
       messages,
       urlId,
       description,
-      timestamp: new Date().toISOString(),
+      model,
+      timestamp: recordTimestamp,
+      origin,
     });
 
     request.onsuccess = () => resolve();

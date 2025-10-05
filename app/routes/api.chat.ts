@@ -2,7 +2,7 @@ import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import type { ModelMessage, UIMessage } from 'ai';
 import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
-import { streamText, type StreamingOptions } from '~/lib/.server/llm/stream-text';
+import { streamText, type StreamTextOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
 
 export async function action(args: ActionFunctionArgs) {
@@ -28,32 +28,42 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const uiMessages = (body?.messages ?? []) as UIMessage[];
   const messages = uiToModelMessages(uiMessages);
 
+  // extract model selection from request body (optional)
+  const fullModelId = body?.model as string | undefined;
+
   const stream = new SwitchableStream();
 
-  try {
-    const options: StreamingOptions = {
-      toolChoice: 'none',
-      onFinish: async ({ text: content, finishReason }) => {
-        if (finishReason !== 'length') {
-          return stream.close();
-        }
+  // define onFinish handler that can be reused
+  const createOnFinishHandler = (streamOptions: StreamTextOptions) => {
+    return async ({ text: content, finishReason }: { text: string; finishReason: string }) => {
+      if (finishReason !== 'length') {
+        return stream.close();
+      }
 
-        if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
-          throw Error('Cannot continue message: Maximum segments reached');
-        }
+      if (stream.switches >= MAX_RESPONSE_SEGMENTS) {
+        throw Error('Cannot continue message: Maximum segments reached');
+      }
 
-        const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
-        console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
+      const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
+      console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
 
-        messages.push({ role: 'assistant', content });
-        messages.push({ role: 'user', content: CONTINUE_PROMPT });
+      messages.push({ role: 'assistant', content });
+      messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
-        const continued = await streamText(messages, context.cloudflare.env, options);
-        const continuedResp = continued.toUIMessageStreamResponse({ sendStart: false });
+      const continued = await streamText(messages, context.cloudflare.env, streamOptions);
+      const continuedResp = continued.toUIMessageStreamResponse({ sendStart: false });
 
-        return stream.switchSource(continuedResp.body!);
-      },
+      return stream.switchSource(continuedResp.body!);
     };
+  };
+
+  try {
+    const options: StreamTextOptions = {
+      toolChoice: 'none',
+      fullModelId, // pass model selection to streamText
+    };
+
+    options.onFinish = createOnFinishHandler(options);
 
     const result = await streamText(messages, context.cloudflare.env, options);
     const resp = result.toUIMessageStreamResponse({ sendFinish: false });
@@ -68,6 +78,45 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     });
   } catch (error) {
     console.log(error);
+
+    // check if error is related to missing API key
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+
+    if (errorMessage.includes('Missing API key')) {
+      // if API key is missing and user specified a model, try to fall back to default
+      if (fullModelId) {
+        console.log(`API key missing for selected model, falling back to default model`);
+
+        try {
+          const fallbackOptions: StreamTextOptions = {
+            toolChoice: 'none',
+
+            // don't specify fullModelId to use default
+          };
+
+          fallbackOptions.onFinish = createOnFinishHandler(fallbackOptions);
+
+          const result = await streamText(messages, context.cloudflare.env, fallbackOptions);
+          const resp = result.toUIMessageStreamResponse({ sendFinish: false });
+
+          await stream.switchSource(resp.body!);
+
+          return new Response(stream.readable, {
+            status: 200,
+            headers: {
+              contentType: 'text/plain; charset=utf-8',
+            },
+          });
+        } catch (fallbackError) {
+          console.error('Fallback to default model also failed:', fallbackError);
+        }
+      }
+
+      throw new Response(errorMessage, {
+        status: 401,
+        statusText: 'API Key Missing',
+      });
+    }
 
     throw new Response(null, {
       status: 500,

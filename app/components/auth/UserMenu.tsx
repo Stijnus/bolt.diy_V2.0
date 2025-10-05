@@ -1,4 +1,4 @@
-import { ChevronDown, FolderOpen, Home, LogOut } from 'lucide-react';
+import { ChevronDown, FolderOpen, Home, LogOut, Settings } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoginModal } from './LoginModal';
@@ -102,6 +102,13 @@ export function UserMenu() {
           <a href="/" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium">
             <Home className="h-5 w-5" />
             Home
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="my-2" />
+        <DropdownMenuItem asChild>
+          <a href="/settings" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium">
+            <Settings className="h-5 w-5" />
+            Settings
           </a>
         </DropdownMenuItem>
         <DropdownMenuSeparator className="my-2" />

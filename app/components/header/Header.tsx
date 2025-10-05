@@ -2,6 +2,8 @@ import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
 
 import { HeaderActionButtons } from './HeaderActionButtons.client';
+import { ConnectionStatus } from './ConnectionStatus';
+import { ModelBadge } from '~/components/chat/ModelBadge';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
 import { chatStore } from '~/lib/stores/chat';
 import { classNames } from '~/utils/classNames';
@@ -29,8 +31,10 @@ export function Header() {
         </div>
       </div>
 
-      {/* Right Section - Actions & User */}
+      {/* Right Section - Actions */}
       <div className="flex items-center gap-3">
+        <ClientOnly>{() => <ConnectionStatus />}</ClientOnly>
+        <ClientOnly>{() => <ModelBadge />}</ClientOnly>
         {chat.started && (
           <ClientOnly>
             {() => (

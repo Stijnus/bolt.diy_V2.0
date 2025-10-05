@@ -1,15 +1,21 @@
-import { ChevronDown, ChevronUp, LogIn, LogOut, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, LogIn, LogOut, Settings, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
-import { LoginModal } from '~/components/auth/LoginModal';
 import { Button } from '~/components/ui/Button';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { getAvatarUrl } from '~/utils/avatar';
 
-export function UserPanel() {
+interface UserPanelProps {
+  onRequestAuth?: () => void;
+}
+
+export function UserPanel({ onRequestAuth }: UserPanelProps) {
   const { user, signOut, loading } = useAuth();
-  const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
+  const handleAuthRequest = () => {
+    onRequestAuth?.();
+  };
 
   if (loading) {
     return (
@@ -46,7 +52,7 @@ export function UserPanel() {
                 Sign in to save your conversations, sync projects across devices, and collaborate with your team.
               </p>
 
-              <Button onClick={() => setLoginOpen(true)} className="w-full shadow-sm" size="md">
+              <Button onClick={handleAuthRequest} className="w-full shadow-sm" size="md">
                 <LogIn className="h-4 w-4" />
                 Sign In
               </Button>
@@ -54,7 +60,7 @@ export function UserPanel() {
               <p className="mt-3 text-center text-xs text-bolt-elements-textTertiary">
                 New user?{' '}
                 <button
-                  onClick={() => setLoginOpen(true)}
+                  onClick={handleAuthRequest}
                   className="font-medium text-bolt-elements-button-primary-text transition-colors hover:underline"
                 >
                   Create account
@@ -63,7 +69,6 @@ export function UserPanel() {
             </div>
           </div>
         </div>
-        <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       </>
     );
   }
@@ -93,7 +98,7 @@ export function UserPanel() {
             alt={user.email || 'User'}
             className="h-10 w-10 rounded-full ring-2 ring-bolt-elements-borderColor transition-all group-hover:ring-bolt-elements-borderColorActive"
             onError={(e) => {
-              // Fallback to generated avatar if the original fails to load
+              // fallback to generated avatar if the original fails to load
               e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`;
             }}
           />
@@ -115,10 +120,17 @@ export function UserPanel() {
       {/* Expanded Menu */}
       {menuOpen && (
         <div className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-3">
+          <a
+            href="/settings"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
+          >
+            <Settings className="h-4 w-4" />
+            Settings
+          </a>
           <button
             type="button"
             onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text mt-1"
           >
             <LogOut className="h-4 w-4" />
             Sign Out

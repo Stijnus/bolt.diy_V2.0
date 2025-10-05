@@ -7,14 +7,16 @@ import { HistoryItem } from './HistoryItem';
 import { UserPanel } from './UserPanel';
 import { binDates } from './date-binning';
 
+import { LoginModal } from '~/components/auth/LoginModal';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Separator } from '~/components/ui/Separator';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useAuth } from '~/lib/contexts/AuthContext';
-import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
+import { deleteById, getAll, openDatabase, chatId, type ChatHistoryItem, setMessages } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
+import { createClient } from '~/lib/supabase/client';
 
 const menuVariants = {
   closed: {
@@ -44,36 +46,125 @@ export function Menu() {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
+  const [authModalOpen, setAuthModalOpen] = useState(false);
   const { user } = useAuth();
+  const [database, setDatabase] = useState<IDBDatabase | undefined>(undefined);
 
-  const loadEntries = useCallback(() => {
-    if (db) {
-      getAll(db)
-        .then((list) => list.filter((item) => item.urlId && item.description))
-        .then(setList)
-        .catch((error) => toast.error(error.message));
-    }
-  }, []);
+  const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
-  const deleteItem = useCallback((event: React.UIEvent, item: ChatHistoryItem) => {
-    event.preventDefault();
+  useEffect(() => {
+    let cancelled = false;
 
-    if (db) {
-      deleteById(db, item.id)
-        .then(() => {
-          loadEntries();
-
-          if (chatId.get() === item.id) {
-            // hard page navigation to clear the stores
-            window.location.pathname = '/';
+    if (persistenceEnabled && typeof window !== 'undefined') {
+      openDatabase()
+        .then((dbInstance) => {
+          if (!cancelled) {
+            setDatabase(dbInstance);
           }
         })
         .catch((error) => {
-          toast.error('Failed to delete conversation');
+          toast.error('Chat history is unavailable');
           logger.error(error);
         });
     }
-  }, []);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [persistenceEnabled]);
+
+  const loadEntries = useCallback(async () => {
+    try {
+      let remoteChats: ChatHistoryItem[] = [];
+
+      if (user) {
+        const supabase = createClient();
+        const { data, error } = await supabase.from('chats').select('*').eq('user_id', user.id);
+
+        if (error) {
+          throw error;
+        }
+
+        remoteChats = (data ?? []).map((chat) => ({
+          id: chat.url_id,
+          urlId: chat.url_id,
+          description: chat.description ?? chat.url_id,
+          messages: (chat.messages ?? []) as ChatHistoryItem['messages'],
+          timestamp: chat.updated_at ?? new Date().toISOString(),
+          model: (chat as { model?: string }).model ?? undefined,
+          origin: 'remote' as const,
+        }));
+
+        if (database) {
+          await Promise.all(
+            remoteChats.map((chat) =>
+              setMessages(
+                database,
+                chat.id,
+                chat.messages,
+                chat.urlId,
+                chat.description,
+                chat.model,
+                chat.timestamp,
+                'remote',
+              ),
+            ),
+          );
+        }
+      }
+
+      if (database) {
+        const stored = await getAll(database);
+        const normalized = stored
+          .filter((item) => item.urlId)
+          .map((item) => ({
+            ...item,
+            description: item.description ?? item.urlId,
+            origin: item.origin ?? 'local',
+          }));
+
+        if (!user) {
+          const remoteOnly = normalized.filter((item) => item.origin === 'remote');
+
+          if (remoteOnly.length > 0) {
+            await Promise.all(remoteOnly.map((item) => deleteById(database, item.id).catch(() => void 0)));
+          }
+        }
+
+        const filtered = user ? normalized : normalized.filter((item) => item.origin !== 'remote');
+
+        setList(filtered);
+      } else {
+        setList(remoteChats);
+      }
+    } catch (error: any) {
+      toast.error('Failed to load conversations');
+      logger.error(error);
+    }
+  }, [database, user]);
+
+  const deleteItem = useCallback(
+    (event: React.UIEvent, item: ChatHistoryItem) => {
+      event.preventDefault();
+
+      if (database) {
+        deleteById(database, item.id)
+          .then(() => {
+            void loadEntries();
+
+            if (chatId.get() === item.id) {
+              // hard page navigation to clear the stores
+              window.location.pathname = '/';
+            }
+          })
+          .catch((error) => {
+            toast.error('Failed to delete conversation');
+            logger.error(error);
+          });
+      }
+    },
+    [database, loadEntries],
+  );
 
   const closeDialog = () => {
     setDialogContent(null);
@@ -81,9 +172,9 @@ export function Menu() {
 
   useEffect(() => {
     if (open) {
-      loadEntries();
+      void loadEntries();
     }
-  }, [open]);
+  }, [open, loadEntries]);
 
   useEffect(() => {
     const enterThreshold = 40;
@@ -107,138 +198,151 @@ export function Menu() {
   }, []);
 
   return (
-    <motion.div
-      ref={menuRef}
-      initial="closed"
-      animate={open ? 'open' : 'closed'}
-      variants={menuVariants}
-      className="side-menu pointer-events-auto fixed top-0 z-[997] flex h-full w-[360px] flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl"
-    >
-      {/* Header */}
-      <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-6 py-5">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 shadow-inner shadow-black/5">
-              <MessageSquarePlus className="h-5 w-5 text-bolt-elements-icon-primary" />
+    <>
+      <motion.div
+        ref={menuRef}
+        initial="closed"
+        animate={open ? 'open' : 'closed'}
+        variants={menuVariants}
+        className="side-menu pointer-events-auto fixed top-0 z-[997] flex h-full w-[360px] flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl"
+      >
+        {/* Header */}
+        <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-6 py-5">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 shadow-inner shadow-black/5">
+                <MessageSquarePlus className="h-5 w-5 text-bolt-elements-icon-primary" />
+              </div>
+              <div>
+                <h2 className="text-base font-semibold tracking-tight text-bolt-elements-textPrimary">Conversations</h2>
+                <p className="text-[11px] text-bolt-elements-textSecondary">Workspace</p>
+              </div>
             </div>
-            <div>
-              <h2 className="text-base font-semibold tracking-tight text-bolt-elements-textPrimary">Conversations</h2>
-              <p className="text-[11px] text-bolt-elements-textSecondary">Workspace</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/80 px-1.5 py-1.5 shadow-sm">
-            <div className="flex items-center justify-center rounded-full bg-bolt-elements-background-depth-1/70 p-1.5 shadow-inner">
-              <ThemeSwitch className="rounded-full p-0 text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary" />
-            </div>
-            <div className="flex items-center gap-1 rounded-full bg-bolt-elements-background-depth-1/80 px-2.5 py-1 text-[11px] font-semibold text-bolt-elements-icon-success">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></span>
-              Live
+            <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/80 px-1.5 py-1.5 shadow-sm">
+              <div className="flex items-center justify-center rounded-full bg-bolt-elements-background-depth-1/70 p-1.5 shadow-inner">
+                <ThemeSwitch className="rounded-full p-0 text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary" />
+              </div>
+              <div className="flex items-center gap-1 rounded-full bg-bolt-elements-background-depth-1/80 px-2.5 py-1 text-[11px] font-semibold text-bolt-elements-icon-success">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></span>
+                Live
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main Content */}
-      <div className="flex h-full w-full flex-1 flex-col overflow-hidden text-[13px]">
-        <div className="space-y-4 px-6 py-5">
-          {/* New Chat Button */}
-          <Button
-            asChild
-            className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg btn-ripple transition-smooth hover:scale-[1.02]"
-            size="lg"
-          >
-            <a href="/" className="flex items-center gap-2.5 text-sm font-semibold">
-              <MessageSquarePlus className="h-5 w-5" />
-              Start new chat
-            </a>
-          </Button>
-
-          {/* My Projects Button */}
-          {user ? (
+        {/* Main Content */}
+        <div className="flex h-full w-full flex-1 flex-col overflow-hidden text-[13px]">
+          <div className="space-y-4 px-6 py-5">
+            {/* New Chat Button */}
             <Button
               asChild
-              variant="outline"
-              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
+              className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg btn-ripple transition-smooth hover:scale-[1.02]"
               size="lg"
             >
-              <a href="/projects" className="flex items-center gap-2.5 text-sm font-semibold">
-                <FolderKanban className="h-5 w-5" />
-                My Projects
+              <a href="/" className="flex items-center gap-2.5 text-sm font-semibold">
+                <MessageSquarePlus className="h-5 w-5" />
+                Start new chat
               </a>
             </Button>
-          ) : null}
 
-        </div>
+            {/* My Projects Button */}
+            {user ? (
+              <Button
+                asChild
+                variant="outline"
+                className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
+                size="lg"
+              >
+                <a href="/projects" className="flex items-center gap-2.5 text-sm font-semibold">
+                  <FolderKanban className="h-5 w-5" />
+                  My Projects
+                </a>
+              </Button>
+            ) : null}
+          </div>
 
-        {/* History Section Header */}
-        <div className="flex items-center justify-between px-5 py-3">
-          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">History</h3>
-          {list.length > 0 && (
-            <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textTertiary">
-              {list.length}
-            </span>
-          )}
-        </div>
+          {/* History Section Header */}
+          <div className="flex items-center justify-between px-5 py-3">
+            <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">
+              History
+            </h3>
+            {list.length > 0 && (
+              <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textTertiary">
+                {list.length}
+              </span>
+            )}
+          </div>
 
-        <Separator />
+          <Separator />
 
-        {/* History List */}
-        <div className="relative flex-1 overflow-y-auto px-3 py-4">
-          {list.length === 0 ? (
-            <div className="mx-2 mt-4 rounded-2xl border border-dashed border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/50 px-4 py-8 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-bolt-elements-background-depth-3">
-                <MessageSquarePlus className="h-6 w-6 text-bolt-elements-textTertiary" />
-              </div>
-              <p className="text-sm font-medium text-bolt-elements-textPrimary">No conversations yet</p>
-              <p className="mt-1 text-xs text-bolt-elements-textSecondary">
-                Start a new chat to keep track of your progress.
-              </p>
-            </div>
-          ) : null}
-          <DialogRoot open={dialogContent !== null}>
-            {binDates(list).map(({ category, items }) => (
-              <div key={category} className="mt-4 space-y-1 first:mt-0">
-                <div className="sticky top-0 z-[1] bg-gradient-to-b from-bolt-elements-background-depth-2 to-transparent px-3 pb-2 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-bolt-elements-textTertiary backdrop-blur-sm">
-                  {category}
+          {/* History List */}
+          <div className="relative flex-1 overflow-y-auto px-3 py-4">
+            {list.length === 0 ? (
+              <div className="mx-2 mt-4 rounded-2xl border border-dashed border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/50 px-4 py-8 text-center">
+                <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-bolt-elements-background-depth-3">
+                  <MessageSquarePlus className="h-6 w-6 text-bolt-elements-textTertiary" />
                 </div>
-                {items.map((item) => (
-                  <HistoryItem key={item.id} item={item} onDelete={() => setDialogContent({ type: 'delete', item })} />
-                ))}
+                <p className="text-sm font-medium text-bolt-elements-textPrimary">No conversations yet</p>
+                <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                  Start a new chat to keep track of your progress.
+                </p>
               </div>
-            ))}
-            <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
-              {dialogContent?.type === 'delete' && (
-                <>
-                  <DialogTitle>Delete Chat?</DialogTitle>
-                  <DialogDescription className="px-5 py-4 text-sm text-bolt-elements-textSecondary">
-                    <p>
-                      You are about to delete{' '}
-                      <strong className="text-bolt-elements-textPrimary">{dialogContent.item.description}</strong>.
-                    </p>
-                    <p className="mt-2">This action can't be undone.</p>
-                  </DialogDescription>
-                  <div className="flex justify-end gap-2 bg-bolt-elements-background-depth-2 px-5 pb-5">
-                    <DialogButton type="secondary" onClick={closeDialog}>
-                      Cancel
-                    </DialogButton>
-                    <DialogButton
-                      type="danger"
-                      onClick={(event) => {
-                        deleteItem(event, dialogContent.item);
-                        closeDialog();
-                      }}
-                    >
-                      Delete
-                    </DialogButton>
+            ) : null}
+            <DialogRoot open={dialogContent !== null}>
+              {binDates(list).map(({ category, items }) => (
+                <div key={category} className="mt-4 space-y-1 first:mt-0">
+                  <div className="sticky top-0 z-[1] bg-gradient-to-b from-bolt-elements-background-depth-2 to-transparent px-3 pb-2 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-bolt-elements-textTertiary backdrop-blur-sm">
+                    {category}
                   </div>
-                </>
-              )}
-            </Dialog>
-          </DialogRoot>
-        </div>
+                  {items.map((item) => (
+                    <HistoryItem
+                      key={item.id}
+                      item={item}
+                      onDelete={() => setDialogContent({ type: 'delete', item })}
+                    />
+                  ))}
+                </div>
+              ))}
+              <Dialog onBackdrop={closeDialog} onClose={closeDialog}>
+                {dialogContent?.type === 'delete' && (
+                  <>
+                    <DialogTitle>Delete Chat?</DialogTitle>
+                    <DialogDescription className="px-5 py-4 text-sm text-bolt-elements-textSecondary">
+                      <p>
+                        You are about to delete{' '}
+                        <strong className="text-bolt-elements-textPrimary">{dialogContent.item.description}</strong>.
+                      </p>
+                      <p className="mt-2">This action can't be undone.</p>
+                    </DialogDescription>
+                    <div className="flex justify-end gap-2 bg-bolt-elements-background-depth-2 px-5 pb-5">
+                      <DialogButton type="secondary" onClick={closeDialog}>
+                        Cancel
+                      </DialogButton>
+                      <DialogButton
+                        type="danger"
+                        onClick={(event) => {
+                          deleteItem(event, dialogContent.item);
+                          closeDialog();
+                        }}
+                      >
+                        Delete
+                      </DialogButton>
+                    </div>
+                  </>
+                )}
+              </Dialog>
+            </DialogRoot>
+          </div>
 
-        <UserPanel />
-      </div>
-    </motion.div>
+          <UserPanel
+            onRequestAuth={() => {
+              setAuthModalOpen(true);
+              setOpen(true);
+            }}
+          />
+        </div>
+      </motion.div>
+      <LoginModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+    </>
   );
 }

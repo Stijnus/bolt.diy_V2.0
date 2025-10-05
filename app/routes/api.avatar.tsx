@@ -8,7 +8,7 @@ export const loader: LoaderFunction = async ({ request }) => {
     return new Response('Missing url parameter', { status: 400 });
   }
 
-  // Validate that the URL is from allowed domains for security
+  // validate that the URL is from allowed domains for security
   const allowedDomains = ['lh3.googleusercontent.com', 'avatars.githubusercontent.com', 'ui-avatars.com'];
 
   let parsedUrl: URL;
@@ -28,7 +28,7 @@ export const loader: LoaderFunction = async ({ request }) => {
   }
 
   try {
-    // Fetch the image from the external service
+    // fetch the image from the external service
     const response = await fetch(imageUrl, {
       headers: {
         'User-Agent': 'Bolt.new Avatar Proxy',
@@ -42,12 +42,12 @@ export const loader: LoaderFunction = async ({ request }) => {
     const contentType = response.headers.get('content-type') || 'image/jpeg';
     const imageData = await response.arrayBuffer();
 
-    // Return the image with proper CORS headers
+    // return the image with proper CORS headers
     return new Response(imageData, {
       status: 200,
       headers: {
         'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'public, max-age=3600', // cache for 1 hour
         'Cross-Origin-Resource-Policy': 'cross-origin',
         'Access-Control-Allow-Origin': '*',
       },

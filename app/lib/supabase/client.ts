@@ -6,9 +6,12 @@ export function createClient() {
   const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error(
-      'Missing Supabase environment variables. Please check that VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in your .env.local file.',
+    console.warn(
+      'Missing Supabase environment variables. Authentication features will be disabled. Please set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in your .env.local file to enable authentication.',
     );
+
+    // return a mock client that won't break the app
+    return null as any;
   }
 
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);

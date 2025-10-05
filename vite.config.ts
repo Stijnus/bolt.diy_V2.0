@@ -11,7 +11,13 @@ export default defineConfig((config) => {
     },
     plugins: [
       nodePolyfills({
-        include: ['path', 'buffer'],
+        include: ['buffer'],
+        exclude: ['path'],
+        globals: {
+          process: true,
+          Buffer: true,
+        },
+        protocolImports: true,
       }),
       config.mode !== 'test' && remixCloudflareDevProxy(),
       remixVitePlugin({
@@ -25,6 +31,13 @@ export default defineConfig((config) => {
       chrome129IssuePlugin(),
       config.mode === 'production' && optimizeCssModules({ apply: 'build' }),
     ],
+    resolve: {
+      alias: {
+        path: 'pathe',
+        'node:path': 'pathe',
+        'node:buffer': 'buffer',
+      },
+    },
   };
 });
 

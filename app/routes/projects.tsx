@@ -58,43 +58,43 @@ export default function ProjectsPage() {
     <div className="min-h-screen bg-gradient-to-b from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2">
       <ClientOnly>{() => <Menu />}</ClientOnly>
       <div className="mx-auto max-w-7xl">
-          {/* Header */}
-          <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-6 py-5 backdrop-blur-sm">
-            <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <div className="flex items-center gap-3">
-                  <h1 className="text-2xl font-bold text-bolt-elements-textPrimary sm:text-3xl">My Projects</h1>
-                  <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-2 px-3 py-1 text-xs font-medium text-bolt-elements-textSecondary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    AI-Powered
-                  </div>
+        {/* Header */}
+        <div className="sticky top-0 z-10 border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-6 py-5 backdrop-blur-sm">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <div className="flex items-center gap-3">
+                <h1 className="text-2xl font-bold text-bolt-elements-textPrimary sm:text-3xl">My Projects</h1>
+                <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-2 px-3 py-1 text-xs font-medium text-bolt-elements-textSecondary">
+                  <Sparkles className="h-3.5 w-3.5" />
+                  AI-Powered
                 </div>
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                  Manage your AI-generated projects and collaborate with your team
-                </p>
               </div>
-              <Button onClick={() => setCreateDialogOpen(true)} size="lg" className="shadow-sm">
-                <Plus className="h-5 w-5" />
-                New Project
-              </Button>
+              <p className="mt-2 text-sm text-bolt-elements-textSecondary">
+                Manage your AI-generated projects and collaborate with your team
+              </p>
             </div>
+            <Button onClick={() => setCreateDialogOpen(true)} size="lg" className="shadow-sm">
+              <Plus className="h-5 w-5" />
+              New Project
+            </Button>
           </div>
+        </div>
 
-          {/* Content */}
-          <ClientOnly>
-            {() => (
-              <>
-                <ProjectsList refreshTrigger={refreshTrigger} />
-                <CreateProjectDialog
-                  open={createDialogOpen}
-                  onClose={() => setCreateDialogOpen(false)}
-                  onCreated={() => {
-                    setRefreshTrigger((prev) => prev + 1);
-                  }}
-                />
-              </>
-            )}
-          </ClientOnly>
+        {/* Content */}
+        <ClientOnly>
+          {() => (
+            <>
+              <ProjectsList refreshTrigger={refreshTrigger} />
+              <CreateProjectDialog
+                open={createDialogOpen}
+                onClose={() => setCreateDialogOpen(false)}
+                onCreated={() => {
+                  setRefreshTrigger((prev) => prev + 1);
+                }}
+              />
+            </>
+          )}
+        </ClientOnly>
       </div>
     </div>
   );

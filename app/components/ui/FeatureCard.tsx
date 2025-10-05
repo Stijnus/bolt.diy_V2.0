@@ -4,7 +4,11 @@ import * as React from 'react';
 
 import { cn } from '~/lib/utils';
 
-interface FeatureCardProps extends React.HTMLAttributes<HTMLDivElement> {
+interface FeatureCardProps
+  extends Omit<
+    React.HTMLAttributes<HTMLDivElement>,
+    'onDrag' | 'onDragStart' | 'onDragEnd' | 'onAnimationStart' | 'onAnimationEnd' | 'onAnimationIteration'
+  > {
   icon: LucideIcon;
   title: string;
   description: string;
@@ -13,7 +17,8 @@ interface FeatureCardProps extends React.HTMLAttributes<HTMLDivElement> {
 }
 
 export const FeatureCard = React.forwardRef<HTMLDivElement, FeatureCardProps>(
-  ({ className, icon: Icon, title, description, gradient = false, delay = 0, ...props }, ref) => {
+  ({ className, icon: iconComponent, title, description, gradient = false, delay = 0, ...props }, ref) => {
+    const Icon = iconComponent;
     return (
       <motion.div
         ref={ref}

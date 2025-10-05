@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { currentModel } from '~/lib/stores/model';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('usePromptEnhancement');
@@ -20,6 +21,7 @@ export function usePromptEnhancer() {
       method: 'POST',
       body: JSON.stringify({
         message: input,
+        model: currentModel.get().fullId,
       }),
     });
 

@@ -40,7 +40,17 @@ export const FileTree = memo(
     const computedHiddenFiles = useMemo(() => [...DEFAULT_HIDDEN_FILES, ...(hiddenFiles ?? [])], [hiddenFiles]);
 
     const fileList = useMemo(() => {
-      return buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
+      logger.debug('FileTree: building file list', {
+        filesCount: Object.keys(files).length,
+        rootFolder,
+        hideRoot,
+        fileKeys: Object.keys(files),
+      });
+
+      const list = buildFileList(files, rootFolder, hideRoot, computedHiddenFiles);
+      logger.debug('FileTree: built file list', { listLength: list.length, list });
+
+      return list;
     }, [files, rootFolder, hideRoot, computedHiddenFiles]);
 
     const [collapsedFolders, setCollapsedFolders] = useState(() => {
@@ -287,33 +297,34 @@ function buildFileList(
       const name = segments[i];
       const fullPath = (currentPath += `/${name}`);
 
-      if (!fullPath.startsWith(rootFolder) || (hideRoot && fullPath === rootFolder)) {
-        i++;
-        continue;
-      }
+      // check if this segment should be included
+      const shouldInclude = fullPath.startsWith(rootFolder) && !(hideRoot && fullPath === rootFolder);
 
-      if (i === segments.length - 1 && dirent?.type === 'file') {
-        fileList.push({
-          kind: 'file',
-          id: fileList.length,
-          name,
-          fullPath,
-          depth: depth + defaultDepth,
-        });
-      } else if (!folderPaths.has(fullPath)) {
-        folderPaths.add(fullPath);
+      if (shouldInclude) {
+        if (i === segments.length - 1 && dirent?.type === 'file') {
+          fileList.push({
+            kind: 'file',
+            id: fileList.length,
+            name,
+            fullPath,
+            depth: depth + defaultDepth,
+          });
+        } else if (!folderPaths.has(fullPath)) {
+          folderPaths.add(fullPath);
 
-        fileList.push({
-          kind: 'folder',
-          id: fileList.length,
-          name,
-          fullPath,
-          depth: depth + defaultDepth,
-        });
+          fileList.push({
+            kind: 'folder',
+            id: fileList.length,
+            name,
+            fullPath,
+            depth: depth + defaultDepth,
+          });
+        }
+
+        depth++;
       }
 
       i++;
-      depth++;
     }
   }
 

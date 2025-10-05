@@ -10,8 +10,7 @@ interface AnimatedBadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
 
 const variantStyles = {
   default: 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary border-bolt-elements-borderColor',
-  success:
-    'bg-bolt-elements-icon-success/10 text-bolt-elements-icon-success border-bolt-elements-icon-success/30',
+  success: 'bg-bolt-elements-icon-success/10 text-bolt-elements-icon-success border-bolt-elements-icon-success/30',
   error: 'bg-bolt-elements-icon-error/10 text-bolt-elements-icon-error border-bolt-elements-icon-error/30',
   warning: 'bg-orange-500/10 text-orange-500 border-orange-500/30',
   pulse: 'bg-primary/10 text-primary border-primary/30',

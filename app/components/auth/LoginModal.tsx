@@ -1,15 +1,15 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Loader2, Github, ArrowLeft, CheckCircle2, XCircle, Eye, EyeOff } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
-import { useForm } from 'react-hook-form';
-import * as z from 'zod';
+import { Github, ArrowLeft, CheckCircle2, Sparkles } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { ResetPasswordForm } from '~/components/auth/forms/ResetPasswordForm';
+import { SignInForm } from '~/components/auth/forms/SignInForm';
+import { SignUpForm } from '~/components/auth/forms/SignUpForm';
+import { type ResetFormValues, type SignInFormValues, type SignUpFormValues } from '~/components/auth/forms/schemas';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/Form';
-import { Input } from '~/components/ui/Input';
 import { Separator } from '~/components/ui/Separator';
 import { useAuth } from '~/lib/contexts/AuthContext';
+import { classNames } from '~/utils/classNames';
 
 interface LoginModalProps {
   open: boolean;
@@ -46,75 +46,36 @@ const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   </svg>
 );
 
-const signInSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
-});
-
-const signUpSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-  password: z
-    .string()
-    .min(6, { message: 'Password must be at least 6 characters' })
-    .regex(/[A-Z]/, { message: 'Password must contain at least one uppercase letter' })
-    .regex(/[0-9]/, { message: 'Password must contain at least one number' }),
-});
-
-const resetSchema = z.object({
-  email: z.string().email({ message: 'Please enter a valid email address' }),
-});
-
-type SignInFormValues = z.infer<typeof signInSchema>;
-type SignUpFormValues = z.infer<typeof signUpSchema>;
-type ResetFormValues = z.infer<typeof resetSchema>;
-
 export function LoginModal({ open, onClose }: LoginModalProps) {
   const { signIn, signUp, signInWithGitHub, signInWithGoogle, resetPassword } = useAuth();
   const [mode, setMode] = useState<AuthMode>('signin');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [resetSuccess, setResetSuccess] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
-  const [passwordStrength, setPasswordStrength] = useState<'weak' | 'medium' | 'strong' | null>(null);
 
-  const schema = mode === 'reset' ? resetSchema : mode === 'signup' ? signUpSchema : signInSchema;
-
-  const form = useForm<SignInFormValues | SignUpFormValues | ResetFormValues>({
-    resolver: zodResolver(schema),
-    defaultValues: {
-      email: '',
-      password: '',
-    },
-  });
+  const [signInDefaults, setSignInDefaults] = useState<SignInFormValues>({ email: '', password: '' });
+  const [signUpDefaults, setSignUpDefaults] = useState<SignUpFormValues>({ email: '', password: '' });
+  const [resetDefaults, setResetDefaults] = useState<ResetFormValues>({ email: '' });
 
   useEffect(() => {
     if (!open) {
       setMode('signin');
-      form.reset();
-      setError(null);
       setLoading(false);
+      setError(null);
       setResetSuccess(false);
-      setShowPassword(false);
-      setPasswordStrength(null);
+      setSignInDefaults({ email: '', password: '' });
+      setSignUpDefaults({ email: '', password: '' });
+      setResetDefaults({ email: '' });
     }
-  }, [open, form]);
+  }, [open]);
 
-  const checkPasswordStrength = (password: string) => {
-    if (!password) {
-      setPasswordStrength(null);
-      return;
+  useEffect(() => {
+    setError(null);
+
+    if (mode !== 'reset') {
+      setResetSuccess(false);
     }
-
-    let strength = 0;
-    if (password.length >= 8) strength++;
-    if (/[A-Z]/.test(password)) strength++;
-    if (/[0-9]/.test(password)) strength++;
-    if (/[^A-Za-z0-9]/.test(password)) strength++;
-
-    if (strength <= 1) setPasswordStrength('weak');
-    else if (strength === 2 || strength === 3) setPasswordStrength('medium');
-    else setPasswordStrength('strong');
-  };
+  }, [mode]);
 
   const oauthProviders = useMemo<OAuthProvider[]>(
     () => [
@@ -134,27 +95,146 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     [],
   );
 
-  const onSubmit = async (data: SignInFormValues | SignUpFormValues | ResetFormValues) => {
-    setError(null);
-    setLoading(true);
-
-    try {
-      if (mode === 'reset') {
-        await resetPassword((data as ResetFormValues).email);
-        setResetSuccess(true);
-      } else if (mode === 'signin') {
-        await signIn((data as SignInFormValues).email, (data as SignInFormValues).password);
-        onClose();
-      } else {
-        await signUp((data as SignUpFormValues).email, (data as SignUpFormValues).password);
-        onClose();
-      }
-    } catch (err: any) {
-      setError(err.message ?? 'Something went wrong. Please try again.');
-    } finally {
-      setLoading(false);
+  const modeCopy = useMemo(() => {
+    if (mode === 'signup') {
+      return {
+        heading: 'Create your BoltDIY account',
+        subheading: 'Set up your workspace to save prompts, collaborate, and sync projects across devices.',
+        badge: 'Join the builders',
+        sideTitle: 'Build faster together',
+        sideSubtitle:
+          'Collaborate with your team, keep conversations versioned, and deploy updates with a single command.',
+        bullets: [
+          'Save chats with full repo context so you never lose track of decisions.',
+          'Generate boilerplate, migrations, and docs in seconds with AI copilots.',
+          'Invite teammates to co-edit prompts inside shared BoltDIY workspaces.',
+        ],
+        tip: 'Pro tip: Use your work email to auto-discover team workspaces.',
+        switchPrompt: 'Already have an account?',
+        switchAction: 'Sign in',
+        switchTarget: 'signin' as const,
+      };
     }
-  };
+
+    if (mode === 'reset') {
+      return {
+        heading: 'Reset your password',
+        subheading: 'We’ll email you a secure link so you can create a new password right away.',
+        badge: 'Need a hand?',
+        sideTitle: 'Recover access securely',
+        sideSubtitle: 'We protect your projects with single-use reset links and security notifications.',
+        bullets: [
+          'Reset links expire after 10 minutes to keep access protected.',
+          'Choose a brand new password immediately after opening the email.',
+          'Still stuck? Reach out at support@boltdiy.app for direct help.',
+        ],
+        tip: 'If the email hasn’t arrived within a few minutes, check spam or resend the request.',
+        switchPrompt: 'Remembered your password?',
+        switchAction: 'Back to sign in',
+        switchTarget: 'signin' as const,
+      };
+    }
+
+    return {
+      heading: 'Welcome back',
+      subheading: 'Sign in to unlock saved chats, shared workspaces, and synced projects.',
+      badge: 'Trusted by builders',
+      sideTitle: 'Your progress, everywhere',
+      sideSubtitle: 'Resume conversations with context, ship updates faster, and keep teammates aligned in real time.',
+      bullets: [
+        'Persistent chat history with code-aware memory whenever you return.',
+        'Deploy Supabase projects with preconfigured environments in seconds.',
+        'Pair program in shared canvases that stay perfectly in sync.',
+      ],
+      tip: 'Tip: Enable two-factor authentication in Settings for an extra layer of security.',
+      switchPrompt: 'New to BoltDIY?',
+      switchAction: 'Create an account',
+      switchTarget: 'signup' as const,
+    };
+  }, [mode]);
+
+  const handleSignInValuesChange = useCallback((values: SignInFormValues) => {
+    setSignInDefaults((prev) => {
+      const next = {
+        email: values.email ?? '',
+        password: values.password ?? '',
+      };
+      return prev.email === next.email && prev.password === next.password ? prev : next;
+    });
+  }, []);
+
+  const handleSignUpValuesChange = useCallback((values: SignUpFormValues) => {
+    setSignUpDefaults((prev) => {
+      const next = {
+        email: values.email ?? '',
+        password: values.password ?? '',
+      };
+      return prev.email === next.email && prev.password === next.password ? prev : next;
+    });
+  }, []);
+
+  const handleResetValuesChange = useCallback((values: ResetFormValues) => {
+    setResetDefaults((prev) => {
+      const next = {
+        email: values.email ?? '',
+      };
+      return prev.email === next.email ? prev : next;
+    });
+  }, []);
+
+  const handleSignInSubmit = useCallback(
+    async (values: SignInFormValues) => {
+      setError(null);
+      setLoading(true);
+      setResetSuccess(false);
+
+      try {
+        await signIn(values.email, values.password);
+        onClose();
+      } catch (err: any) {
+        setError(err?.message ?? 'Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onClose, signIn],
+  );
+
+  const handleSignUpSubmit = useCallback(
+    async (values: SignUpFormValues) => {
+      setError(null);
+      setLoading(true);
+      setResetSuccess(false);
+
+      try {
+        await signUp(values.email, values.password);
+        onClose();
+      } catch (err: any) {
+        setError(err?.message ?? 'Something went wrong. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [onClose, signUp],
+  );
+
+  const handleResetSubmit = useCallback(
+    async (values: ResetFormValues) => {
+      setError(null);
+      setLoading(true);
+      setResetSuccess(false);
+
+      try {
+        await resetPassword(values.email);
+        setResetSuccess(true);
+      } catch (err: any) {
+        setError(err?.message ?? 'Unable to send reset link right now. Please try again.');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [resetPassword],
+  );
 
   const handleOAuth = async (provider: 'github' | 'google') => {
     setError(null);
@@ -166,224 +246,180 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
         await signInWithGoogle();
       }
     } catch (err: any) {
-      setError(err.message ?? 'Unable to sign in with that provider right now.');
+      setError(err?.message ?? 'Unable to sign in with that provider right now.');
     }
   };
 
   return (
     <DialogRoot open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
-      <Dialog className="max-w-md overflow-hidden backdrop-blur-glass animate-scaleIn">
-        <DialogTitle className="flex-col items-start gap-2 border-none px-8 pt-8 pb-2">
-          <div className="w-full">
-            {mode === 'reset' ? (
-              <>
+      <Dialog className="relative max-w-3xl md:max-w-4xl border-0 bg-transparent p-0 shadow-none">
+        <div className="relative isolate overflow-hidden rounded-[28px] border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 shadow-[0_32px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_32px_80px_-28px_rgba(0,0,0,0.7)]">
+          <div className="absolute inset-0 -z-10 opacity-40">
+            <div className="absolute -right-16 top-10 h-48 w-48 rounded-full bg-bolt-elements-button-primary-background blur-3xl" />
+            <div className="absolute -bottom-24 left-[-10%] h-56 w-56 rounded-full bg-accent-500/20 blur-[90px]" />
+          </div>
+
+          <div className="relative grid gap-0 md:grid-cols-[1.05fr,1fr]">
+            <aside className="relative hidden flex-col gap-6 overflow-hidden border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-8 backdrop-blur-sm md:flex">
+              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-accent-500/25 via-transparent to-accent-700/20 dark:from-accent-400/20 dark:to-white/10" />
+              <div className="relative z-10 flex flex-col gap-6 text-bolt-elements-textPrimary">
+                <span className="inline-flex items-center gap-2 self-start rounded-full border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
+                  <Sparkles className="h-3.5 w-3.5 text-bolt-elements-button-primary-background" />
+                  {modeCopy.badge}
+                </span>
+                <div>
+                  <h3 className="text-2xl font-semibold leading-tight">{modeCopy.sideTitle}</h3>
+                  <p className="mt-3 text-sm leading-relaxed text-bolt-elements-textSecondary">
+                    {modeCopy.sideSubtitle}
+                  </p>
+                </div>
+                <ul className="space-y-3 text-sm text-bolt-elements-textPrimary">
+                  {modeCopy.bullets.map((bullet) => (
+                    <li
+                      key={bullet}
+                      className="flex items-start gap-3 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-3 py-2 shadow-sm"
+                    >
+                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-bolt-elements-button-primary-background" />
+                      <span>{bullet}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="mt-auto rounded-2xl border border-dashed border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 p-4 text-xs leading-relaxed text-bolt-elements-textSecondary">
+                  {modeCopy.tip}
+                </div>
+              </div>
+            </aside>
+
+            <main className="flex flex-col gap-6 p-6 md:p-8">
+              {mode === 'reset' && (
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
-                  className="mb-4 flex items-center gap-2 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary"
+                  className="inline-flex items-center gap-2 self-start rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 text-sm font-semibold text-bolt-elements-textSecondary transition-all hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
-                <div className="text-2xl font-bold text-bolt-elements-textPrimary">Reset your password</div>
-                <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                  Enter your email address and we'll send you a link to reset your password.
-                </p>
-              </>
-            ) : (
-              <>
-                <div className="mb-6">
-                  <div className="text-2xl font-bold text-bolt-elements-textPrimary">
-                    {mode === 'signin' ? 'Welcome back' : 'Create your account'}
-                  </div>
-                  <p className="mt-2 text-sm text-bolt-elements-textSecondary">
-                    {mode === 'signin'
-                      ? 'Sign in to unlock saved chats, shared workspaces, and synced projects.'
-                      : 'Set up your account to save prompts, collaborate, and sync projects across devices.'}
-                  </p>
-                </div>
-              </>
-            )}
-          </div>
-        </DialogTitle>
+              )}
 
-        <div className="space-y-5 px-8 pb-8">
-          {mode !== 'reset' && (
-            <>
-              <div className="space-y-3">
-                {oauthProviders.map((provider) => (
-                  <Button
-                    key={provider.key}
-                    variant="outline"
-                    size="lg"
-                    className={`w-full justify-center gap-3 font-semibold transition-all btn-ripple group ${
-                      provider.key === 'github'
-                        ? 'border-gray-700 bg-gray-900 text-white hover:bg-gray-800 hover:border-gray-600'
-                        : 'border-blue-500/30 bg-white text-gray-900 hover:bg-blue-50 hover:border-blue-500/50'
-                    }`}
-                    onClick={() => handleOAuth(provider.key)}
-                  >
-                    <provider.icon className={`h-5 w-5 flex-shrink-0 transition-transform group-hover:scale-110 ${provider.key === 'github' ? 'text-white' : ''}`} />
-                    <span>{provider.label}</span>
-                  </Button>
-                ))}
-              </div>
-
-              <div className="relative text-center">
-                <Separator className="bg-bolt-elements-borderColor" />
-                <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-bg-depth-1 px-4 text-xs font-medium uppercase tracking-wider text-bolt-elements-textTertiary">
-                  or continue with email
+              <DialogTitle className="flex flex-col gap-3 border-none p-0 text-left text-2xl font-semibold leading-tight text-bolt-elements-textPrimary md:text-[28px]">
+                <span>{modeCopy.heading}</span>
+                <span className="text-base font-normal text-bolt-elements-textSecondary md:text-lg">
+                  {modeCopy.subheading}
                 </span>
-              </div>
-            </>
-          )}
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-5">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">
-                      Email address
-                    </FormLabel>
-                    <FormControl>
-                      <Input
-                        type="email"
-                        placeholder="you@example.com"
-                        {...field}
-                        disabled={loading}
-                        className="h-12 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 text-base transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background"
-                      />
-                    </FormControl>
-                    <FormMessage className="text-xs" />
-                  </FormItem>
-                )}
-              />
+              </DialogTitle>
 
               {mode !== 'reset' && (
-                <FormField
-                  control={form.control}
-                  name="password"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Password</FormLabel>
-                      <FormControl>
-                        <div className="relative">
-                          <Input
-                            type={showPassword ? 'text' : 'password'}
-                            placeholder={mode === 'signup' ? 'Create a strong password' : 'Enter your password'}
-                            {...field}
-                            onChange={(e) => {
-                              field.onChange(e);
-                              if (mode === 'signup') checkPasswordStrength(e.target.value);
-                            }}
-                            disabled={loading}
-                            className="h-12 border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-4 pr-12 text-base transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            className="absolute right-4 top-1/2 -translate-y-1/2 text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-colors"
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </button>
-                        </div>
-                      </FormControl>
-                      <FormMessage className="text-xs" />
-                      {mode === 'signup' && field.value && (
-                        <div className="space-y-2">
-                          <div className="flex gap-1">
-                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'weak' ? 'bg-red-500' : passwordStrength ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
-                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'medium' || passwordStrength === 'strong' ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
-                            <div className={`h-1 flex-1 rounded-full transition-all ${passwordStrength === 'strong' ? 'bg-bolt-elements-icon-success' : 'bg-bolt-elements-borderColor'}`} />
-                          </div>
-                          <p className={`text-xs ${passwordStrength === 'weak' ? 'text-red-500' : passwordStrength === 'medium' ? 'text-orange-500' : 'text-bolt-elements-icon-success'}`}>
-                            {passwordStrength === 'weak' && 'Weak password'}
-                            {passwordStrength === 'medium' && 'Medium password'}
-                            {passwordStrength === 'strong' && 'Strong password'}
-                          </p>
-                        </div>
-                      )}
-                      {mode === 'signup' && !field.value && (
-                        <p className="text-xs text-bolt-elements-textTertiary">
-                          At least 6 characters, one uppercase letter, and one number
-                        </p>
-                      )}
-                    </FormItem>
-                  )}
+                <div className="flex flex-col gap-2">
+                  <div className="inline-flex w-full items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-inner">
+                    {(['signin', 'signup'] as const).map((item) => (
+                      <button
+                        key={item}
+                        type="button"
+                        onClick={() => setMode(item)}
+                        className={classNames(
+                          'flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none',
+                          {
+                            'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text shadow-sm':
+                              mode === item,
+                            'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary': mode !== item,
+                          },
+                        )}
+                      >
+                        {item === 'signin' ? 'Sign In' : 'Create Account'}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-xs text-bolt-elements-textTertiary">Switch anytime—your details stay in place.</p>
+                </div>
+              )}
+
+              {mode !== 'reset' && (
+                <>
+                  <div className="space-y-3">
+                    {oauthProviders.map((provider) => (
+                      <Button
+                        key={provider.key}
+                        variant="outline"
+                        size="lg"
+                        className={classNames(
+                          'group w-full justify-start gap-3 rounded-2xl border px-4 py-3 text-base font-semibold shadow-sm transition-all hover:shadow-md focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1',
+                          provider.key === 'github'
+                            ? 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2'
+                            : 'border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 text-bolt-elements-textPrimary hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2',
+                        )}
+                        onClick={() => handleOAuth(provider.key)}
+                      >
+                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 text-bolt-elements-textSecondary transition-all group-hover:border-bolt-elements-borderColorActive group-hover:text-bolt-elements-textPrimary">
+                          <provider.icon className="h-5 w-5" />
+                        </span>
+                        <span className="flex-1 text-left">
+                          <span>{provider.label}</span>
+                          <span className="mt-0.5 block text-xs font-normal text-bolt-elements-textSecondary">
+                            {provider.description}
+                          </span>
+                        </span>
+                      </Button>
+                    ))}
+                  </div>
+
+                  <div className="relative text-center">
+                    <Separator className="bg-bolt-elements-borderColor" />
+                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-bg-depth-1 px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-bolt-elements-textTertiary">
+                      or continue with email
+                    </span>
+                  </div>
+                </>
+              )}
+
+              {mode === 'signin' && (
+                <SignInForm
+                  loading={loading}
+                  error={error}
+                  open={open}
+                  onSubmit={handleSignInSubmit}
+                  onForgotPassword={() => setMode('reset')}
+                  initialValues={signInDefaults}
+                  onValuesChange={handleSignInValuesChange}
                 />
               )}
 
-              {error && (
-                <div className="rounded-xl border border-bolt-elements-icon-error/20 bg-bolt-elements-icon-error/10 px-4 py-3.5 text-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 flex-shrink-0 text-bolt-elements-icon-error" />
-                    <span className="text-bolt-elements-textPrimary">{error}</span>
-                  </div>
-                </div>
+              {mode === 'signup' && (
+                <SignUpForm
+                  loading={loading}
+                  error={error}
+                  open={open}
+                  onSubmit={handleSignUpSubmit}
+                  initialValues={signUpDefaults}
+                  onValuesChange={handleSignUpValuesChange}
+                />
               )}
 
-              {resetSuccess && (
-                <div className="rounded-xl border border-bolt-elements-icon-success/20 bg-bolt-elements-icon-success/10 px-4 py-3.5 text-sm">
-                  <div className="flex items-start gap-3">
-                    <AlertCircle className="h-5 w-5 flex-shrink-0 text-bolt-elements-icon-success" />
-                    <span className="text-bolt-elements-textPrimary">
-                      Password reset link sent! Check your email inbox.
-                    </span>
-                  </div>
-                </div>
+              {mode === 'reset' && (
+                <ResetPasswordForm
+                  loading={loading}
+                  error={error}
+                  success={resetSuccess}
+                  open={open}
+                  onSubmit={handleResetSubmit}
+                  initialValues={resetDefaults}
+                  onValuesChange={handleResetValuesChange}
+                />
               )}
 
-              <Button
-                type="submit"
-                className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90 shadow-md hover:shadow-lg transition-all"
-                disabled={loading}
-              >
-                {loading ? (
-                  <>
-                    <Loader2 className="h-5 w-5 animate-spin" />
-                    {mode === 'reset' ? 'Sending link…' : mode === 'signin' ? 'Signing in…' : 'Creating account…'}
-                  </>
-                ) : mode === 'reset' ? (
-                  'Send reset link'
-                ) : mode === 'signin' ? (
-                  'Sign In'
-                ) : (
-                  'Create Account'
-                )}
-              </Button>
-            </form>
-          </Form>
-
-          {mode === 'signin' && (
-            <div className="text-center">
-              <button
-                type="button"
-                onClick={() => setMode('reset')}
-                className="text-sm font-semibold text-primary transition-all hover:text-primary/80 hover:underline"
-              >
-                Forgot password?
-              </button>
-            </div>
-          )}
-        </div>
-
-        {mode !== 'reset' && (
-          <div className="flex items-center justify-center gap-1.5 border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-2/50 px-8 py-5 text-sm">
-            <span className="text-bolt-elements-textSecondary">
-              {mode === 'signin' ? 'New to BoltDIY?' : 'Already have an account?'}
-            </span>
-            <button
-              type="button"
-              onClick={() => setMode((prev) => (prev === 'signin' ? 'signup' : 'signin'))}
-              className="font-semibold text-primary transition-all hover:text-primary/80 hover:underline"
-            >
-              {mode === 'signin' ? 'Create an account' : 'Sign in'}
-            </button>
+              <div className="flex items-center justify-center gap-1.5 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-4 text-sm text-bolt-elements-textSecondary">
+                <span>{modeCopy.switchPrompt}</span>
+                <button
+                  type="button"
+                  onClick={() => setMode(modeCopy.switchTarget)}
+                  className="font-semibold text-bolt-elements-button-primary-background transition-all hover:text-bolt-elements-button-primary-background/80 hover:underline"
+                >
+                  {modeCopy.switchAction}
+                </button>
+              </div>
+            </main>
           </div>
-        )}
+        </div>
       </Dialog>
     </DialogRoot>
   );

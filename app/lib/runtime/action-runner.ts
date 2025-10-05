@@ -3,6 +3,7 @@ import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
 import type { ActionCallbackData } from './message-parser';
 import type { BoltAction } from '~/types/actions';
+import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
 
@@ -156,25 +157,50 @@ export class ActionRunner {
 
     const webcontainer = await this.#webcontainer;
 
-    let folder = nodePath.dirname(action.filePath);
+    // normalize file path to be relative to WORK_DIR
+    let filePath = action.filePath;
 
-    // remove trailing slashes
-    folder = folder.replace(/\/+$/g, '');
+    // remove leading slash if present
+    if (filePath.startsWith('/')) {
+      filePath = filePath.slice(1);
+    }
 
-    if (folder !== '.') {
+    // if path starts with the work directory name (e.g., "home/project/..."), strip it
+    const workDirWithoutSlash = WORK_DIR.slice(1); // "home/project"
+
+    if (filePath.startsWith(workDirWithoutSlash + '/')) {
+      filePath = filePath.slice(workDirWithoutSlash.length + 1);
+    }
+
+    // ensure path is absolute by prepending WORK_DIR
+    if (!filePath.startsWith(WORK_DIR.slice(1))) {
+      filePath = nodePath.join(WORK_DIR, filePath);
+    } else {
+      filePath = '/' + filePath;
+    }
+
+    /**
+     * WebContainer has workdir set to WORK_DIR (/home/project).
+     * Paths must be relative to this workdir, not to container root.
+     */
+    const workdirRelativePath = filePath.replace(WORK_DIR + '/', '').replace(/^\//, '');
+    const folder = nodePath.dirname(workdirRelativePath);
+
+    // create folder if needed
+    if (folder && folder !== '.') {
       try {
         await webcontainer.fs.mkdir(folder, { recursive: true });
-        logger.debug('Created folder', folder);
+        logger.debug(`Created folder: ${folder}`);
       } catch (error) {
-        logger.error('Failed to create folder\n\n', error);
+        logger.error(`Failed to create folder ${folder}\n\n`, error);
       }
     }
 
     try {
-      await webcontainer.fs.writeFile(action.filePath, action.content);
-      logger.debug(`File written ${action.filePath}`);
+      await webcontainer.fs.writeFile(workdirRelativePath, action.content);
+      logger.debug(`File written: ${workdirRelativePath}`);
     } catch (error) {
-      logger.error('Failed to write file\n\n', error);
+      logger.error(`Failed to write file ${workdirRelativePath}\n\n`, error);
     }
   }
 

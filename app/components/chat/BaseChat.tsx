@@ -5,6 +5,7 @@ import React, { type RefCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
 import styles from './BaseChat.module.scss';
 import { Messages } from './Messages.client';
+import { ModelSelector } from './ModelSelector';
 import { SendButton } from './SendButton.client';
 import { MigrationBanner } from '~/components/migration/MigrationBanner';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -229,11 +230,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                         )}
                       </IconButton>
                     </div>
-                    {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textSecondary">
-                        Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
-                      </div>
-                    ) : null}
+                    <div className="flex gap-3 items-center">
+                      <ClientOnly>{() => <ModelSelector />}</ClientOnly>
+                      {input.length > 3 ? (
+                        <div className="text-xs text-bolt-elements-textSecondary">
+                          Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
+                        </div>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 <div className="pb-8" />

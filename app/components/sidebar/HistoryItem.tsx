@@ -50,7 +50,7 @@ export function HistoryItem({ item, onDelete }: HistoryItemProps) {
         className="flex items-center gap-3 rounded-xl border border-transparent bg-bolt-elements-background-depth-1/50 px-3 py-2.5 text-sm text-bolt-elements-textSecondary transition-all hover:border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary hover:shadow-sm"
       >
         <MessageSquare className="h-4 w-4 flex-shrink-0 text-bolt-elements-textTertiary transition-colors group-hover:text-bolt-elements-icon-primary" />
-        <span className="min-w-0 flex-1 truncate">{item.description}</span>
+        <span className="min-w-0 flex-1 truncate">{item.description || item.urlId}</span>
         {hovering && (
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}

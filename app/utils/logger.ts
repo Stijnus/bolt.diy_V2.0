@@ -44,6 +44,38 @@ function setLevel(level: DebugLevel) {
   currentLevel = level;
 }
 
+function formatMessage(message: unknown): string {
+  if (typeof message === 'string') {
+    return message;
+  }
+
+  if (message instanceof Error) {
+    return message.stack ?? message.message ?? 'Error';
+  }
+
+  if (message === null || message === undefined) {
+    return String(message);
+  }
+
+  if (typeof message === 'number' || typeof message === 'boolean' || typeof message === 'bigint') {
+    return message.toString();
+  }
+
+  if (typeof message === 'symbol') {
+    return message.description ? `Symbol(${message.description})` : message.toString();
+  }
+
+  if (typeof message === 'object') {
+    try {
+      return JSON.stringify(message);
+    } catch (error) {
+      return Object.prototype.toString.call(message);
+    }
+  }
+
+  return String(message);
+}
+
 function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
   const levelOrder: DebugLevel[] = ['trace', 'debug', 'info', 'warn', 'error'];
 
@@ -52,15 +84,17 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
   }
 
   const allMessages = messages.reduce((acc, current) => {
+    const formatted = formatMessage(current);
+
     if (acc.endsWith('\n')) {
-      return acc + current;
+      return acc + formatted;
     }
 
     if (!acc) {
-      return current;
+      return formatted;
     }
 
-    return `${acc} ${current}`;
+    return `${acc} ${formatted}`;
   }, '');
 
   if (!supportsColor) {
