@@ -3,7 +3,7 @@
   "description": "StackBlitz AI Agent",
   "private": true,
   "license": "MIT",
-  "packageManager": "pnpm@9.4.0",
+  "packageManager": "pnpm@10.18.0",
   "sideEffects": false,
   "type": "module",
   "scripts": {
