@@ -2,6 +2,7 @@ import { ChevronDown, FolderOpen, Home, LogOut } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoginModal } from './LoginModal';
+import { getAvatarUrl } from '~/utils/avatar';
 import { Button } from '~/components/ui/Button';
 import {
   DropdownMenu,
@@ -63,10 +64,7 @@ export function UserMenu() {
         >
           <div className="relative">
             <img
-              src={
-                user.user_metadata?.avatar_url ||
-                `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=6366f1&color=fff`
-              }
+              src={getAvatarUrl(user, '6366f1')}
               alt={user.email || 'User'}
               className="h-9 w-9 flex-shrink-0 rounded-full border border-bolt-elements-borderColor/60 object-cover transition-all group-hover:border-bolt-elements-borderColorActive"
             />

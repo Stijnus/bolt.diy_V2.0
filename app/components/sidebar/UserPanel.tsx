@@ -5,11 +5,13 @@ import { LoginModal } from '~/components/auth/LoginModal';
 import { Button } from '~/components/ui/Button';
 import { Separator } from '~/components/ui/Separator';
 import { useAuth } from '~/lib/contexts/AuthContext';
+import { getAvatarUrl } from '~/utils/avatar';
 
 export function UserPanel() {
   const { user, signOut, loading } = useAuth();
   const [loginOpen, setLoginOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+
 
   if (loading) {
     return (
@@ -89,12 +91,13 @@ export function UserPanel() {
       >
         <div className="relative">
           <img
-            src={
-              user.user_metadata?.avatar_url ||
-              `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`
-            }
+            src={getAvatarUrl(user)}
             alt={user.email || 'User'}
             className="h-10 w-10 rounded-full ring-2 ring-bolt-elements-borderColor transition-all group-hover:ring-bolt-elements-borderColorActive"
+onError={(e) => {
+              // Fallback to generated avatar if the original fails to load
+              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`;
+            }}
           />
           <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bolt-elements-background-depth-2 bg-bolt-elements-icon-success"></div>
         </div>
