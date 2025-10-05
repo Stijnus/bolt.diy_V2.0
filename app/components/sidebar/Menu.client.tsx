@@ -115,21 +115,23 @@ export function Menu() {
       className="side-menu pointer-events-auto fixed top-0 z-[997] flex h-full w-[360px] flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl"
     >
       {/* Header */}
-      <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-5">
+      <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1/95 px-6 py-5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
-              <MessageSquarePlus className="h-5 w-5" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 shadow-inner shadow-black/5">
+              <MessageSquarePlus className="h-5 w-5 text-bolt-elements-icon-primary" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-bolt-elements-textPrimary">Conversations</h2>
-              <p className="text-xs text-bolt-elements-textSecondary">Workspace</p>
+              <h2 className="text-base font-semibold tracking-tight text-bolt-elements-textPrimary">Conversations</h2>
+              <p className="text-[11px] text-bolt-elements-textSecondary">Workspace</p>
             </div>
           </div>
-          <div className="flex items-center gap-3">
-            <ThemeSwitch className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary transition-colors" />
-            <div className="flex items-center gap-2 rounded-full border border-bolt-elements-icon-success/30 bg-bolt-elements-icon-success/10 px-3 py-1.5 text-xs font-semibold text-bolt-elements-icon-success">
-              <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></div>
+          <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/80 px-1.5 py-1.5 shadow-sm">
+            <div className="flex items-center justify-center rounded-full bg-bolt-elements-background-depth-1/70 p-1.5 shadow-inner">
+              <ThemeSwitch className="rounded-full p-0 text-bolt-elements-textSecondary transition-colors hover:text-bolt-elements-textPrimary" />
+            </div>
+            <div className="flex items-center gap-1 rounded-full bg-bolt-elements-background-depth-1/80 px-2.5 py-1 text-[11px] font-semibold text-bolt-elements-icon-success">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></span>
               Live
             </div>
           </div>
@@ -137,7 +139,7 @@ export function Menu() {
       </div>
 
       {/* Main Content */}
-      <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+      <div className="flex h-full w-full flex-1 flex-col overflow-hidden text-[13px]">
         <div className="space-y-4 px-6 py-5">
           {/* New Chat Button */}
           <Button
@@ -145,7 +147,7 @@ export function Menu() {
             className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg btn-ripple transition-smooth hover:scale-[1.02]"
             size="lg"
           >
-            <a href="/" className="flex items-center gap-2.5 font-semibold">
+            <a href="/" className="flex items-center gap-2.5 text-sm font-semibold">
               <MessageSquarePlus className="h-5 w-5" />
               Start new chat
             </a>
@@ -159,7 +161,7 @@ export function Menu() {
               className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
               size="lg"
             >
-              <a href="/projects" className="flex items-center gap-2.5 font-semibold">
+              <a href="/projects" className="flex items-center gap-2.5 text-sm font-semibold">
                 <FolderKanban className="h-5 w-5" />
                 My Projects
               </a>

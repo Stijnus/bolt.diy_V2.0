@@ -3,6 +3,9 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Import lightning animations */
+@import './lightning-animations.css';
+
 @layer base {
   :root,
   :root[data-theme='light'] {
