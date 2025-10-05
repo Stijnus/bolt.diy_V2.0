@@ -1,15 +1,18 @@
 import { motion, type Variants } from 'framer-motion';
+import { MessageSquarePlus, Sparkles, TrendingUp } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
+
+import { HistoryItem } from './HistoryItem';
+import { UserPanel } from './UserPanel';
+import { binDates } from './date-binning';
+
+import { Button } from '~/components/ui/Button';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { IconButton } from '~/components/ui/IconButton';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
+import { Separator } from '~/components/ui/Separator';
 import { db, deleteById, getAll, chatId, type ChatHistoryItem } from '~/lib/persistence';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
-import { HistoryItem } from './HistoryItem';
-import { binDates } from './date-binning';
-import { UserPanel } from './UserPanel';
 
 const menuVariants = {
   closed: {
@@ -106,26 +109,94 @@ export function Menu() {
       initial="closed"
       animate={open ? 'open' : 'closed'}
       variants={menuVariants}
-      className="flex flex-col side-menu fixed top-0 w-[350px] h-full bg-bolt-elements-background-depth-2 border-r rounded-r-3xl border-bolt-elements-borderColor z-sidebar shadow-xl shadow-bolt-elements-sidebar-dropdownShadow text-sm"
+      className="side-menu pointer-events-auto fixed top-0 z-[997] flex h-full w-[360px] flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl"
     >
-      <div className="flex items-center h-[var(--header-height)]">{/* Placeholder */}</div>
-      <div className="flex-1 flex flex-col h-full w-full overflow-hidden">
-        <div className="p-4">
-          <a
-            href="/"
-            className="flex gap-2 items-center bg-bolt-elements-sidebar-buttonBackgroundDefault text-bolt-elements-sidebar-buttonText hover:bg-bolt-elements-sidebar-buttonBackgroundHover rounded-md p-2 transition-theme"
-          >
-            <span className="inline-block i-bolt:chat scale-110" />
-            Start new chat
-          </a>
+      {/* Header */}
+      <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-5">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-primary/10 to-primary/5 text-primary">
+              <MessageSquarePlus className="h-5 w-5" />
+            </div>
+            <div>
+              <h2 className="text-lg font-bold text-bolt-elements-textPrimary">Conversations</h2>
+              <p className="text-xs text-bolt-elements-textSecondary">Workspace</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 rounded-full border border-bolt-elements-icon-success/30 bg-bolt-elements-icon-success/10 px-3 py-1.5 text-xs font-semibold text-bolt-elements-icon-success">
+            <div className="h-1.5 w-1.5 animate-pulse rounded-full bg-bolt-elements-icon-success"></div>
+            Live
+          </div>
         </div>
-        <div className="text-bolt-elements-textPrimary font-medium pl-6 pr-5 my-2">Your Chats</div>
-        <div className="flex-1 overflow-scroll pl-4 pr-5 pb-5">
-          {list.length === 0 && <div className="pl-2 text-bolt-elements-textTertiary">No previous conversations</div>}
+      </div>
+
+      {/* Main Content */}
+      <div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+        <div className="space-y-4 px-6 py-5">
+          {/* New Chat Button */}
+          <Button
+            asChild
+            className="w-full justify-center shadow-md bg-primary text-primary-foreground hover:bg-primary/90 hover:shadow-lg"
+            size="lg"
+          >
+            <a href="/" className="flex items-center gap-2.5 font-semibold">
+              <MessageSquarePlus className="h-5 w-5" />
+              Start new chat
+            </a>
+          </Button>
+
+          {/* Pro Tip Callout */}
+          <div className="group relative overflow-hidden rounded-2xl border border-primary/20 bg-gradient-to-br from-primary/5 to-primary/10 p-4 shadow-sm transition-all hover:border-primary/30 hover:shadow-md">
+            <div className="relative flex items-start gap-3">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm">
+                <Sparkles className="h-5 w-5" />
+              </div>
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-bold text-bolt-elements-textPrimary">Pro tip</p>
+                  <TrendingUp className="h-4 w-4 text-primary" />
+                </div>
+                <p className="text-xs leading-relaxed text-bolt-elements-textSecondary">
+                  Drop files or type{' '}
+                  <code className="rounded-md bg-bolt-elements-background-depth-1 px-1.5 py-0.5 text-xs font-semibold text-primary">
+                    /deploy
+                  </code>{' '}
+                  to spin up a live preview instantly.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* History Section Header */}
+        <div className="flex items-center justify-between px-5 py-3">
+          <h3 className="text-xs font-semibold uppercase tracking-[0.2em] text-bolt-elements-textTertiary">History</h3>
+          {list.length > 0 && (
+            <span className="rounded-full bg-bolt-elements-background-depth-3 px-2 py-0.5 text-xs font-medium text-bolt-elements-textTertiary">
+              {list.length}
+            </span>
+          )}
+        </div>
+
+        <Separator />
+
+        {/* History List */}
+        <div className="relative flex-1 overflow-y-auto px-3 py-4">
+          {list.length === 0 ? (
+            <div className="mx-2 mt-4 rounded-2xl border border-dashed border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/50 px-4 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-bolt-elements-background-depth-3">
+                <MessageSquarePlus className="h-6 w-6 text-bolt-elements-textTertiary" />
+              </div>
+              <p className="text-sm font-medium text-bolt-elements-textPrimary">No conversations yet</p>
+              <p className="mt-1 text-xs text-bolt-elements-textSecondary">
+                Start a new chat to keep track of your progress.
+              </p>
+            </div>
+          ) : null}
           <DialogRoot open={dialogContent !== null}>
             {binDates(list).map(({ category, items }) => (
-              <div key={category} className="mt-4 first:mt-0 space-y-1">
-                <div className="text-bolt-elements-textTertiary sticky top-0 z-1 bg-bolt-elements-background-depth-2 pl-2 pt-2 pb-1">
+              <div key={category} className="mt-4 space-y-1 first:mt-0">
+                <div className="sticky top-0 z-[1] bg-gradient-to-b from-bolt-elements-background-depth-2 to-transparent px-3 pb-2 pt-2 text-xs font-semibold uppercase tracking-[0.16em] text-bolt-elements-textTertiary backdrop-blur-sm">
                   {category}
                 </div>
                 {items.map((item) => (
@@ -137,15 +208,14 @@ export function Menu() {
               {dialogContent?.type === 'delete' && (
                 <>
                   <DialogTitle>Delete Chat?</DialogTitle>
-                  <DialogDescription asChild>
-                    <div>
-                      <p>
-                        You are about to delete <strong>{dialogContent.item.description}</strong>.
-                      </p>
-                      <p className="mt-1">Are you sure you want to delete this chat?</p>
-                    </div>
+                  <DialogDescription className="px-5 py-4 text-sm text-bolt-elements-textSecondary">
+                    <p>
+                      You are about to delete{' '}
+                      <strong className="text-bolt-elements-textPrimary">{dialogContent.item.description}</strong>.
+                    </p>
+                    <p className="mt-2">This action can't be undone.</p>
                   </DialogDescription>
-                  <div className="px-5 pb-4 bg-bolt-elements-background-depth-2 flex gap-2 justify-end">
+                  <div className="flex justify-end gap-2 bg-bolt-elements-background-depth-2 px-5 pb-5">
                     <DialogButton type="secondary" onClick={closeDialog}>
                       Cancel
                     </DialogButton>
@@ -164,10 +234,7 @@ export function Menu() {
             </Dialog>
           </DialogRoot>
         </div>
-        <div className="flex items-center justify-between px-4 py-3 border-t border-bolt-elements-borderColor">
-          <span className="text-xs text-bolt-elements-textTertiary font-medium">Theme</span>
-          <ThemeSwitch />
-        </div>
+
         <UserPanel />
       </div>
     </motion.div>

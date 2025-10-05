@@ -1,110 +1,120 @@
-import { useState } from 'react'
-import { useAuth } from '~/lib/contexts/AuthContext'
-import { LoginModal } from './LoginModal'
+import { ChevronDown, FolderOpen, Home, LogOut } from 'lucide-react';
+import { useState } from 'react';
+
+import { LoginModal } from './LoginModal';
+import { Button } from '~/components/ui/Button';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/DropdownMenu';
+import { useAuth } from '~/lib/contexts/AuthContext';
+import { classNames } from '~/utils/classNames';
 
 export function UserMenu() {
-  const { user, signOut, loading } = useAuth()
-  const [loginOpen, setLoginOpen] = useState(false)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const { user, signOut, loading } = useAuth();
+  const [loginOpen, setLoginOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   if (loading) {
     return (
       <div className="animate-pulse">
-        <div className="w-8 h-8 bg-bolt-elements-background-depth-3 rounded-full"></div>
+        <div className="h-10 w-10 rounded-full bg-bolt-elements-background-depth-3"></div>
       </div>
-    )
+    );
   }
 
   if (!user) {
     return (
       <>
-        <button
-          onClick={() => setLoginOpen(true)}
-          className="bg-bolt-elements-button-primary-background hover:bg-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text px-4 py-2 rounded-lg font-medium transition-colors"
-        >
+        <Button onClick={() => setLoginOpen(true)} size="md" className="shadow-sm">
           Sign In
-        </button>
+        </Button>
         <LoginModal open={loginOpen} onClose={() => setLoginOpen(false)} />
       </>
-    )
+    );
   }
 
   const handleSignOut = async () => {
     try {
-      await signOut()
-      setMenuOpen(false)
+      await signOut();
+      setMenuOpen(false);
     } catch (error) {
-      console.error('Sign out error:', error)
+      console.error('Sign out error:', error);
     }
-  }
+  };
 
   return (
-    <div className="relative">
-      <button
-        onClick={() => setMenuOpen(!menuOpen)}
-        className="flex items-center gap-2 p-1 rounded-lg hover:bg-bolt-elements-background-depth-3 transition-colors"
-      >
-        <img
-          src={user.user_metadata?.avatar_url || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=6366f1&color=fff`}
-          alt={user.email || 'User'}
-          className="w-8 h-8 rounded-full"
-        />
-        <div className="hidden sm:block text-left">
-          <div className="text-sm font-medium text-bolt-elements-textPrimary">
-            {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
-          </div>
-          <div className="text-xs text-bolt-elements-textSecondary">{user.email}</div>
-        </div>
-        <svg 
-          className={`w-4 h-4 text-bolt-elements-textSecondary transition-transform ${menuOpen ? 'rotate-180' : ''}`}
-          fill="none" 
-          stroke="currentColor" 
-          viewBox="0 0 24 24"
+    <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
+      <DropdownMenuTrigger asChild>
+        <button
+          type="button"
+          className={classNames(
+            'group flex items-center gap-2.5 rounded-full border border-transparent bg-bolt-elements-background-depth-2 px-2 py-1.5 pr-3 shadow-sm transition-all hover:border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+            {
+              'border-bolt-elements-borderColorActive ring-2 ring-primary ring-offset-2 ring-offset-background':
+                menuOpen,
+            },
+          )}
+          aria-label="User menu"
         >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
-      </button>
-
-      {menuOpen && (
-        <>
-          {/* Overlay to close menu */}
-          <div 
-            className="fixed inset-0 z-10" 
-            onClick={() => setMenuOpen(false)}
-          ></div>
-          
-          {/* Menu */}
-          <div className="absolute right-0 mt-2 w-64 bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg z-20">
-            <div className="p-3 border-b border-bolt-elements-borderColor">
-              <div className="text-sm font-medium text-bolt-elements-textPrimary">
-                {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
-              </div>
-              <div className="text-xs text-bolt-elements-textSecondary">{user.email}</div>
-            </div>
-            
-            <div className="p-1">
-              <a
-                href="/projects"
-                className="block px-3 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 rounded-md flex items-center gap-2 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-                My Projects
-              </a>
-              <button
-                onClick={handleSignOut}
-                className="w-full text-left px-3 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 rounded-md flex items-center gap-2 transition-colors"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
-                </svg>
-                Sign Out
-              </button>
-            </div>
+          <div className="relative">
+            <img
+              src={
+                user.user_metadata?.avatar_url ||
+                `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=6366f1&color=fff`
+              }
+              alt={user.email || 'User'}
+              className="h-9 w-9 flex-shrink-0 rounded-full border border-bolt-elements-borderColor/60 object-cover transition-all group-hover:border-bolt-elements-borderColorActive"
+            />
+            <div className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full border border-bolt-elements-background-depth-2 bg-bolt-elements-icon-success"></div>
           </div>
-        </>
-      )}
-    </div>
-  )
+          <div className="hidden min-w-0 text-left sm:block">
+            <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">
+              {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+            </div>
+            <div className="truncate text-xs text-bolt-elements-textSecondary">{user.email}</div>
+          </div>
+          <ChevronDown
+            className={classNames('h-4 w-4 text-bolt-elements-textSecondary transition-transform duration-200', {
+              'rotate-180': menuOpen,
+            })}
+          />
+        </button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent align="end" className="w-72 p-2">
+        <DropdownMenuLabel className="flex flex-col gap-1 px-3 py-3">
+          <span className="text-base font-bold text-bolt-elements-textPrimary">
+            {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+          </span>
+          <span className="text-sm text-bolt-elements-textSecondary">{user.email}</span>
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator className="my-2" />
+        <DropdownMenuItem asChild>
+          <a href="/projects" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium">
+            <FolderOpen className="h-5 w-5" />
+            My Projects
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuItem asChild>
+          <a href="/" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium">
+            <Home className="h-5 w-5" />
+            Home
+          </a>
+        </DropdownMenuItem>
+        <DropdownMenuSeparator className="my-2" />
+        <DropdownMenuItem
+          onClick={handleSignOut}
+          className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-destructive hover:bg-destructive/10 hover:text-destructive focus:bg-destructive/10 focus:text-destructive"
+        >
+          <LogOut className="h-5 w-5" />
+          Sign Out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
 }

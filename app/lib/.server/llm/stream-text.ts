@@ -1,8 +1,8 @@
 import { streamText as _streamText, type ModelMessage } from 'ai';
-import { getAPIKey } from '~/lib/.server/llm/api-key';
-import { getAnthropicModel } from '~/lib/.server/llm/model';
 import { MAX_TOKENS } from './constants';
 import { getSystemPrompt } from './prompts';
+import { getAPIKey } from '~/lib/.server/llm/api-key';
+import { getAnthropicModel } from '~/lib/.server/llm/model';
 
 export type Messages = ModelMessage[];
 

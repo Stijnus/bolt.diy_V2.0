@@ -1,5 +1,5 @@
-import { modificationsRegex } from '~/utils/diff';
 import { Markdown } from './Markdown';
+import { modificationsRegex } from '~/utils/diff';
 
 interface UserMessageProps {
   content: string;

@@ -1,160 +1,266 @@
-import { useState } from 'react'
-import { projectService } from '~/lib/services/projects'
-import { toast } from 'react-toastify'
-import { X, Lock, Globe, Loader2 } from 'lucide-react'
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Globe, Loader2, Lock, Sparkles } from 'lucide-react';
+import { useEffect, useMemo } from 'react';
+import { useForm } from 'react-hook-form';
+import { toast } from 'react-toastify';
+import * as z from 'zod';
+
+import { Button } from '~/components/ui/Button';
+import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
+import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '~/components/ui/Form';
+import { Input } from '~/components/ui/Input';
+import { Separator } from '~/components/ui/Separator';
+import { Textarea } from '~/components/ui/Textarea';
+import { projectService } from '~/lib/services/projects';
+import { classNames } from '~/utils/classNames';
 
 interface CreateProjectDialogProps {
-  open: boolean
-  onClose: () => void
-  onCreated?: () => void
+  open: boolean;
+  onClose: () => void;
+  onCreated?: () => void;
 }
 
+const projectSchema = z.object({
+  name: z
+    .string()
+    .min(1, { message: 'Project name is required' })
+    .max(100, { message: 'Project name must be 100 characters or less' }),
+  description: z.string().max(500, { message: 'Description must be 500 characters or less' }).optional(),
+  visibility: z.enum(['private', 'public']),
+});
+
+type ProjectFormValues = z.infer<typeof projectSchema>;
+
 export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectDialogProps) {
-  const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
-  const [visibility, setVisibility] = useState<'private' | 'public'>('private')
-  const [loading, setLoading] = useState(false)
+  const form = useForm<ProjectFormValues>({
+    resolver: zodResolver(projectSchema),
+    defaultValues: {
+      name: '',
+      description: '',
+      visibility: 'private',
+    },
+  });
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const visibilityOptions = useMemo(
+    () => [
+      {
+        value: 'private' as const,
+        label: 'Private',
+        helper: 'Only invited collaborators can access.',
+        icon: Lock,
+      },
+      {
+        value: 'public' as const,
+        label: 'Public',
+        helper: 'Share a link for anyone to explore.',
+        icon: Globe,
+      },
+    ],
+    [],
+  );
 
-    if (!name.trim()) {
-      toast.error('Project name is required')
-      return
+  useEffect(() => {
+    if (!open) {
+      form.reset();
     }
+  }, [open, form]);
 
-    setLoading(true)
-
+  const onSubmit = async (data: ProjectFormValues) => {
     try {
       await projectService.createProject({
-        name: name.trim(),
-        description: description.trim() || null,
-        visibility,
-      })
+        name: data.name.trim(),
+        description: data.description?.trim() || null,
+        visibility: data.visibility,
+      });
 
-      toast.success('Project created successfully')
-      setName('')
-      setDescription('')
-      setVisibility('private')
-      onClose()
-      onCreated?.()
+      toast.success('Project created successfully');
+      form.reset();
+      onClose();
+      onCreated?.();
     } catch (error: any) {
-      toast.error(`Failed to create project: ${error.message}`)
-    } finally {
-      setLoading(false)
+      toast.error(`Failed to create project: ${error.message}`);
     }
-  }
-
-  if (!open) return null
+  };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/50" onClick={onClose} />
-      <div className="relative bg-bolt-elements-background-depth-1 rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-semibold text-bolt-elements-textPrimary">Create New Project</h2>
-          <button
-            onClick={onClose}
-            className="text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label htmlFor="name" className="block text-sm font-medium text-bolt-elements-textPrimary mb-1">
-              Project Name *
-            </label>
-            <input
-              type="text"
-              id="name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="w-full px-3 py-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
-              placeholder="My Awesome Project"
-              required
-              maxLength={100}
-            />
-          </div>
-
-          <div>
-            <label htmlFor="description" className="block text-sm font-medium text-bolt-elements-textPrimary mb-1">
-              Description
-            </label>
-            <textarea
-              id="description"
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              className="w-full px-3 py-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
-              placeholder="Brief description of your project"
-              rows={3}
-              maxLength={500}
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-bolt-elements-textPrimary mb-2">
-              Visibility
-            </label>
-            <div className="flex gap-4">
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="visibility"
-                  value="private"
-                  checked={visibility === 'private'}
-                  onChange={(e) => setVisibility(e.target.value as 'private')}
-                  className="mr-2"
-                />
-                <div className="flex items-center gap-2">
-                  <Lock className="w-4 h-4" />
-                  <span className="text-bolt-elements-textPrimary">Private</span>
-                </div>
-              </label>
-              <label className="flex items-center cursor-pointer">
-                <input
-                  type="radio"
-                  name="visibility"
-                  value="public"
-                  checked={visibility === 'public'}
-                  onChange={(e) => setVisibility(e.target.value as 'public')}
-                  className="mr-2"
-                />
-                <div className="flex items-center gap-2">
-                  <Globe className="w-4 h-4" />
-                  <span className="text-bolt-elements-textPrimary">Public</span>
-                </div>
-              </label>
+    <DialogRoot open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
+      <Dialog className="max-w-2xl">
+        <DialogTitle className="flex-col items-start gap-4">
+          <div className="w-full">
+            <div className="mb-4 flex items-center justify-between">
+              <div className="text-lg font-semibold text-bolt-elements-textPrimary">Create new project</div>
+              <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-1 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.1em] text-bolt-elements-textTertiary">
+                <Sparkles className="h-3.5 w-3.5" />
+                AI Setup
+              </div>
             </div>
+            <p className="text-sm font-normal text-bolt-elements-textSecondary">
+              Create a workspace for your next idea. You can change these settings anytime.
+            </p>
           </div>
+        </DialogTitle>
 
-          <div className="flex gap-3 pt-4">
-            <button
-              type="button"
-              onClick={onClose}
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text rounded hover:bg-bolt-elements-button-secondary-backgroundHover disabled:opacity-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={loading}
-              className="flex-1 px-4 py-2 bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text rounded hover:bg-bolt-elements-button-primary-backgroundHover disabled:opacity-50"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin inline-block mr-2" />
-                  Creating...
-                </>
-              ) : (
-                'Create Project'
-              )}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  )
+        <div className="px-5 py-5">
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+              {/* Project Name */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Project name</FormLabel>
+                    <FormControl>
+                      <Input
+                        placeholder="My awesome project"
+                        {...field}
+                        autoFocus
+                        disabled={form.formState.isSubmitting}
+                        className="transition-all focus-visible:ring-2"
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Description */}
+              <FormField
+                control={form.control}
+                name="description"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">
+                      Description{' '}
+                      <span className="text-xs font-normal text-bolt-elements-textTertiary">(optional)</span>
+                    </FormLabel>
+                    <FormControl>
+                      <Textarea
+                        placeholder="Give collaborators a quick overview of what this project is about..."
+                        rows={3}
+                        {...field}
+                        disabled={form.formState.isSubmitting}
+                        className="min-h-[100px] transition-all focus-visible:ring-2"
+                      />
+                    </FormControl>
+                    <FormDescription>{field.value?.length || 0}/500 characters</FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <Separator />
+
+              {/* Visibility */}
+              <FormField
+                control={form.control}
+                name="visibility"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Visibility</FormLabel>
+                    <FormDescription className="mb-3">
+                      Control who can find and collaborate on this project.
+                    </FormDescription>
+                    <FormControl>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {visibilityOptions.map((option) => {
+                          const Icon = option.icon;
+                          const isActive = field.value === option.value;
+
+                          return (
+                            <label
+                              key={option.value}
+                              className={classNames(
+                                'group relative flex cursor-pointer flex-col gap-3 rounded-2xl border p-4 shadow-sm transition-all',
+                                {
+                                  'border-bolt-elements-borderColorActive bg-bolt-elements-button-primary-background/5':
+                                    isActive,
+                                  'border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-2/80 hover:border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1/90':
+                                    !isActive,
+                                },
+                              )}
+                            >
+                              <input
+                                type="radio"
+                                className="sr-only"
+                                value={option.value}
+                                checked={isActive}
+                                onChange={() => field.onChange(option.value)}
+                                disabled={form.formState.isSubmitting}
+                              />
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                  <span
+                                    className={classNames(
+                                      'flex h-10 w-10 items-center justify-center rounded-xl transition-colors',
+                                      {
+                                        'bg-bolt-elements-button-primary-background/10 text-bolt-elements-button-primary-text':
+                                          isActive,
+                                        'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary group-hover:text-bolt-elements-textPrimary':
+                                          !isActive,
+                                      },
+                                    )}
+                                  >
+                                    <Icon className="h-5 w-5" />
+                                  </span>
+                                  <span className="text-sm font-semibold text-bolt-elements-textPrimary">
+                                    {option.label}
+                                  </span>
+                                </div>
+                                <span
+                                  className={classNames('h-4 w-4 rounded-full border-2 transition-all', {
+                                    'border-bolt-elements-button-primary-background bg-bolt-elements-button-primary-background':
+                                      isActive,
+                                    'border-bolt-elements-borderColor': !isActive,
+                                  })}
+                                  aria-hidden
+                                >
+                                  {isActive && (
+                                    <span className="flex h-full w-full items-center justify-center">
+                                      <span className="h-2 w-2 rounded-full bg-bolt-elements-button-primary-text"></span>
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                              <p className="text-xs leading-relaxed text-bolt-elements-textSecondary">
+                                {option.helper}
+                              </p>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Actions */}
+              <div className="flex flex-col gap-2 border-t border-bolt-elements-borderColor pt-5 sm:flex-row sm:justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onClose}
+                  disabled={form.formState.isSubmitting}
+                  className="sm:w-auto"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={form.formState.isSubmitting} className="sm:w-auto">
+                  {form.formState.isSubmitting ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating project...
+                    </>
+                  ) : (
+                    'Create project'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </Form>
+        </div>
+      </Dialog>
+    </DialogRoot>
+  );
 }

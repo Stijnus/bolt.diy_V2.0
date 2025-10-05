@@ -1,5 +1,5 @@
-import { memo } from 'react';
 import type { LucideIcon } from 'lucide-react';
+import { memo } from 'react';
 import { cn } from '~/lib/utils';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -28,7 +28,7 @@ type IconButtonProps = IconButtonWithIconProps | IconButtonWithChildrenProps;
 
 export const IconButton = memo(
   ({
-    icon: Icon,
+    icon: iconComponent,
     size = 'xl',
     className,
     iconClassName,
@@ -38,6 +38,8 @@ export const IconButton = memo(
     onClick,
     children,
   }: IconButtonProps) => {
+    const IconComponent = iconComponent;
+
     return (
       <button
         className={cn(
@@ -55,7 +57,7 @@ export const IconButton = memo(
           onClick?.(event);
         }}
       >
-        {children ? children : Icon && <Icon className={cn(getIconSize(size), iconClassName)} />}
+        {children ? children : IconComponent && <IconComponent className={cn(getIconSize(size), iconClassName)} />}
       </button>
     );
   },

@@ -1,6 +1,6 @@
 import type { UIMessage } from 'ai';
-import { createScopedLogger } from '~/utils/logger';
 import type { ChatHistoryItem } from './useChatHistory';
+import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ChatHistory');
 

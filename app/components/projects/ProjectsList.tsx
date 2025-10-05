@@ -1,122 +1,197 @@
-import { useState, useEffect } from 'react'
-import { projectService } from '~/lib/services/projects'
-import type { Database } from '~/lib/supabase/types'
-import { toast } from 'react-toastify'
-import { Loader2, FolderOpen, Share2, Trash2 } from 'lucide-react'
+import { motion } from 'framer-motion';
+import { Calendar, FolderKanban, Globe, Lock, Loader2, Share2, Trash2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { toast } from 'react-toastify';
 
-type Project = Database['public']['Tables']['projects']['Row']
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '~/components/ui/AlertDialog';
+import { Badge } from '~/components/ui/Badge';
+import { Button } from '~/components/ui/Button';
+import { projectService } from '~/lib/services/projects';
+import type { Database } from '~/lib/supabase/types';
+import { cn } from '~/lib/utils';
+
+type Project = Database['public']['Tables']['projects']['Row'];
 
 export function ProjectsList() {
-  const [projects, setProjects] = useState<Project[]>([])
-  const [loading, setLoading] = useState(true)
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [deleteProject, setDeleteProject] = useState<{ id: string; name: string } | null>(null);
 
   useEffect(() => {
-    loadProjects()
-  }, [])
+    loadProjects();
+  }, []);
 
   const loadProjects = async () => {
     try {
-      const data = await projectService.getProjects()
-      setProjects(data)
+      const data = await projectService.getProjects();
+      setProjects(data);
     } catch (error: any) {
-      toast.error(`Failed to load projects: ${error.message}`)
+      toast.error(`Failed to load projects: ${error.message}`);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete "${name}"?`)) {
-      return
+  const handleDelete = async () => {
+    if (!deleteProject) {
+      return;
     }
 
     try {
-      await projectService.deleteProject(id)
-      toast.success('Project deleted successfully')
-      await loadProjects()
+      await projectService.deleteProject(deleteProject.id);
+      toast.success('Project deleted successfully');
+      setDeleteProject(null);
+      await loadProjects();
     } catch (error: any) {
-      toast.error(`Failed to delete project: ${error.message}`)
+      toast.error(`Failed to delete project: ${error.message}`);
     }
-  }
+  };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <Loader2 className="w-8 h-8 animate-spin text-bolt-elements-textSecondary" />
+      <div className="flex items-center justify-center p-12">
+        <div className="flex items-center gap-3 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-4 shadow-sm">
+          <Loader2 className="h-5 w-5 animate-spin text-bolt-elements-icon-primary" />
+          <span className="text-sm font-medium text-bolt-elements-textPrimary">Loading your projects...</span>
+        </div>
       </div>
-    )
+    );
   }
 
   if (projects.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-center">
-        <FolderOpen className="w-16 h-16 text-bolt-elements-textTertiary mb-4" />
-        <h3 className="text-lg font-semibold text-bolt-elements-textPrimary mb-2">No projects yet</h3>
-        <p className="text-sm text-bolt-elements-textSecondary">Create your first project to get started</p>
+      <div className="flex flex-col items-center justify-center px-6 py-20 text-center">
+        <div className="relative">
+          <div className="absolute inset-0 -m-4 rounded-full bg-bolt-elements-button-primary-background/10 blur-2xl"></div>
+          <div className="relative flex h-24 w-24 items-center justify-center rounded-3xl bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 shadow-lg">
+            <FolderKanban className="h-12 w-12 text-bolt-elements-icon-primary" />
+          </div>
+        </div>
+        <h3 className="mt-8 text-xl font-semibold text-bolt-elements-textPrimary">No projects yet</h3>
+        <p className="mt-3 max-w-md text-sm leading-relaxed text-bolt-elements-textSecondary">
+          Create your first project to start building with AI. Organize your work, collaborate with teammates, and bring
+          your ideas to life.
+        </p>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 p-4">
-      {projects.map((project) => (
-        <div
-          key={project.id}
-          className="border border-bolt-elements-borderColor rounded-lg p-4 bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3 transition-colors"
-        >
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1 min-w-0">
-              <h3 className="font-semibold text-bolt-elements-textPrimary truncate">{project.name}</h3>
-              {project.description && (
-                <p className="text-sm text-bolt-elements-textSecondary mt-1 line-clamp-2">
-                  {project.description}
-                </p>
+    <>
+      <div className="grid gap-6 p-6 sm:grid-cols-2 lg:grid-cols-3">
+        {projects.map((project, index) => (
+          <motion.div
+            key={project.id}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3, delay: index * 0.05 }}
+            className="group relative"
+          >
+            <div className="relative flex h-full flex-col gap-4 overflow-hidden rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-6 shadow-sm transition-all hover:-translate-y-1 hover:border-bolt-elements-borderColorActive hover:shadow-lg">
+              {/* Header */}
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex-1 min-w-0">
+                  <h3 className="truncate text-lg font-semibold text-bolt-elements-textPrimary">{project.name}</h3>
+                  {project.description && (
+                    <p className="mt-2 line-clamp-2 text-sm leading-relaxed text-bolt-elements-textSecondary">
+                      {project.description}
+                    </p>
+                  )}
+                </div>
+                <Badge variant={project.visibility === 'public' ? 'success' : 'default'}>
+                  {project.visibility === 'public' ? (
+                    <>
+                      <Globe className="h-3 w-3" />
+                      Public
+                    </>
+                  ) : (
+                    <>
+                      <Lock className="h-3 w-3" />
+                      Private
+                    </>
+                  )}
+                </Badge>
+              </div>
+
+              {/* Metadata */}
+              <div className="flex flex-wrap items-center gap-3 text-xs text-bolt-elements-textTertiary">
+                <div className="flex items-center gap-1.5 rounded-full bg-bolt-elements-background-depth-2 px-2.5 py-1">
+                  <Calendar className="h-3 w-3" />
+                  <span>Updated {new Date(project.updated_at || '').toLocaleDateString()}</span>
+                </div>
+              </div>
+
+              {/* Actions */}
+              <div className="mt-auto flex flex-col gap-2 border-t border-bolt-elements-borderColor pt-4 sm:flex-row">
+                <Button
+                  className="flex-1"
+                  onClick={() => {
+                    toast.info('Open project functionality coming soon');
+                  }}
+                  size="sm"
+                >
+                  <FolderKanban className="h-4 w-4" />
+                  Open
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="flex-1"
+                  size="sm"
+                  onClick={() => {
+                    toast.info('Share functionality coming soon');
+                  }}
+                >
+                  <Share2 className="h-4 w-4" />
+                  Share
+                </Button>
+                <Button
+                  type="button"
+                  variant="danger"
+                  className="sm:w-auto"
+                  size="sm"
+                  onClick={() => setDeleteProject({ id: project.id, name: project.name })}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteProject !== null} onOpenChange={() => setDeleteProject(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You are about to permanently delete <strong>{deleteProject?.name}</strong>. This action cannot be undone
+              and all project data will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteProject(null)}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              className={cn(
+                'bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover',
               )}
-            </div>
-            <div
-              className={`ml-2 px-2 py-1 rounded text-xs ${
-                project.visibility === 'public'
-                  ? 'bg-green-500/20 text-green-400'
-                  : 'bg-gray-500/20 text-gray-400'
-              }`}
             >
-              {project.visibility}
-            </div>
-          </div>
-
-          <div className="text-xs text-bolt-elements-textTertiary mb-3">
-            Updated {new Date(project.updated_at || '').toLocaleDateString()}
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => {
-                // TODO: Implement open project functionality
-                toast.info('Open project functionality coming soon')
-              }}
-              className="flex-1 btn btn-sm bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover"
-            >
-              <FolderOpen className="w-4 h-4" />
-              Open
-            </button>
-            <button
-              onClick={() => {
-                // TODO: Implement share functionality
-                toast.info('Share functionality coming soon')
-              }}
-              className="btn btn-sm bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover"
-            >
-              <Share2 className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => handleDelete(project.id, project.name)}
-              className="btn btn-sm bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
+              Delete Project
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
+  );
 }

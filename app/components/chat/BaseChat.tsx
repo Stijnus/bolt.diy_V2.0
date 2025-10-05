@@ -1,16 +1,15 @@
 import type { UIMessage } from 'ai';
+import { Loader2, Sparkles } from 'lucide-react';
 import React, { type RefCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
+import styles from './BaseChat.module.scss';
+import { Messages } from './Messages.client';
+import { SendButton } from './SendButton.client';
+import { MigrationBanner } from '~/components/migration/MigrationBanner';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
 import { classNames } from '~/utils/classNames';
-import { Messages } from './Messages.client';
-import { SendButton } from './SendButton.client';
-import { MigrationBanner } from '~/components/migration/MigrationBanner';
-import { Loader2, CornerDownLeft } from 'lucide-react';
-
-import styles from './BaseChat.module.scss';
 
 interface BaseChatProps {
   textareaRef?: React.RefObject<HTMLTextAreaElement | null> | undefined;
@@ -28,14 +27,6 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
 }
-
-const EXAMPLE_PROMPTS = [
-  { text: 'Build a todo app in React using Tailwind' },
-  { text: 'Build a simple blog using Astro' },
-  { text: 'Create a cookie consent form using Material UI' },
-  { text: 'Make a space invaders game' },
-  { text: 'How do I center a div?' },
-];
 
 const TEXTAREA_MIN_HEIGHT = 76;
 
@@ -66,7 +57,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         ref={ref}
         className={classNames(
           styles.BaseChat,
-          'relative flex h-full w-full overflow-hidden bg-bolt-elements-background-depth-1',
+          'relative flex h-full w-full overflow-hidden bg-gradient-to-br from-bolt-elements-background-depth-1 via-bolt-elements-background-depth-1/95 to-bolt-elements-background-depth-2',
         )}
         data-chat-visible={showChat}
       >
@@ -74,17 +65,40 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
         <div ref={scrollRef} className="flex overflow-y-auto w-full h-full">
           <div className={classNames(styles.Chat, 'flex flex-col flex-grow min-w-[var(--chat-min-width)] h-full')}>
             {!chatStarted && (
-              <div id="intro" className="mt-[26vh] max-w-chat mx-auto">
-                <h1 className="text-5xl text-center font-bold text-bolt-elements-textPrimary mb-2">
-                  Where ideas begin
-                </h1>
-                <p className="mb-4 text-center text-bolt-elements-textSecondary">
-                  Bring ideas to life in seconds or get help on existing projects.
-                </p>
+              <div
+                id="intro"
+                className="mx-auto mt-[14vh] flex w-full max-w-3xl flex-col items-center gap-8 px-6 text-center"
+              >
+                <span className="inline-flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/70 px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-bolt-elements-textTertiary">
+                  Powered by Bolt
+                </span>
+                <div className="space-y-4">
+                  <h1 className="text-5xl font-semibold tracking-tight text-bolt-elements-textPrimary sm:text-6xl">
+                    Where ideas begin and launch
+                  </h1>
+                  <p className="text-lg text-bolt-elements-textSecondary">
+                    Design, develop, and deploy in one canvas. Craft a prompt, hand off tasks to Bolt, and iterate
+                    together in real time.
+                  </p>
+                </div>
+                <div className="grid w-full gap-4 sm:grid-cols-2">
+                  <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/80 px-5 py-4 text-left shadow-sm">
+                    <p className="text-sm font-semibold text-bolt-elements-textPrimary">Instant previews</p>
+                    <p className="mt-2 text-xs text-bolt-elements-textSecondary">
+                      Run `/deploy` or drag in a repo to preview every change without leaving the chat.
+                    </p>
+                  </div>
+                  <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/80 px-5 py-4 text-left shadow-sm">
+                    <p className="text-sm font-semibold text-bolt-elements-textPrimary">Project memory</p>
+                    <p className="mt-2 text-xs text-bolt-elements-textSecondary">
+                      Bolt remembers your context, keeps track of files, and suggests next steps.
+                    </p>
+                  </div>
+                </div>
               </div>
             )}
             <div
-              className={classNames('pt-6 px-6', {
+              className={classNames('px-6 pt-10 sm:pt-12', {
                 'h-full flex flex-col': chatStarted,
               })}
             >
@@ -100,7 +114,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   return chatStarted ? (
                     <Messages
                       ref={messageRef}
-                      className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-1"
+                      className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-[1]"
                       messages={messages}
                       isStreaming={isStreaming}
                     />
@@ -108,18 +122,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 }}
               </ClientOnly>
               <div
-                className={classNames('relative w-full max-w-chat mx-auto z-prompt', {
+                className={classNames('relative z-[2] mx-auto w-full max-w-chat', {
                   'sticky bottom-0': chatStarted,
                 })}
               >
-                <div
-                  className={classNames(
-                    'shadow-sm border border-bolt-elements-borderColor bg-bolt-elements-prompt-background backdrop-filter backdrop-blur-[8px] rounded-lg overflow-hidden',
-                  )}
-                >
+                <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/90 shadow-lg backdrop-blur-xl">
                   <textarea
                     ref={textareaRef}
-                    className={`w-full pl-4 pt-4 pr-16 focus:outline-none resize-none text-md text-bolt-elements-textPrimary placeholder-bolt-elements-textTertiary bg-transparent`}
+                    className="w-full resize-none rounded-3xl border-none bg-transparent px-5 pb-5 pt-5 text-base text-bolt-elements-textPrimary outline-none placeholder:text-bolt-elements-textTertiary"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
@@ -158,14 +168,14 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       />
                     )}
                   </ClientOnly>
-                  <div className="flex justify-between text-sm p-4 pt-2">
+                  <div className="flex items-start justify-between px-5 pb-4 text-sm">
                     <div className="flex gap-1 items-center">
                       <IconButton
                         title="Enhance prompt"
                         disabled={input.length === 0 || enhancingPrompt}
                         className={classNames({
-                          'opacity-100!': enhancingPrompt,
-                          'text-bolt-elements-item-contentAccent! pr-1.5 enabled:hover:bg-bolt-elements-item-backgroundAccent!':
+                          '!opacity-100': enhancingPrompt,
+                          '!text-bolt-elements-item-contentAccent pr-1.5 enabled:hover:!bg-bolt-elements-item-backgroundAccent':
                             promptEnhanced,
                         })}
                         onClick={() => enhancePrompt?.()}
@@ -177,42 +187,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         ) : (
                           <>
-                            <div className="i-bolt:stars text-xl"></div>
-                            {promptEnhanced && <div className="ml-1.5">Prompt enhanced</div>}
+                            <Sparkles className="h-5 w-5" />
+                            {promptEnhanced && <div className="ml-1.5 text-xs">Prompt enhanced</div>}
                           </>
                         )}
                       </IconButton>
                     </div>
                     {input.length > 3 ? (
-                      <div className="text-xs text-bolt-elements-textTertiary">
+                      <div className="text-xs text-bolt-elements-textSecondary">
                         Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
                       </div>
                     ) : null}
                   </div>
                 </div>
-                <div className="bg-bolt-elements-background-depth-1 pb-6">{/* Ghost Element */}</div>
+                <div className="pb-8" />
               </div>
             </div>
-            {!chatStarted && (
-              <div id="examples" className="relative w-full max-w-xl mx-auto mt-8 flex justify-center">
-                <div className="flex flex-col space-y-2 [mask-image:linear-gradient(to_bottom,black_0%,transparent_180%)] hover:[mask-image:none]">
-                  {EXAMPLE_PROMPTS.map((examplePrompt, index) => {
-                    return (
-                      <button
-                        key={index}
-                        onClick={(event) => {
-                          sendMessage?.(event, examplePrompt.text);
-                        }}
-                        className="group flex items-center w-full gap-2 justify-center bg-transparent text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary transition-theme"
-                      >
-                        {examplePrompt.text}
-                        <CornerDownLeft className="w-4 h-4" />
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
           </div>
           <ClientOnly>{() => <Workbench chatStarted={chatStarted} isStreaming={isStreaming} />}</ClientOnly>
         </div>

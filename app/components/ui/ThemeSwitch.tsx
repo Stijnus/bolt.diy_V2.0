@@ -1,8 +1,8 @@
 import { useStore } from '@nanostores/react';
-import { memo, useEffect, useState } from 'react';
 import { Sun, Moon } from 'lucide-react';
-import { themeStore, toggleTheme } from '~/lib/stores/theme';
+import { memo, useEffect, useState } from 'react';
 import { IconButton } from './IconButton';
+import { themeStore, toggleTheme } from '~/lib/stores/theme';
 
 interface ThemeSwitchProps {
   className?: string;
@@ -21,7 +21,7 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
       <IconButton
         className={className}
         icon={theme === 'dark' ? Sun : Moon}
-        size="xl"
+        size="lg"
         title="Toggle Theme"
         onClick={toggleTheme}
       />

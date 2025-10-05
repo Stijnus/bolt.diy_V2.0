@@ -1,40 +1,42 @@
-import { openDatabase, getAll } from '~/lib/persistence/db'
-import { createClient } from '~/lib/supabase/client'
-import type { ChatHistoryItem } from '~/lib/persistence/useChatHistory'
-import { createScopedLogger } from '~/utils/logger'
+import { openDatabase, getAll } from '~/lib/persistence/db';
+import { createClient } from '~/lib/supabase/client';
+import { createScopedLogger } from '~/utils/logger';
 
-const logger = createScopedLogger('Migration')
+const logger = createScopedLogger('Migration');
 
 export interface MigrationResult {
-  success: number
-  failed: number
-  skipped: number
-  errors: string[]
-  totalChats: number
+  success: number;
+  failed: number;
+  skipped: number;
+  errors: string[];
+  totalChats: number;
 }
 
 export async function migrateIndexedDBToSupabase(): Promise<MigrationResult> {
-  const supabase = createClient()
+  const supabase = createClient();
 
-  // Check if user is logged in
-  const { data: { user }, error: userError } = await supabase.auth.getUser()
+  // check if user is logged in
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser();
 
   if (userError || !user) {
-    throw new Error('User must be logged in to migrate. Please sign in first.')
+    throw new Error('User must be logged in to migrate. Please sign in first.');
   }
 
-  logger.info('Starting migration for user:', user.email)
+  logger.info('Starting migration for user:', user.email);
 
-  // Get all chats from IndexedDB
-  const db = await openDatabase()
+  // get all chats from IndexedDB
+  const db = await openDatabase();
 
   if (!db) {
-    throw new Error('Could not open IndexedDB. Migration cannot proceed.')
+    throw new Error('Could not open IndexedDB. Migration cannot proceed.');
   }
 
-  const chats = await getAll(db)
+  const chats = await getAll(db);
 
-  logger.info(`Found ${chats.length} chats in IndexedDB`)
+  logger.info(`Found ${chats.length} chats in IndexedDB`);
 
   const results: MigrationResult = {
     success: 0,
@@ -42,72 +44,68 @@ export async function migrateIndexedDBToSupabase(): Promise<MigrationResult> {
     skipped: 0,
     errors: [],
     totalChats: chats.length,
-  }
+  };
 
   if (chats.length === 0) {
-    logger.info('No chats to migrate')
-    return results
+    logger.info('No chats to migrate');
+    return results;
   }
 
-  // Check which chats already exist in Supabase to avoid duplicates
-  const { data: existingChats } = await supabase
-    .from('chats')
-    .select('url_id')
-    .eq('user_id', user.id)
+  // check which chats already exist in Supabase to avoid duplicates
+  const { data: existingChats } = await supabase.from('chats').select('url_id').eq('user_id', user.id);
 
-  const existingUrlIds = new Set(existingChats?.map(c => c.url_id) || [])
+  const existingUrlIds = new Set(existingChats?.map((c) => c.url_id) || []);
 
-  // Migrate each chat to Supabase
+  // migrate each chat to Supabase
   for (const chat of chats) {
     try {
-      const urlId = chat.urlId || chat.id
+      const urlId = chat.urlId || chat.id;
 
-      // Skip if already migrated
+      // skip if already migrated
       if (existingUrlIds.has(urlId)) {
-        logger.info(`Skipping chat ${urlId} - already exists in Supabase`)
-        results.skipped++
-        continue
+        logger.info(`Skipping chat ${urlId} - already exists in Supabase`);
+        results.skipped++;
+        continue;
       }
 
-      const { error } = await supabase
-        .from('chats')
-        .insert({
-          user_id: user.id,
-          url_id: urlId,
-          description: chat.description || null,
-          messages: chat.messages as any,
-        })
+      const { error } = await supabase.from('chats').insert({
+        user_id: user.id,
+        url_id: urlId,
+        description: chat.description || null,
+        messages: chat.messages as any,
+      });
 
       if (error) {
-        throw error
+        throw error;
       }
 
-      logger.info(`Successfully migrated chat ${urlId}`)
-      results.success++
+      logger.info(`Successfully migrated chat ${urlId}`);
+      results.success++;
     } catch (error: any) {
-      logger.error(`Failed to migrate chat ${chat.id}:`, error)
-      results.failed++
-      results.errors.push(`Chat ${chat.urlId || chat.id}: ${error.message}`)
+      logger.error(`Failed to migrate chat ${chat.id}:`, error);
+      results.failed++;
+      results.errors.push(`Chat ${chat.urlId || chat.id}: ${error.message}`);
     }
   }
 
-  logger.info('Migration complete:', results)
+  logger.info('Migration complete:', results);
 
-  return results
+  return results;
 }
 
 export async function hasLocalChats(): Promise<boolean> {
   try {
-    const db = await openDatabase()
+    const db = await openDatabase();
 
     if (!db) {
-      return false
+      return false;
     }
 
-    const chats = await getAll(db)
-    return chats.length > 0
+    const chats = await getAll(db);
+
+    return chats.length > 0;
   } catch (error) {
-    logger.error('Error checking for local chats:', error)
-    return false
+    logger.error('Error checking for local chats:', error);
+    return false;
   }
 }

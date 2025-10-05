@@ -1,6 +1,6 @@
 import type { WebContainer } from '@webcontainer/api';
-import type { ITerminal } from '~/types/terminal';
 import { withResolvers } from './promises';
+import type { ITerminal } from '~/types/terminal';
 
 export async function newShellProcess(webcontainer: WebContainer, terminal: ITerminal) {
   const args: string[] = [];

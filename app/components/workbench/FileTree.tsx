@@ -1,8 +1,8 @@
+import { ChevronRight, ChevronDown, File as FileIcon, Circle } from 'lucide-react';
 import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { ChevronRight, ChevronDown, File as FileIcon, Circle } from 'lucide-react';
 
 const logger = createScopedLogger('FileTree');
 

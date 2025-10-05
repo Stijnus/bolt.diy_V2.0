@@ -28,7 +28,7 @@ async function enhancerAction({ context, request }: ActionFunctionArgs) {
       context.cloudflare.env,
     );
 
-    // Return plain text stream with the improved prompt.
+    // return plain text stream with the improved prompt
     return result.toTextStreamResponse();
   } catch (error) {
     console.log(error);

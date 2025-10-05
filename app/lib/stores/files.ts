@@ -1,8 +1,8 @@
+import { Buffer } from 'node:buffer';
+import * as nodePath from 'node:path';
 import type { WebContainer } from '@webcontainer/api';
 import { getEncoding } from 'istextorbinary';
 import { map, type MapStore } from 'nanostores';
-import { Buffer } from 'node:buffer';
-import * as nodePath from 'node:path';
 import { WORK_DIR } from '~/utils/constants';
 import { computeFileModifications } from '~/utils/diff';
 import { createScopedLogger } from '~/utils/logger';
@@ -115,36 +115,39 @@ export class FilesStore {
   async #init() {
     const webcontainer = await this.#webcontainer;
 
-    // Initial snapshot
+    // initial snapshot
     await this.#refreshAllFiles();
 
-    // Watch for changes
-    webcontainer.fs.watch(
-      WORK_DIR,
-      { recursive: true },
-      () => {
-        // Coalesce bursts of events
-        clearTimeout((this as any)._watchTimeout);
-        (this as any)._watchTimeout = setTimeout(() => {
-          this.#refreshAllFiles().catch((e) => logger.error('Failed to refresh files', e));
-        }, 100);
-      },
-    );
+    // watch for changes
+    webcontainer.fs.watch(WORK_DIR, { recursive: true }, () => {
+      // coalesce bursts of events
+      clearTimeout((this as any)._watchTimeout);
+      (this as any)._watchTimeout = setTimeout(() => {
+        this.#refreshAllFiles().catch((e) => logger.error('Failed to refresh files', e));
+      }, 100);
+    });
   }
 
   async #refreshAllFiles() {
     const webcontainer = await this.#webcontainer;
-    // Export JSON tree
+
+    // export JSON tree
     const tree = await webcontainer.export(WORK_DIR, { format: 'json' as const });
 
     const newMap: FileMap = {};
+
     let size = 0;
 
     const walk = async (prefix: string, node: any) => {
-      if (!node) return;
+      if (!node) {
+        return;
+      }
+
       const entries = Object.entries(node) as Array<[string, any]>;
+
       for (const [name, entry] of entries) {
         const fullPath = `${prefix}/${name}`.replace(/\\/g, '/');
+
         if (entry && typeof entry === 'object' && 'directory' in entry) {
           newMap[fullPath] = { type: 'folder' };
           await walk(fullPath, entry.directory);

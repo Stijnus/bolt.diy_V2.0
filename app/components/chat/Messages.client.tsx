@@ -1,9 +1,9 @@
 import type { UIMessage } from 'ai';
+import { User } from 'lucide-react';
 import React from 'react';
-import { classNames } from '~/utils/classNames';
 import { AssistantMessage } from './AssistantMessage';
 import { UserMessage } from './UserMessage';
-import { User } from 'lucide-react';
+import { classNames } from '~/utils/classNames';
 
 interface MessagesProps {
   id?: string;
@@ -20,12 +20,14 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
       {messages.length > 0
         ? messages.map((message, index) => {
             const role = message.role;
+
             const content = Array.isArray((message as any).parts)
               ? (message as any).parts
                   .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
                   .map((p: any) => p.text)
                   .join('')
-              : (message as any).content ?? '';
+              : ((message as any).content ?? '');
+
             const isUserMessage = role === 'user';
             const isFirst = index === 0;
             const isLast = index === messages.length - 1;

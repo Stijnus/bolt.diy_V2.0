@@ -1,41 +1,36 @@
 import { useStore } from '@nanostores/react';
 import { ClientOnly } from 'remix-utils/client-only';
-import { chatStore } from '~/lib/stores/chat';
-import { themeStore } from '~/lib/stores/theme';
-import { classNames } from '~/utils/classNames';
+
 import { HeaderActionButtons } from './HeaderActionButtons.client';
 import { ChatDescription } from '~/lib/persistence/ChatDescription.client';
-import { UserMenu } from '~/components/auth/UserMenu';
-import { PanelLeft } from 'lucide-react';
+import { chatStore } from '~/lib/stores/chat';
+import { classNames } from '~/utils/classNames';
 
 export function Header() {
   const chat = useStore(chatStore);
-  const theme = useStore(themeStore);
 
   return (
     <header
       className={classNames(
-        'flex items-center bg-bolt-elements-background-depth-1 p-5 border-b h-[var(--header-height)]',
+        'flex items-center justify-between bg-bolt-elements-background-depth-1 px-6 py-3 h-[var(--header-height)] transition-colors',
         {
-          'border-transparent': !chat.started,
-          'border-bolt-elements-borderColor': chat.started,
+          'border-b border-transparent': !chat.started,
+          'border-b border-bolt-elements-borderColor shadow-sm': chat.started,
         },
       )}
     >
-      <div className="flex items-center gap-2 z-logo text-bolt-elements-textPrimary cursor-pointer">
-        <PanelLeft className="w-5 h-5" />
-        <a href="/" className="text-2xl font-semibold text-accent flex items-center">
-          <img
-            src="/logo.svg"
-            alt="BoltDYI"
-            className="h-8"
-          />
-        </a>
+      {/* Logo Section */}
+      <div className="flex items-center gap-3 z-[998]">{/* Logo and menu icon removed */}</div>
+
+      {/* Center Section - Chat Description */}
+      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md">
+        <div className="truncate text-center text-sm font-medium text-bolt-elements-textPrimary">
+          <ClientOnly>{() => <ChatDescription />}</ClientOnly>
+        </div>
       </div>
-      <span className="flex-1 px-4 truncate text-center text-bolt-elements-textPrimary">
-        <ClientOnly>{() => <ChatDescription />}</ClientOnly>
-      </span>
-      <div className="flex items-center gap-2">
+
+      {/* Right Section - Actions & User */}
+      <div className="flex items-center gap-3">
         {chat.started && (
           <ClientOnly>
             {() => (
@@ -45,9 +40,6 @@ export function Header() {
             )}
           </ClientOnly>
         )}
-        <ClientOnly>
-          {() => <UserMenu />}
-        </ClientOnly>
       </div>
     </header>
   );

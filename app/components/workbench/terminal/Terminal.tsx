@@ -2,9 +2,9 @@ import { FitAddon } from '@xterm/addon-fit';
 import { WebLinksAddon } from '@xterm/addon-web-links';
 import { Terminal as XTerm } from '@xterm/xterm';
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
+import { getTerminalTheme } from './theme';
 import type { Theme } from '~/lib/stores/theme';
 import { createScopedLogger } from '~/utils/logger';
-import { getTerminalTheme } from './theme';
 
 const logger = createScopedLogger('Terminal');
 
@@ -65,7 +65,10 @@ export const Terminal = memo(
 
     useEffect(() => {
       const terminal = terminalRef.current;
-      if (!terminal) return;
+
+      if (!terminal) {
+        return;
+      }
 
       // we render a transparent cursor in case the terminal is readonly
       terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
@@ -77,7 +80,11 @@ export const Terminal = memo(
       return {
         reloadStyles: () => {
           const terminal = terminalRef.current;
-          if (!terminal) return;
+
+          if (!terminal) {
+            return;
+          }
+
           terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
         },
       };

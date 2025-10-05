@@ -1,7 +1,7 @@
+import { Plug2 } from 'lucide-react';
 import { memo, useEffect, useRef } from 'react';
 import { IconButton } from '~/components/ui/IconButton';
 import type { PreviewInfo } from '~/lib/stores/previews';
-import { Plug2 } from 'lucide-react';
 
 interface PortDropdownProps {
   activePreviewIndex: number;
@@ -48,7 +48,7 @@ export const PortDropdown = memo(
     }, [isDropdownOpen]);
 
     return (
-      <div className="relative z-port-dropdown" ref={dropdownRef}>
+      <div className="relative z-[996]" ref={dropdownRef}>
         <IconButton icon={Plug2} onClick={() => setIsDropdownOpen(!isDropdownOpen)} />
         {isDropdownOpen && (
           <div className="absolute right-0 mt-2 bg-bolt-elements-background-depth-2 border border-bolt-elements-borderColor rounded shadow-sm min-w-[140px] dropdown-animation">

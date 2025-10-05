@@ -57,7 +57,8 @@ export function useMessageParser() {
               .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
               .map((p: any) => p.text)
               .join('')
-          : (message as any).content ?? '';
+          : ((message as any).content ?? '');
+
         const newParsedContent = messageParser.parse(message.id, text);
 
         setParsedMessages((prevParsed) => ({

@@ -1,8 +1,12 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
+import { Terminal, XCircle } from 'lucide-react';
 import { computed } from 'nanostores';
 import { memo, useCallback, useEffect } from 'react';
+import type React from 'react';
 import { toast } from 'react-toastify';
+import { EditorPanel } from './EditorPanel';
+import { Preview } from './Preview';
 import {
   type OnChangeCallback as OnEditorChange,
   type OnScrollCallback as OnEditorScroll,
@@ -14,9 +18,6 @@ import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
-import { EditorPanel } from './EditorPanel';
-import { Preview } from './Preview';
-import { Terminal, XCircle } from 'lucide-react';
 
 interface WorkspaceProps {
   chatStarted?: boolean;
@@ -106,11 +107,11 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
         initial="closed"
         animate={showWorkbench ? 'open' : 'closed'}
         variants={workbenchVariants}
-        className="z-workbench"
+        className="z-[3]"
       >
         <div
           className={classNames(
-            'fixed top-[calc(var(--header-height)+1.5rem)] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 bolt-ease-cubic-bezier',
+            'fixed top-[calc(var(--header-height)+1.5rem)] bottom-6 w-[var(--workbench-inner-width)] mr-4 z-0 transition-[left,width] duration-200 ease-bolt-ease-cubic-bezier',
             {
               'left-[var(--workbench-left)]': showWorkbench,
               'left-[100%]': !showWorkbench,
@@ -175,7 +176,6 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   );
 });
 
-import type React from 'react';
 interface ViewProps extends HTMLMotionProps<'div'> {
   children: React.ReactNode;
 }

@@ -1,13 +1,13 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
+import { File as FileIcon, ChevronRight } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
+import FileTree from './FileTree';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
-import FileTree from './FileTree';
-import { File as FileIcon, ChevronRight } from 'lucide-react';
 
 const WORK_DIR_REGEX = new RegExp(`^${WORK_DIR.split('/').slice(0, -1).join('/').replaceAll('/', '\\/')}/`);
 
@@ -107,7 +107,7 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                 {isActive && (
                   <DropdownMenu.Portal>
                     <DropdownMenu.Content
-                      className="z-file-tree-breadcrumb"
+                      className="z-[998]"
                       asChild
                       align="start"
                       side="bottom"

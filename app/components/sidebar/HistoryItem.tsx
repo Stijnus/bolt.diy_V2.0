@@ -1,6 +1,7 @@
 import * as Dialog from '@radix-ui/react-dialog';
+import { motion } from 'framer-motion';
+import { MessageSquare, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { Trash2 } from 'lucide-react';
 import { type ChatHistoryItem } from '~/lib/persistence';
 
 interface HistoryItemProps {
@@ -37,31 +38,41 @@ export function HistoryItem({ item, onDelete }: HistoryItemProps) {
   }, []);
 
   return (
-    <div
+    <motion.div
       ref={hoverRef}
-      className="group rounded-md text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 overflow-hidden flex justify-between items-center px-2 py-1"
+      initial={{ opacity: 0, y: -10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="group relative"
     >
-      <a href={`/chat/${item.urlId}`} className="flex w-full relative truncate block">
-        {item.description}
-        <div className="absolute right-0 z-1 top-0 bottom-0 bg-gradient-to-l from-bolt-elements-background-depth-2 group-hover:from-bolt-elements-background-depth-3 to-transparent w-10 flex justify-end group-hover:w-15 group-hover:from-45%">
-          {hovering && (
-            <div className="flex items-center p-1 text-bolt-elements-textSecondary hover:text-bolt-elements-item-contentDanger">
-              <Dialog.Trigger asChild>
-                <button
-                  className="p-1"
-                  onClick={(event) => {
-                    // we prevent the default so we don't trigger the anchor above
-                    event.preventDefault();
-                    onDelete?.(event);
-                  }}
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </Dialog.Trigger>
-            </div>
-          )}
-        </div>
+      <a
+        href={`/chat/${item.urlId}`}
+        className="flex items-center gap-3 rounded-xl border border-transparent bg-bolt-elements-background-depth-1/50 px-3 py-2.5 text-sm text-bolt-elements-textSecondary transition-all hover:border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary hover:shadow-sm"
+      >
+        <MessageSquare className="h-4 w-4 flex-shrink-0 text-bolt-elements-textTertiary transition-colors group-hover:text-bolt-elements-icon-primary" />
+        <span className="min-w-0 flex-1 truncate">{item.description}</span>
+        {hovering && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.8 }}
+            transition={{ duration: 0.15 }}
+          >
+            <Dialog.Trigger asChild>
+              <button
+                className="flex h-7 w-7 items-center justify-center rounded-lg text-bolt-elements-textTertiary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text"
+                onClick={(event) => {
+                  event.preventDefault();
+                  onDelete?.(event);
+                }}
+                aria-label="Delete conversation"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </Dialog.Trigger>
+          </motion.div>
+        )}
       </a>
-    </div>
+    </motion.div>
   );
 }

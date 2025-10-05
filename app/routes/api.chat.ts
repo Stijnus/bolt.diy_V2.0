@@ -18,7 +18,7 @@ function uiToModelMessages(uiMessages: UIMessage[]): ModelMessage[] {
             .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
             .map((p: any) => p.text)
             .join('')
-        : (m as any).content ?? '';
+        : ((m as any).content ?? '');
       return { role: m.role as 'user' | 'assistant', content: text };
     });
 }
@@ -50,6 +50,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
 
         const continued = await streamText(messages, context.cloudflare.env, options);
         const continuedResp = continued.toUIMessageStreamResponse({ sendStart: false });
+
         return stream.switchSource(continuedResp.body!);
       },
     };

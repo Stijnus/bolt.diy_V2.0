@@ -1,16 +1,15 @@
 import { useStore } from '@nanostores/react';
 import type { LinksFunction } from '@remix-run/cloudflare';
 import { Links, Meta, Outlet, Scripts, ScrollRestoration } from '@remix-run/react';
+import xtermStyles from '@xterm/xterm/css/xterm.css?url';
+import { useEffect } from 'react';
+import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
+import { createHead } from 'remix-island';
+import { AuthProvider } from './lib/contexts/AuthContext';
 import { themeStore } from './lib/stores/theme';
 import { stripIndents } from './utils/stripIndent';
-import { createHead } from 'remix-island';
-import { useEffect } from 'react';
-import { AuthProvider } from './lib/contexts/AuthContext';
 
 import './styles/tailwind.css';
-import './styles/index.scss';
-import reactToastifyStyles from 'react-toastify/dist/ReactToastify.css?url';
-import xtermStyles from '@xterm/xterm/css/xterm.css?url';
 
 export const links: LinksFunction = () => [
   {

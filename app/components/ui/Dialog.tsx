@@ -1,10 +1,10 @@
 import * as RadixDialog from '@radix-ui/react-dialog';
 import { motion, type Variants } from 'framer-motion';
-import React, { memo, type ReactNode } from 'react';
 import { X } from 'lucide-react';
+import React, { memo, type ReactNode } from 'react';
+import { IconButton } from './IconButton';
 import { classNames } from '~/utils/classNames';
 import { cubicEasingFn } from '~/utils/easings';
-import { IconButton } from './IconButton';
 
 export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
 
@@ -85,7 +85,7 @@ export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.
 export const DialogDescription = memo(({ className, children, ...props }: RadixDialog.DialogDescriptionProps) => {
   return (
     <RadixDialog.Description
-      className={classNames('px-5 py-4 text-bolt-elements-textPrimary text-md', className)}
+      className={classNames('px-5 py-4 text-bolt-elements-textPrimary text-base', className)}
       {...props}
     >
       {children}
@@ -105,7 +105,7 @@ export const Dialog = memo(({ className, children, onBackdrop, onClose }: Dialog
     <RadixDialog.Portal>
       <RadixDialog.Overlay onClick={onBackdrop} asChild>
         <motion.div
-          className="bg-black/50 fixed inset-0 z-max"
+          className="bg-black/70 fixed inset-0 z-[999]"
           initial="closed"
           animate="open"
           exit="closed"
@@ -115,9 +115,10 @@ export const Dialog = memo(({ className, children, onBackdrop, onClose }: Dialog
       <RadixDialog.Content asChild>
         <motion.div
           className={classNames(
-            'fixed top-[50%] left-[50%] z-max max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] border border-bolt-elements-borderColor rounded-lg bg-bolt-elements-background-depth-2 shadow-lg focus:outline-none overflow-hidden',
+            'fixed top-[50%] left-[50%] z-[999] max-h-[85vh] w-[90vw] max-w-[450px] translate-x-[-50%] translate-y-[-50%] border border-bolt-elements-borderColor rounded-[var(--radius)] bg-bolt-elements-bg-depth-1 shadow-xl focus:outline-none overflow-hidden',
             className,
           )}
+          style={{ backgroundColor: 'var(--bolt-elements-bg-depth-1)' }}
           initial="closed"
           animate="open"
           exit="closed"
@@ -125,7 +126,7 @@ export const Dialog = memo(({ className, children, onBackdrop, onClose }: Dialog
         >
           {children}
           <RadixDialog.Close asChild onClick={onClose}>
-            <IconButton icon={X} className="absolute top-[10px] right-[10px]" />
+            <IconButton icon={X} className="absolute top-[12px] right-[12px] z-10" />
           </RadixDialog.Close>
         </motion.div>
       </RadixDialog.Content>

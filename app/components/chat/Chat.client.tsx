@@ -1,25 +1,23 @@
+import { useChat } from '@ai-sdk/react';
 import { useStore } from '@nanostores/react';
 import type { UIMessage } from 'ai';
-import { useChat } from '@ai-sdk/react';
 import { useAnimate } from 'framer-motion';
+import { X, Check, AlertTriangle } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { BaseChat } from './BaseChat';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
 import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
-import { createScopedLogger, renderLogger } from '~/utils/logger';
-import { BaseChat } from './BaseChat';
-import { X, Check, AlertTriangle } from 'lucide-react';
+import { renderLogger } from '~/utils/logger';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
   exit: 'animated fadeOutRight',
 });
-
-const logger = createScopedLogger('Chat');
 
 export function Chat() {
   renderLogger.trace('Chat');
@@ -197,10 +195,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
           return message as UIMessage;
         }
 
-        // For assistant messages, replace content text with parsedMessages, preserving other fields
+        // for assistant messages, replace content text with parsedMessages, preserving other fields
         return {
           ...(message as any),
-          // Provide a simple text part for UIMessage in AI SDK v5
+
+          // provide a simple text part for UIMessage in AI SDK v5
           parts: [{ type: 'text', text: parsedMessages[i] || '' }],
         } as UIMessage;
       })}
