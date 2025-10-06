@@ -72,7 +72,7 @@ BoltDIY V2.0 is an enhanced AI-powered development platform that combines the po
 ## 🚀 Getting Started
 
 ### Prerequisites
-- Node.js >= 18.18.0
+- Node.js >= 20.0.0
 - pnpm 10.18.0 (recommended) or npm
 - Supabase account (free tier available)
 - At least one AI provider API key

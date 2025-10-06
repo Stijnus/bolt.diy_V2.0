@@ -12,7 +12,7 @@ This guide will help you set up BoltDIY V2.0 from scratch in just a few minutes!
 
 Before you begin, make sure you have:
 
-- **Node.js** >= 18.18.0 ([Download here](https://nodejs.org/))
+- **Node.js** >= 20.0.0 ([Download here](https://nodejs.org/))
 - **pnpm** 10.18.0 or later (`npm install -g pnpm`)
 - A **Supabase account** (free tier works great!) - [Sign up here](https://supabase.com)
 - At least one **AI provider API key** (Anthropic required, others optional)

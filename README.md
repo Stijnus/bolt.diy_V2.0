@@ -74,7 +74,7 @@ Whether you're a developer, PM, or designer, you can build production-grade appl
 
 ### Prerequisites
 
-- **Node.js** >= 18.18.0
+- **Node.js** >= 20.0.0
 - **pnpm** 10.18.0 (recommended) or npm
 - **Git**
 - **Supabase account** (free tier available)

@@ -279,7 +279,7 @@ pnpm dev --port 3000
 2. **Check Node.js version**:
    ```bash
    node --version
-   # Should be >= 18.18.0
+   # Should be >= 20.0.0
    ```
 
 3. **Clear build cache**:

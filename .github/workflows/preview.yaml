@@ -27,6 +27,8 @@ jobs:
 
       - name: Setup and Build
         uses: ./.github/actions/setup-and-build
+        with:
+          node-version: '20'
 
       - name: Deploy Preview to Cloudflare Pages
         id: deploy

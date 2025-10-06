@@ -5,7 +5,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Development Commands
 
 ### Essential Commands
-- `pnpm install` - Install dependencies (requires pnpm v10.18.0, Node.js >=18.18.0)
+- `pnpm install` - Install dependencies (requires pnpm v10.18.0, Node.js >=20.0.0)
 - `pnpm run dev` - Start Remix Vite development server
 - `pnpm run build` - Build for production
 - `pnpm run start` - Run production build locally with Wrangler Pages (uses bindings.sh)

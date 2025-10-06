@@ -66,7 +66,7 @@ node scripts/clean.js
 **Time**: Typically takes 3-5 minutes
 
 **Requirements**:
-- Node.js >= 18.18.0
+- Node.js >= 20.0.0
 - pnpm installed
 - Internet connection (to download packages)
 

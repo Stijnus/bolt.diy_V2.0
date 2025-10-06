@@ -32,7 +32,7 @@ Common questions and answers about BoltDIY V2.0.
 **A:** You need:
 - Anthropic API key (required)
 - Supabase account (free tier)
-- Node.js >= 18.18.0
+- Node.js >= 20.0.0
 - About 10 minutes for setup
 
 ---
@@ -203,7 +203,7 @@ Common questions and answers about BoltDIY V2.0.
 
 ### Q: The application won't start, what should I do?
 **A:** Try this checklist:
-1. Check Node.js version (`node --version` >= 18.18.0)
+1. Check Node.js version (`node --version` >= 20.0.0)
 2. Verify `.env.local` exists and has required variables
 3. Run `pnpm install` to ensure dependencies
 4. Clear browser cache and reload

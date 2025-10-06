@@ -33,7 +33,7 @@
     "docker:clean": "docker-compose down -v && docker system prune -f"
   },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=20.0.0"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^2.0.23",
