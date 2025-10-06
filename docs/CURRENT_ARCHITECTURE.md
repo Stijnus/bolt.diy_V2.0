@@ -1,3 +1,9 @@
+---
+layout: default
+title: System Architecture Assessment
+description: Technical analysis of BoltDIY V2.0 architecture, current state, and implementation details
+---
+
 # Current Architecture Assessment
 
 **Document Purpose:** Understand what bolt.new currently has and what's missing  

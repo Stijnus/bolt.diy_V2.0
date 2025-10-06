@@ -1,3 +1,9 @@
+---
+layout: default
+title: Troubleshooting Guide
+description: Common issues and step-by-step solutions for BoltDIY V2.0 setup and usage
+---
+
 # 🐛 Troubleshooting Guide
 
 This guide covers common issues you might encounter while setting up or using BoltDIY V2.0, along with step-by-step solutions.

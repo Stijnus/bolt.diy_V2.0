@@ -1,3 +1,9 @@
+---
+layout: default
+title: BoltDIY V2.0 Documentation Hub
+description: Complete documentation for BoltDIY V2.0 - enhanced AI development platform with multi-model support
+---
+
 # 📖 BoltDIY V2.0 Documentation
 
 Welcome to the complete documentation for BoltDIY V2.0 - the enhanced AI development platform with multi-model support, authentication, and modern UI.

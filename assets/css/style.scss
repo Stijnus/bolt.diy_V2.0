@@ -214,3 +214,69 @@ blockquote {
   margin: 1rem 0;
   border-radius: 0 4px 4px 0;
 }
+
+/* Navigation breadcrumbs */
+.nav-breadcrumb {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  margin: 1rem 0;
+  border: 1px solid #e9ecef;
+}
+
+.nav-breadcrumb a {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.nav-breadcrumb a:hover {
+  text-decoration: underline;
+}
+
+/* Back to docs links */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  margin: 2rem 0 1rem 0;
+  padding: 0.75rem 1rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+  transition: all 0.2s ease;
+}
+
+.back-link:hover {
+  background: #e9ecef;
+  text-decoration: none;
+  transform: translateX(-2px);
+}
+
+/* Page footer navigation */
+.page-nav {
+  display: flex;
+  justify-content: space-between;
+  margin: 3rem 0 1rem 0;
+  padding: 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.page-nav-item {
+  color: #667eea;
+  text-decoration: none;
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.page-nav-item:hover {
+  background: #e9ecef;
+  text-decoration: none;
+}

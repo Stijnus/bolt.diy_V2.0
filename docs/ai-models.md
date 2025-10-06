@@ -1,3 +1,9 @@
+---
+layout: default
+title: AI Models Guide
+description: Complete guide to 19+ AI models from 6 major providers supported by BoltDIY V2.0
+---
+
 # 🤖 AI Models Guide
 
 BoltDIY V2.0 supports **19+ AI models** from **6 major providers**, giving you unprecedented choice and flexibility for your development needs.

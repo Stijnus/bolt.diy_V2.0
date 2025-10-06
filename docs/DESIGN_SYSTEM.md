@@ -1,3 +1,9 @@
+---
+layout: default
+title: Design System
+description: Complete design system and brand guidelines for BoltDIY V2.0 UI components
+---
+
 # BoltDYI Design System
 
 **Brand Identity & UI/UX Guidelines**  

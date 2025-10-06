@@ -1,3 +1,9 @@
+---
+layout: default
+title: Complete Setup Guide
+description: Step-by-step guide to set up BoltDIY V2.0 from scratch in just a few minutes
+---
+
 # 🚀 BoltDIY V2.0 - Complete Setup Guide
 
 This guide will help you set up BoltDIY V2.0 from scratch in just a few minutes!

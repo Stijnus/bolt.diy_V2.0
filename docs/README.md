@@ -1,3 +1,9 @@
+---
+layout: default
+title: Documentation Directory
+description: Complete directory and navigation for BoltDIY V2.0 documentation
+---
+
 # 📚 BoltDIY V2.0 Documentation
 
 Welcome to the comprehensive documentation for BoltDIY V2.0! This directory contains all the guides, references, and technical information you need.

@@ -1,3 +1,9 @@
+---
+layout: default
+title: Frequently Asked Questions
+description: Common questions and answers about BoltDIY V2.0 features, setup, and usage
+---
+
 # ❓ Frequently Asked Questions
 
 Common questions and answers about BoltDIY V2.0.
