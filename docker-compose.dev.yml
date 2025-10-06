@@ -1,0 +1,65 @@
+version: '3.9'
+
+# Development override configuration
+# Usage: docker-compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+      args:
+        - NODE_ENV=development
+    container_name: boltdiy-v2-dev
+    image: boltdiy-v2:dev
+    ports:
+      # Vite dev server
+      - "${DEV_PORT:-5173}:5173"
+      # Vite HMR websocket
+      - "24678:24678"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=development
+      - VITE_LOG_LEVEL=debug
+      - CHOKIDAR_USEPOLLING=true
+      - WATCHPACK_POLLING=true
+    restart: unless-stopped
+    volumes:
+      # Mount source code for live reloading
+      - ./app:/app/app:delegated
+      - ./public:/app/public:delegated
+      - ./scripts:/app/scripts:delegated
+      - ./styles:/app/styles:delegated
+      - ./.env.local:/app/.env.local:ro
+
+      # Mount config files
+      - ./package.json:/app/package.json:ro
+      - ./tsconfig.json:/app/tsconfig.json:ro
+      - ./vite.config.ts:/app/vite.config.ts:ro
+      - ./tailwind.config.ts:/app/tailwind.config.ts:ro
+      - ./wrangler.toml:/app/wrangler.toml:ro
+
+      # Prevent overwriting node_modules
+      - node_modules:/app/node_modules
+      - /app/.cache
+      - /app/.vite
+      - /app/.remix
+    networks:
+      - boltdiy-network
+    stdin_open: true
+    tty: true
+    command: pnpm run dev --host 0.0.0.0
+    labels:
+      - "com.boltdiy.service=dev"
+      - "com.boltdiy.version=2.0"
+      - "com.boltdiy.environment=development"
+
+networks:
+  boltdiy-network:
+    driver: bridge
+
+volumes:
+  node_modules:
+    driver: local

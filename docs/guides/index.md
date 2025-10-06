@@ -11,7 +11,7 @@ description: Complete documentation for BoltDIY V2.0 with multi-model AI support
 
 <div class="hero-buttons" style="text-align: center; margin: 2rem 0;">
   <a href="{{ '/docs/' | relative_url }}" class="btn btn-primary">📖 Documentation</a>
-  <a href="{{ '/SETUP_GUIDE' | relative_url }}" class="btn btn-secondary">📋 Setup Guide</a>
+  <a href="{{ '/docs/guides/SETUP_GUIDE' | relative_url }}" class="btn btn-secondary">📋 Setup Guide</a>
   <a href="https://github.com/Stijnus/bolt.diy_V2.0" class="btn btn-secondary">🔗 GitHub</a>
 </div>
 
@@ -59,7 +59,7 @@ Choose from **19+ AI models** across 6 major providers:
 | **⚡ xAI** | Fast iterations, rapid prototyping | $0.20-1.50/1M tokens | ⭐⭐⭐⭐⭐ |
 | **🟡 Mistral** | Multi-language coding | $0.30-0.90/1M tokens | ⭐⭐⭐⭐ |
 
-**[🤖 View Complete AI Models Guide →]({{ '/docs/ai-models' | relative_url }})**
+**[🤖 View Complete AI Models Guide →]({{ '/docs/guides/ai-models' | relative_url }})**
 
 ---
 
@@ -81,22 +81,22 @@ cp .env.example .env.local
 pnpm dev
 ```
 
-**Need help?** Follow our **[📋 Complete Setup Guide]({{ '/SETUP_GUIDE' | relative_url }})** for detailed instructions with troubleshooting.
+**Need help?** Follow our **[📋 Complete Setup Guide]({{ '/docs/guides/SETUP_GUIDE' | relative_url }})** for detailed instructions with troubleshooting.
 
 ---
 
 ## 📚 Documentation
 
 ### 🏁 **Getting Started**
-- **[📋 Complete Setup Guide]({{ '/SETUP_GUIDE' | relative_url }})** - Step-by-step installation
-- **[🤖 AI Models Guide]({{ '/docs/ai-models' | relative_url }})** - All 19+ supported models
-- **[🐛 Troubleshooting]({{ '/docs/troubleshooting' | relative_url }})** - Common issues & solutions
-- **[❓ FAQ]({{ '/docs/faq' | relative_url }})** - Frequently asked questions
+- **[📋 Complete Setup Guide]({{ '/docs/guides/SETUP_GUIDE' | relative_url }})** - Step-by-step installation
+- **[🤖 AI Models Guide]({{ '/docs/guides/ai-models' | relative_url }})** - All 19+ supported models
+- **[🐛 Troubleshooting]({{ '/docs/guides/troubleshooting' | relative_url }})** - Common issues & solutions
+- **[❓ FAQ]({{ '/docs/guides/faq' | relative_url }})** - Frequently asked questions
 
 ### 🔧 **Technical Reference**
 - **[📖 Documentation Hub]({{ '/docs/' | relative_url }})** - Complete overview
-- **[🏗️ Architecture]({{ '/docs/CURRENT_ARCHITECTURE' | relative_url }})** - System design
-- **[🎨 Design System]({{ '/docs/DESIGN_SYSTEM' | relative_url }})** - UI components
+- **[🏗️ Architecture]({{ '/docs/technical/CURRENT_ARCHITECTURE' | relative_url }})** - System design
+- **[🎨 Design System]({{ '/docs/technical/DESIGN_SYSTEM' | relative_url }})** - UI components
 
 ---
 
@@ -125,8 +125,8 @@ Unlike Claude, v0, or ChatGPT, BoltDIY gives you:
 ## 🆘 Need Help?
 
 **Quick Support**:
-- **[🐛 Troubleshooting Guide]({{ '/docs/troubleshooting' | relative_url }})** - Solve common issues
-- **[❓ FAQ]({{ '/docs/faq' | relative_url }})** - Get answers fast
+- **[🐛 Troubleshooting Guide]({{ '/docs/guides/troubleshooting' | relative_url }})** - Solve common issues
+- **[❓ FAQ]({{ '/docs/guides/faq' | relative_url }})** - Get answers fast
 - **[💬 GitHub Issues](https://github.com/Stijnus/bolt.diy_V2.0/issues)** - Report bugs
 
 **Support Process**:
@@ -154,5 +154,5 @@ Unlike Claude, v0, or ChatGPT, BoltDIY gives you:
 <div style="text-align: center; margin: 3rem 0; padding: 2rem; background-color: #f6f8fa; border-radius: 0.5rem;">
   <h3>🎉 Ready to build something amazing?</h3>
   <p>Start with our setup guide and join the community of developers using BoltDIY V2.0</p>
-  <a href="{{ '/SETUP_GUIDE' | relative_url }}" class="btn btn-primary">Get Started Now</a>
+  <a href="{{ '/docs/guides/SETUP_GUIDE' | relative_url }}" class="btn btn-primary">Get Started Now</a>
 </div>

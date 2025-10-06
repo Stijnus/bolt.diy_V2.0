@@ -44,12 +44,13 @@ CREATE TABLE IF NOT EXISTS public.chats (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
   project_id UUID REFERENCES public.projects(id) ON DELETE SET NULL,
-  url_id TEXT NOT NULL UNIQUE,
+  url_id TEXT NOT NULL,
   description TEXT,
   messages JSONB NOT NULL DEFAULT '[]',
   model TEXT,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  updated_at TIMESTAMPTZ DEFAULT NOW()
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  UNIQUE(url_id, user_id)
 );
 
 -- ====================================

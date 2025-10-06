@@ -1,0 +1,44 @@
+version: '3.9'
+
+services:
+  # Production service
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+      args:
+        - NODE_ENV=production
+    container_name: boltdiy-v2-app
+    image: boltdiy-v2:latest
+    ports:
+      - "${PORT:-8788}:8788"
+    env_file:
+      - .env.local
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8788', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - boltdiy-network
+    volumes:
+      # Mount .env.local for environment variables
+      - ./.env.local:/app/.env.local:ro
+    labels:
+      - "com.boltdiy.service=app"
+      - "com.boltdiy.version=2.0"
+
+networks:
+  boltdiy-network:
+    driver: bridge
+    name: boltdiy-network
+
+# Optional: Add volumes for persistent data
+volumes:
+  node_modules:
+    driver: local

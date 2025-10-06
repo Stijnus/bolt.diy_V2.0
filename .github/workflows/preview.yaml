@@ -1,0 +1,103 @@
+name: PR Preview Deployment
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    branches:
+      - main
+  pull_request_target:
+    types: [closed]
+
+jobs:
+  # Deploy preview for PRs
+  deploy-preview:
+    if: github.event.action != 'closed'
+    name: Deploy PR Preview
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      deployments: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Setup and Build
+        uses: ./.github/actions/setup-and-build
+
+      - name: Deploy Preview to Cloudflare Pages
+        id: deploy
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: bolt-diy-v2
+          directory: build/client
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: pr-${{ github.event.pull_request.number }}
+          wranglerVersion: '4'
+
+      - name: Comment Preview URL
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const { data: comments } = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('Preview deployment')
+            );
+
+            const commentBody = `## 🚀 Preview Deployment
+
+            Preview URL: ${{ steps.deploy.outputs.url }}
+
+            Built from commit: ${{ github.event.pull_request.head.sha }}
+
+            This preview will be automatically updated on new commits and deleted when the PR is closed.`;
+
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: commentBody
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: commentBody
+              });
+            }
+
+  # Cleanup preview when PR is closed
+  cleanup-preview:
+    if: github.event.action == 'closed'
+    name: Cleanup PR Preview
+    runs-on: ubuntu-latest
+    permissions:
+      deployments: write
+      pull-requests: write
+
+    steps:
+      - name: Comment Cleanup
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+              body: '🧹 Preview deployment has been cleaned up.'
+            });

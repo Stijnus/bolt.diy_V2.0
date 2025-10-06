@@ -22,7 +22,15 @@
     "setup:help": "cat SETUP_GUIDE.md",
     "clean": "node scripts/clean.js",
     "clean:cache": "rm -rf .cache .vite .remix .wrangler node_modules/.vite node_modules/.cache",
-    "clean:build": "rm -rf dist build public/build"
+    "clean:build": "rm -rf dist build public/build",
+    "docker:build": "docker build -t boltdiy-v2:latest .",
+    "docker:build:dev": "docker build --target development -t boltdiy-v2:dev .",
+    "docker:dev": "docker-compose -f docker-compose.yml -f docker-compose.dev.yml up",
+    "docker:prod": "docker-compose up",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v && docker system prune -f"
   },
   "engines": {
     "node": ">=18.18.0"

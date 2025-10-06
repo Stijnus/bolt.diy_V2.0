@@ -68,7 +68,7 @@ Whether you're a developer, PM, or designer, you can build production-grade appl
 
 > 🚀 **New to BoltDIY?** 
 > 
-> **For a complete, step-by-step guide with troubleshooting, see our [📋 Complete Setup Guide](./SETUP_GUIDE.md)**
+> **For a complete, step-by-step guide with troubleshooting, see our [📋 Complete Setup Guide](./docs/guides/SETUP_GUIDE.md)**
 > 
 > **For quick setup (experienced users), follow the steps below:**
 
@@ -83,8 +83,8 @@ Whether you're a developer, PM, or designer, you can build production-grade appl
 
 1. **Clone the repository**
    ```bash
-   git clone https://github.com/Stijnus/bolt-new-enhanced.git
-   cd bolt-new-enhanced
+   git clone https://github.com/Stijnus/bolt.diy_V2.0.git
+   cd bolt.diy_V2.0
    ```
 
 2. **Install dependencies**
@@ -190,7 +190,7 @@ Make sure to add all environment variables to your Cloudflare Pages settings.
 ## 🏗️ Project Structure
 
 ```
-bolt-new-enhanced/
+bolt.diy_V2.0/
 ├── app/
 │   ├── components/
 │   │   ├── auth/              # Authentication components
@@ -287,16 +287,16 @@ pnpm lint:fix      # Fix linting issues
 ## 📖 Documentation
 
 ### 📚 Getting Started
-- [📋 Complete Setup Guide](./SETUP_GUIDE.md) - Step-by-step installation and configuration
+- [📋 Complete Setup Guide](./docs/guides/SETUP_GUIDE.md) - Step-by-step installation and configuration
 - [📄 Documentation Hub](./docs/) - Complete project documentation
 - [🚀 Quick Start](#-installation--setup) - Fast setup for experienced users
 
 ### 🔧 Technical Details
-- [🤖 Multi-Model Implementation](./MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - AI provider integration details
-- [📋 Project Roadmap](./TODO.md) - Current status and future plans
+- [🤖 Multi-Model Implementation](./docs/technical/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - AI provider integration details
+- [📋 Project Roadmap](./docs/project/TODO.md) - Current status and future plans
 - [⚙️ Environment Variables](./.env.example) - Complete configuration reference
-- [🏗️ Architecture](./docs/CURRENT_ARCHITECTURE.md) - System architecture overview
-- [🎨 Design System](./docs/DESIGN_SYSTEM.md) - UI components and design patterns
+- [🏗️ Architecture](./docs/technical/CURRENT_ARCHITECTURE.md) - System architecture overview
+- [🎨 Design System](./docs/technical/DESIGN_SYSTEM.md) - UI components and design patterns
 
 ## 🐛 Troubleshooting
 
@@ -336,7 +336,7 @@ MIT License - see [LICENSE](./LICENSE) for details
 ## 📞 Support
 
 For issues, questions, or feature requests:
-- Open an [Issue](https://github.com/Stijnus/bolt-new-enhanced/issues)
+- Open an [Issue](https://github.com/Stijnus/bolt.diy_V2.0/issues)
 - Check existing issues before creating new ones
 - Provide detailed information for bug reports
 

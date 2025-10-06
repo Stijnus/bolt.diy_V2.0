@@ -262,7 +262,7 @@ pnpm build
 - **Documentation**: [docs/index.md](./index.md)
 - **Setup Guide**: [SETUP_GUIDE.md](../SETUP_GUIDE.md)
 - **Troubleshooting**: [troubleshooting.md](./troubleshooting.md)
-- **GitHub Issues**: [Create new issue](https://github.com/Stijnus/bolt-new-enhanced/issues)
+- **GitHub Issues**: [Create new issue](https://github.com/Stijnus/bolt.diy_V2.0/issues)
 - **Discussions**: Community discussions in repository
 
 ### Q: Where can I see examples of what people built?
@@ -281,7 +281,7 @@ pnpm build
 
 ---
 
-*Have a question not covered here? [Create an issue](https://github.com/Stijnus/bolt-new-enhanced/issues) or check our [complete documentation](./index.md).*
+*Have a question not covered here? [Create an issue](https://github.com/Stijnus/bolt.diy_V2.0/issues) or check our [complete documentation](./index.md).*
 
 ---
 

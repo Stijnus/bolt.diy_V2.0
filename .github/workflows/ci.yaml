@@ -3,25 +3,37 @@ name: CI/CD
 on:
   push:
     branches:
-      - master
+      - main
   pull_request:
 
 jobs:
   test:
     name: Test
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [18, 20, 22]
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Setup and Build
         uses: ./.github/actions/setup-and-build
+        with:
+          node-version: ${{ matrix.node-version }}
 
       - name: Run type check
         run: pnpm run typecheck
 
-      # - name: Run ESLint
-      #   run: pnpm run lint
+      - name: Run ESLint
+        run: pnpm run lint
 
       - name: Run tests
         run: pnpm run test
+
+      - name: Verify build output
+        run: |
+          if [ ! -d "build" ]; then
+            echo "Build directory not found!"
+            exit 1
+          fi

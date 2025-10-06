@@ -68,12 +68,18 @@ export async function migrateIndexedDBToSupabase(): Promise<MigrationResult> {
         continue;
       }
 
-      const { error } = await supabase.from('chats').insert({
-        user_id: user.id,
-        url_id: urlId,
-        description: chat.description || null,
-        messages: chat.messages as any,
-      });
+      const { error } = await supabase.from('chats').upsert(
+        {
+          user_id: user.id,
+          url_id: urlId,
+          description: chat.description || null,
+          messages: chat.messages as any,
+          updated_at: new Date().toISOString(),
+        },
+        {
+          onConflict: 'url_id,user_id',
+        },
+      );
 
       if (error) {
         throw error;

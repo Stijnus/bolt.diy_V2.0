@@ -1,0 +1,62 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Node
+node_modules
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Build outputs
+dist
+dist-ssr
+build
+.cache
+*.local
+
+# IDE
+.vscode
+!.vscode/launch.json
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Environment files
+.env*
+!.env.example
+*.vars
+
+# Cloudflare
+.wrangler
+_worker.bundle
+
+# Cache directories
+/.cache
+.vite
+.remix
+
+# Testing
+coverage
+*.log
+
+# Documentation (not needed in container)
+*.md
+!README.md
+docs
+
+# GitHub
+.github
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore

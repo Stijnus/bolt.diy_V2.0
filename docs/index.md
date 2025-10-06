@@ -11,23 +11,33 @@ Welcome to the complete documentation for BoltDIY V2.0 - the enhanced AI develop
 ## 🚀 Quick Navigation
 
 ### 🏁 Getting Started
-- **[📋 Complete Setup Guide](../SETUP_GUIDE.md)** - Step-by-step installation and configuration
+- **[📋 Complete Setup Guide](./guides/SETUP_GUIDE.md)** - Step-by-step installation and configuration
 - **[⚡ Quick Start](../README.md#-installation--setup)** - Fast setup for experienced users
 - **[🎯 First Project](#creating-your-first-project)** - Build your first application
-- **[🐛 Troubleshooting](./troubleshooting.md)** - Common issues and solutions
+- **[🐛 Troubleshooting](./guides/troubleshooting.md)** - Common issues and solutions
 
 ### 📚 Features & Guides
-- **[🤖 AI Models Guide](./ai-models.md)** - Complete guide to all 19+ supported AI models
-- **[🔐 Authentication](./authentication.md)** - User accounts and session management
-- **[💾 Data Persistence](./data-persistence.md)** - Chat history and project storage
-- **[⚙️ Settings & Configuration](./configuration.md)** - Customize your environment
-- **[🎨 UI Components](./DESIGN_SYSTEM.md)** - Design system and components
+- **[🤖 AI Models Guide](./guides/ai-models.md)** - Complete guide to all 19+ supported AI models
+- **[❓ FAQ](./guides/faq.md)** - Frequently asked questions
+- **[📄 Documentation Overview](./guides/index.md)** - Project landing page
+- **[🎨 UI Components](./technical/DESIGN_SYSTEM.md)** - Design system and components
 
 ### 🔧 Technical Documentation
-- **[🏗️ Architecture Overview](./CURRENT_ARCHITECTURE.md)** - System architecture and design
-- **[🔌 Provider Integration](../MULTI_MODEL_IMPLEMENTATION_SUMMARY.md)** - AI provider implementation details
-- **[📊 Project Management](./PROJECT_MANAGEMENT.md)** - Development workflow and planning
-- **[🛠️ Contributing](../CONTRIBUTING.md)** - How to contribute to the project
+- **[🏗️ Architecture Overview](./technical/CURRENT_ARCHITECTURE.md)** - System architecture and design
+- **[🔌 Provider Integration](./technical/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md)** - AI provider implementation details
+- **[🛠️ Claude Guidelines](../CLAUDE.md)** - Development guidelines for AI assistants
+- **[🌐 WARP Guidelines](../WARP.md)** - AI terminal usage guidelines
+- **[⚡ Quick Fixes](./technical/QUICK_FIX.md)** - Common technical solutions
+- **[🔐 Supabase Integration](./technical/SUPABASE_INTEGRATION_PLAN.md)** - Database and auth implementation
+- **[🔧 Constraint Fixes](./technical/SUPABASE_CONSTRAINT_FIX.md)** - Database constraint solutions
+
+### 📊 Project Management
+- **[🛠️ Contributing](./project/CONTRIBUTING.md)** - How to contribute to the project
+- **[📋 TODO List](./project/TODO.md)** - Current roadmap and tasks
+- **[🎯 Feature Roadmap](./project/FEATURE_ROADMAP.md)** - Planned features and updates
+- **[📊 Project Management](./project/PROJECT_MANAGEMENT.md)** - Development workflow and planning
+- **[⚡ Current Sprint](./project/SPRINT_CURRENT.md)** - Current development sprint
+- **[✅ Quick Wins](./project/QUICK_WINS_PLAN.md)** - Easy improvements to implement
 
 ---
 
@@ -69,13 +79,13 @@ BoltDIY V2.0 is an enhanced AI-powered development platform that combines the po
 
 ### Installation Overview
 
-1. **[Clone and Install](../SETUP_GUIDE.md#step-1-clone-and-install)** - Get the code and dependencies
-2. **[Setup Supabase](../SETUP_GUIDE.md#step-2-create-supabase-project)** - Create your database
-3. **[Configure Environment](../SETUP_GUIDE.md#step-4-configure-environment-variables)** - Add API keys
-4. **[Initialize Database](../SETUP_GUIDE.md#step-5-set-up-database-the-easy-way-)** - Run our setup script
-5. **[Start Developing](../SETUP_GUIDE.md#step-8-start-developing-)** - Launch the application
+1. **[Clone and Install](./guides/SETUP_GUIDE.md#step-1-clone-and-install)** - Get the code and dependencies
+2. **[Setup Supabase](./guides/SETUP_GUIDE.md#step-2-create-supabase-project)** - Create your database
+3. **[Configure Environment](./guides/SETUP_GUIDE.md#step-4-configure-environment-variables)** - Add API keys
+4. **[Initialize Database](./guides/SETUP_GUIDE.md#step-5-set-up-database-the-easy-way-)** - Run our setup script
+5. **[Start Developing](./guides/SETUP_GUIDE.md#step-8-start-developing-)** - Launch the application
 
-> 💡 **Need detailed instructions?** Follow our [Complete Setup Guide](../SETUP_GUIDE.md) for step-by-step instructions with troubleshooting.
+> 💡 **Need detailed instructions?** Follow our [Complete Setup Guide](./guides/SETUP_GUIDE.md) for step-by-step instructions with troubleshooting.
 
 ---
 
@@ -92,7 +102,7 @@ BoltDIY supports 19+ models across 6 providers:
 | **xAI** | Grok Code Fast 1, 3, 4 | Fast iterations | $0.20-1.50/1M tokens |
 | **Mistral** | Codestral 25.08, Large | Multi-language coding | $0.30-0.90/1M tokens |
 
-**[📖 View Complete AI Models Guide →](./ai-models.md)**
+**[📖 View Complete AI Models Guide →](./guides/ai-models.md)**
 
 ---
 
@@ -139,16 +149,16 @@ Backend (Cloudflare Workers)
 └── Model Routing (Provider Factory)
 ```
 
-**[🔍 Detailed Architecture →](./CURRENT_ARCHITECTURE.md)**
+**[🔍 Detailed Architecture →](./technical/CURRENT_ARCHITECTURE.md)**
 
 ---
 
 ## 🆘 Need Help?
 
 ### Quick Links
-- **[🐛 Troubleshooting](./troubleshooting.md)** - Common issues and solutions
-- **[❓ FAQ](./faq.md)** - Frequently asked questions
-- **[💬 GitHub Issues](https://github.com/Stijnus/bolt-new-enhanced/issues)** - Report bugs or request features
+- **[🐛 Troubleshooting](./guides/troubleshooting.md)** - Common issues and solutions
+- **[❓ FAQ](./guides/faq.md)** - Frequently asked questions
+- **[💬 GitHub Issues](https://github.com/Stijnus/bolt.diy_V2.0/issues)** - Report bugs or request features
 
 ### Support Options
 
@@ -161,7 +171,7 @@ Backend (Cloudflare Workers)
 
 ## 🔗 External Links
 
-- **[Main Repository](https://github.com/Stijnus/bolt-new-enhanced)** - Source code and releases
+- **[Main Repository](https://github.com/Stijnus/bolt.diy_V2.0)** - Source code and releases
 - **[Supabase Dashboard](https://supabase.com)** - Manage your database
 - **[StackBlitz WebContainers](https://webcontainers.io)** - The technology powering our dev environment
 - **[Remix Framework](https://remix.run)** - The web framework we use

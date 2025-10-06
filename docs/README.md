@@ -17,26 +17,38 @@ Welcome to the comprehensive documentation for BoltDIY V2.0! This directory cont
 ### 🏁 Getting Started
 | Document | Description |
 |----------|-------------|
-| [📋 Complete Setup Guide](../SETUP_GUIDE.md) | Step-by-step installation guide |
+| [📋 Complete Setup Guide](./guides/SETUP_GUIDE.md) | Step-by-step installation guide |
 | [⚡ Quick Start](../README.md#-installation--setup) | Fast setup for experienced users |
-| [🐛 Troubleshooting](./troubleshooting.md) | Common issues and solutions |
-| [❓ FAQ](./faq.md) | Frequently asked questions |
+| [🐛 Troubleshooting](./guides/troubleshooting.md) | Common issues and solutions |
+| [❓ FAQ](./guides/faq.md) | Frequently asked questions |
 
 ### 🤖 Features & Usage
 | Document | Description |
 |----------|-------------|
-| [🤖 AI Models Guide](./ai-models.md) | Complete guide to all 19+ supported models |
-| [🔐 Authentication](./authentication.md) | User accounts and session management |
-| [💾 Data Persistence](./data-persistence.md) | Chat history and project storage |
-| [⚙️ Configuration](./configuration.md) | Settings and customization |
+| [🤖 AI Models Guide](./guides/ai-models.md) | Complete guide to all 19+ supported models |
+| [📄 Landing Page](./guides/index.md) | Project overview and quick links |
 
 ### 🔧 Technical Reference
 | Document | Description |
 |----------|-------------|
-| [🏗️ Architecture](./CURRENT_ARCHITECTURE.md) | System architecture and design |
-| [🎨 Design System](./DESIGN_SYSTEM.md) | UI components and patterns |
-| [📊 Project Management](./PROJECT_MANAGEMENT.md) | Development workflow |
-| [🔌 Multi-Model Implementation](../MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) | AI provider details |
+| [🏗️ Architecture](./technical/CURRENT_ARCHITECTURE.md) | System architecture and design |
+| [🎨 Design System](./technical/DESIGN_SYSTEM.md) | UI components and patterns |
+| [🔌 Multi-Model Implementation](./technical/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) | AI provider details |
+| [🤖 Claude Guidelines](../CLAUDE.md) | Development guidelines for AI |
+| [🌐 WARP Guidelines](../WARP.md) | AI terminal usage guidelines |
+| [⚡ Quick Fixes](./technical/QUICK_FIX.md) | Common technical solutions |
+| [🔐 Supabase Integration](./technical/SUPABASE_INTEGRATION_PLAN.md) | Database implementation plan |
+| [🔧 Constraint Fixes](./technical/SUPABASE_CONSTRAINT_FIX.md) | Database constraint solutions |
+
+### 📊 Project Management
+| Document | Description |
+|----------|-------------|
+| [🛠️ Contributing](./project/CONTRIBUTING.md) | How to contribute to the project |
+| [📋 TODO List](./project/TODO.md) | Current roadmap and tasks |
+| [🎯 Feature Roadmap](./project/FEATURE_ROADMAP.md) | Planned features |
+| [📊 Project Management](./project/PROJECT_MANAGEMENT.md) | Development workflow |
+| [⚡ Current Sprint](./project/SPRINT_CURRENT.md) | Current development focus |
+| [✅ Quick Wins](./project/QUICK_WINS_PLAN.md) | Easy improvements to implement |
 
 ## 📁 Documentation Structure
 
@@ -44,18 +56,27 @@ Welcome to the comprehensive documentation for BoltDIY V2.0! This directory cont
 docs/
 ├── index.md                    # 📖 Main documentation hub
 ├── README.md                   # 📚 This navigation guide
-├── ai-models.md               # 🤖 AI models and providers guide
-├── troubleshooting.md         # 🐛 Common issues and solutions
-├── faq.md                     # ❓ Frequently asked questions
-├── authentication.md          # 🔐 Auth and user management
-├── data-persistence.md        # 💾 Data storage and sync
-├── configuration.md           # ⚙️ Settings and customization
-├── CURRENT_ARCHITECTURE.md    # 🏗️ System architecture
-├── DESIGN_SYSTEM.md          # 🎨 UI design system
-├── PROJECT_MANAGEMENT.md     # 📊 Development workflow
-└── implementation/           # 🔧 Implementation details
-    ├── SUPABASE_INTEGRATION_PLAN.md
-    └── QUICK_WINS_PLAN.md
+├── guides/                    # 🏁 User guides and tutorials
+│   ├── SETUP_GUIDE.md          # 📋 Complete setup instructions
+│   ├── ai-models.md            # 🤖 AI models and providers guide
+│   ├── troubleshooting.md      # 🐛 Common issues and solutions
+│   ├── faq.md                  # ❓ Frequently asked questions
+│   └── index.md                # 📄 Project overview page
+├── technical/                 # 🔧 Technical documentation
+│   ├── CURRENT_ARCHITECTURE.md # 🏗️ System architecture
+│   ├── DESIGN_SYSTEM.md        # 🎨 UI design system
+│   ├── MULTI_MODEL_IMPLEMENTATION_SUMMARY.md # 🔌 AI providers
+│   ├── SUPABASE_INTEGRATION_PLAN.md # 🔐 Database setup
+│   ├── SUPABASE_CONSTRAINT_FIX.md # 🔧 Database fixes
+│   ├── QUICK_FIX.md            # ⚡ Quick technical solutions
+│   └── GITHUB_PAGES_SETUP.md   # 🌐 GitHub Pages deployment
+└── project/                   # 📊 Project management
+    ├── CONTRIBUTING.md         # 🛠️ Contribution guidelines
+    ├── TODO.md                 # 📋 Development roadmap
+    ├── FEATURE_ROADMAP.md      # 🎯 Feature planning
+    ├── PROJECT_MANAGEMENT.md   # 📊 Development workflow
+    ├── SPRINT_CURRENT.md       # ⚡ Current sprint status
+    └── QUICK_WINS_PLAN.md      # ✅ Quick improvement tasks
 ```
 
 ## 🎯 Documentation Goals
@@ -70,13 +91,13 @@ This documentation aims to:
 
 ## 🔍 Finding What You Need
 
-**New Users**: Start with [Setup Guide](../SETUP_GUIDE.md) → [Documentation Hub](./index.md)
+**New Users**: Start with [Setup Guide](./guides/SETUP_GUIDE.md) → [Documentation Hub](./index.md)
 
-**Developers**: Check [Architecture](./CURRENT_ARCHITECTURE.md) → [Implementation Details](./implementation/)
+**Developers**: Check [Architecture](./technical/CURRENT_ARCHITECTURE.md) → [Technical Docs](./technical/)
 
-**Troubleshooting**: Go to [Troubleshooting](./troubleshooting.md) → [FAQ](./faq.md)
+**Troubleshooting**: Go to [Troubleshooting](./guides/troubleshooting.md) → [FAQ](./guides/faq.md)
 
-**AI Models**: See [AI Models Guide](./ai-models.md) for complete provider information
+**AI Models**: See [AI Models Guide](./guides/ai-models.md) for complete provider information
 
 ## 📝 Contributing to Documentation
 
@@ -98,13 +119,13 @@ Help improve these docs:
 
 ## 🔗 External Resources
 
-- **[Main Repository](https://github.com/Stijnus/bolt-new-enhanced)** - Source code and issues
+- **[Main Repository](https://github.com/Stijnus/bolt.diy_V2.0)** - Source code and issues
 - **[StackBlitz Bolt.new](https://bolt.new)** - Original inspiration
 - **[Supabase Docs](https://supabase.com/docs)** - Database and auth platform
 - **[WebContainers Docs](https://webcontainers.io/guides)** - Browser-based dev environment
 
 ---
 
-**Need help?** Check the [FAQ](./faq.md) or create an issue in the [main repository](https://github.com/Stijnus/bolt-new-enhanced/issues).
+**Need help?** Check the [FAQ](./faq.md) or create an issue in the [main repository](https://github.com/Stijnus/bolt.diy_V2.0/issues).
 
 *Last updated: October 2025 | Version 2.0.0*

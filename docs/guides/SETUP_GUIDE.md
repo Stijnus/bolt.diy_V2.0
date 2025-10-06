@@ -23,8 +23,8 @@ Before you begin, make sure you have:
 
 ```bash
 # Clone the repository
-git clone https://github.com/Stijnus/bolt-new-enhanced.git
-cd bolt-new-enhanced
+git clone https://github.com/Stijnus/bolt.diy_V2.0.git
+cd bolt.diy_V2.0
 
 # Install dependencies
 pnpm install
@@ -260,7 +260,7 @@ If you have data in IndexedDB from another Bolt instance:
 ## 🆘 Still Having Issues?
 
 1. **Check the logs**: Look at your browser console and terminal for error messages
-2. **Search existing issues**: https://github.com/Stijnus/bolt-new-enhanced/issues
+2. **Search existing issues**: https://github.com/Stijnus/bolt.diy_V2.0/issues
 3. **Open a new issue**: Include:
    - Your error message
    - Steps to reproduce

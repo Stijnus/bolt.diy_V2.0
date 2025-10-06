@@ -74,7 +74,7 @@ node scripts/clean.js
 
 ### 📄 schema.sql - Database Schema
 
-**Purpose**: Complete SQL schema for Supabase database
+**Purpose**: Complete SQL schema for Supabase database (for NEW installations)
 
 **Contains**:
 - **Tables**: users, projects, chats, project_collaborators
@@ -99,6 +99,46 @@ npm run setup
 - ✅ Project management
 - ✅ Collaboration features
 - ✅ Secure access policies
+
+**Note**: For existing databases that need updates, see `migrations/` folder instead.
+
+---
+
+### 🔄 migrations/ - Database Migrations
+
+**Purpose**: Incremental SQL updates for existing Supabase databases
+
+**When to use**:
+- You already have a database set up with the old schema
+- You encounter constraint errors when syncing chats
+- You need to update specific tables without recreating everything
+- You want to apply schema changes to production databases safely
+
+**When NOT to use**:
+- Fresh Supabase project → Use `schema.sql` instead
+- First-time setup → Use `npm run setup` instead
+
+**How to apply**:
+1. Navigate to `scripts/migrations/` folder
+2. Read the migration's README for instructions
+3. Apply migrations in order (001, 002, etc.)
+4. Verify changes in Supabase dashboard
+
+**Current migrations**:
+- `001_fix_chats_unique_constraint.sql` - Fixes chat table constraint mismatch
+
+**Detailed instructions**: See `migrations/README.md`
+
+**Example**:
+```bash
+# Manual application (recommended)
+# 1. Copy migration file contents
+# 2. Paste in Supabase SQL Editor
+# 3. Execute and verify
+
+# Or using Supabase CLI
+supabase db execute --file scripts/migrations/001_fix_chats_unique_constraint.sql
+```
 
 ---
 
@@ -131,11 +171,14 @@ node scripts/setup-database.js
 
 | Command | Purpose | Time | Risk |
 |---------|---------|------|------|
-| `npm run setup` | Initial database setup | 1-2 min | Low |
+| `npm run setup` | Initial database setup (new installs) | 1-2 min | Low |
+| `migrations/*.sql` | Update existing database schema | 1-2 min | Medium* |
 | `npm run clean` | Deep clean & rebuild | 3-5 min | Low |
 | `npm run clean:cache` | Quick cache clear | <1 min | None |
 | `npm run clean:build` | Remove build files only | <1 min | None |
 | `npm run setup:help` | View setup guide | Instant | None |
+
+\* *Always backup before running migrations on production databases*
 
 ---
 
@@ -161,6 +204,62 @@ Displays the complete setup guide in your terminal.
 
 ---
 
+## 📊 Database Setup Workflow
+
+### For New Supabase Projects
+
+```
+1. Create new Supabase project
+2. Run: npm run setup
+   → This will execute schema.sql
+3. Verify tables in Supabase dashboard
+4. Start developing!
+```
+
+### For Existing Databases That Need Updates
+
+```
+1. Check if migration is needed
+   → Look in migrations/README.md for symptoms
+2. Backup your database (important!)
+3. Apply migration from migrations/ folder
+   → Copy SQL and paste in Supabase SQL Editor
+4. Verify changes
+5. Continue developing
+```
+
+### Migration vs Schema Decision Tree
+
+```
+┌─────────────────────────────────────┐
+│ Do you have an existing database?   │
+└─────────────┬───────────────────────┘
+              │
+        ┌─────┴─────┐
+        │           │
+       YES         NO
+        │           │
+        │           └──→ Use schema.sql
+        │                (npm run setup)
+        │
+        ├─→ Are you getting constraint errors?
+        │   Or need to update specific tables?
+        │           │
+        │     ┌─────┴─────┐
+        │     │           │
+        │    YES         NO
+        │     │           │
+        │     │           └──→ Continue as is
+        │     │
+        │     └──→ Use migrations/
+        │          (Apply in order: 001, 002, etc.)
+        │
+        └─→ Want to start fresh?
+            └──→ Drop all tables, then use schema.sql
+```
+
+---
+
 ## 🐛 Troubleshooting
 
 ### "Permission denied" when running scripts
@@ -177,7 +276,7 @@ chmod +x scripts/*.sh
 **Solution**:
 ```bash
 # Make sure you're in project root
-cd /path/to/bolt-new-enhanced
+cd /path/to/bolt.diy_V2.0
 
 # Verify Node.js is installed
 node --version

@@ -1,0 +1,72 @@
+version: 2
+updates:
+  # Enable version updates for npm dependencies
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 10
+    reviewers:
+      - "stijnus"
+    labels:
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "chore"
+      include: "scope"
+    # Group minor and patch updates together
+    groups:
+      dev-dependencies:
+        patterns:
+          - "@types/*"
+          - "@typescript-eslint/*"
+          - "eslint*"
+          - "prettier"
+          - "vitest"
+        update-types:
+          - "minor"
+          - "patch"
+      production-dependencies:
+        patterns:
+          - "@ai-sdk/*"
+          - "@remix-run/*"
+          - "react"
+          - "react-dom"
+        update-types:
+          - "patch"
+
+  # Enable version updates for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "stijnus"
+    labels:
+      - "github-actions"
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "ci"
+
+  # Enable version updates for Docker
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "09:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "stijnus"
+    labels:
+      - "docker"
+      - "dependencies"
+      - "automated"
+    commit-message:
+      prefix: "build"

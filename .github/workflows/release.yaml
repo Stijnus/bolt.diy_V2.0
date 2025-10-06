@@ -1,0 +1,218 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to release (e.g., 2.1.0)'
+        required: true
+        type: string
+      prerelease:
+        description: 'Mark as pre-release'
+        required: false
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  packages: write
+  pull-requests: write
+
+jobs:
+  create-release:
+    name: Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for changelog
+
+      - name: Setup and Build
+        uses: ./.github/actions/setup-and-build
+
+      - name: Run tests
+        run: |
+          pnpm run typecheck
+          pnpm run lint
+          pnpm run test
+
+      - name: Extract version from tag
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+            echo "tag=v${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+            echo "tag=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Generate changelog
+        id: changelog
+        uses: mikepenz/release-changelog-builder-action@v4
+        with:
+          configuration: |
+            {
+              "categories": [
+                {
+                  "title": "## 🚀 Features",
+                  "labels": ["feat", "feature"]
+                },
+                {
+                  "title": "## 🐛 Bug Fixes",
+                  "labels": ["fix", "bugfix"]
+                },
+                {
+                  "title": "## 🔧 Maintenance",
+                  "labels": ["chore", "refactor"]
+                },
+                {
+                  "title": "## 📚 Documentation",
+                  "labels": ["docs", "documentation"]
+                },
+                {
+                  "title": "## ⚡ Performance",
+                  "labels": ["perf", "performance"]
+                }
+              ],
+              "template": "#{{CHANGELOG}}\n\n**Full Changelog**: #{{RELEASE_DIFF}}"
+            }
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: Release ${{ steps.version.outputs.version }}
+          body: |
+            # BoltDIY V2.0 - Release ${{ steps.version.outputs.version }}
+
+            ## What's Changed
+            ${{ steps.changelog.outputs.changelog }}
+
+            ## Installation
+
+            ### Docker
+            ```bash
+            docker pull ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            docker run -p 8788:8788 --env-file .env.local ghcr.io/${{ github.repository }}:${{ steps.version.outputs.version }}
+            ```
+
+            ### From Source
+            ```bash
+            git clone https://github.com/${{ github.repository }}.git
+            cd bolt.diy_V2.0
+            git checkout ${{ steps.version.outputs.tag }}
+            pnpm install
+            pnpm run build
+            pnpm run start
+            ```
+
+            ## Documentation
+            - [Setup Guide](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.tag }}/docs/guides/SETUP_GUIDE.md)
+            - [Docker Guide](https://github.com/${{ github.repository }}/blob/${{ steps.version.outputs.tag }}/docs/guides/DOCKER.md)
+            - [Full Documentation](https://${{ github.repository_owner }}.github.io/bolt.diy_V2.0)
+          draft: false
+          prerelease: ${{ github.event.inputs.prerelease || false }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Update package.json version
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          npm version ${{ steps.version.outputs.version }} --no-git-tag-version
+
+          git add package.json
+          git commit -m "chore: bump version to ${{ steps.version.outputs.version }}"
+          git tag ${{ steps.version.outputs.tag }}
+          git push origin main --tags
+
+  publish-docker:
+    name: Publish Docker Images
+    runs-on: ubuntu-latest
+    needs: create-release
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract version
+        id: version
+        run: |
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            echo "version=${{ github.event.inputs.version }}" >> $GITHUB_OUTPUT
+          else
+            echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+            type=raw,value=latest
+
+      - name: Build and push
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          target: production
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    needs: create-release
+    environment:
+      name: production
+      url: https://bolt.diy
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup and Build
+        uses: ./.github/actions/setup-and-build
+
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/pages-action@v1
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          projectName: bolt-diy-v2
+          directory: build/client
+          gitHubToken: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+          wranglerVersion: '4'

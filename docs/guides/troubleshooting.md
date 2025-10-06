@@ -350,7 +350,7 @@ When asking for help, please provide:
 ### Support Channels
 
 1. **Check Existing Issues**:
-   - Search [GitHub Issues](https://github.com/Stijnus/bolt-new-enhanced/issues)
+   - Search [GitHub Issues](https://github.com/Stijnus/bolt.diy_V2.0/issues)
    - Look for similar problems and solutions
 
 2. **Create New Issue**:
