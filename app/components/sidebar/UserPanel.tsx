@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronUp, LogIn, LogOut, Settings, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronUp, HelpCircle, LogIn, LogOut, Settings, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
 import { Button } from '~/components/ui/Button';
@@ -68,6 +68,19 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
               </p>
             </div>
           </div>
+          
+          {/* Help Section for non-authenticated users */}
+          <div className="mt-4 flex justify-center">
+            <a
+              href="https://stijnus.github.io/bolt.diy_V2.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Help & Documentation
+            </a>
+          </div>
         </div>
       </>
     );
@@ -126,6 +139,15 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
           >
             <Settings className="h-4 w-4" />
             Settings
+          </a>
+          <a
+            href="https://stijnus.github.io/bolt.diy_V2.0/"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
+          >
+            <HelpCircle className="h-4 w-4" />
+            Help & Documentation
           </a>
           <button
             type="button"

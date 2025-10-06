@@ -1,3 +1,4 @@
+import React from 'react';
 import { useStore } from '@nanostores/react';
 import { ArrowLeft, User } from 'lucide-react';
 import { useState } from 'react';
@@ -266,7 +267,7 @@ export function SettingsPage() {
     </SettingsSection>
   );
 
-  const tabSections: { value: string; label: string; content: JSX.Element }[] = [];
+  const tabSections: { value: string; label: string; content: React.ReactElement }[] = [];
 
   if (profileSection) {
     tabSections.push({ value: 'profile', label: 'Profile', content: profileSection });

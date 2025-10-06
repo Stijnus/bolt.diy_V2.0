@@ -17,7 +17,12 @@
     "start": "bindings=$(./bindings.sh) && wrangler pages dev ./build/client $bindings",
     "typecheck": "tsc",
     "typegen": "wrangler types",
-    "preview": "pnpm run build && pnpm run start"
+    "preview": "pnpm run build && pnpm run start",
+    "setup": "./scripts/setup.sh",
+    "setup:help": "cat SETUP_GUIDE.md",
+    "clean": "node scripts/clean.js",
+    "clean:cache": "rm -rf .cache .vite .remix .wrangler node_modules/.vite node_modules/.cache",
+    "clean:build": "rm -rf dist build public/build"
   },
   "engines": {
     "node": ">=18.18.0"

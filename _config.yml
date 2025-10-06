@@ -1,0 +1,91 @@
+# GitHub Pages Configuration for BoltDIY V2.0 Documentation
+title: "BoltDIY V2.0 Documentation"
+description: "Complete documentation for BoltDIY V2.0 - Enhanced AI Development Platform"
+baseurl: "/bolt.diy_V2.0"
+url: "https://stijnus.github.io"
+
+# Theme
+theme: minima
+
+# Markdown processing
+markdown: kramdown
+kramdown:
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    block:
+      line_numbers: false
+
+# Plugins
+plugins:
+  - jekyll-feed
+  - jekyll-sitemap
+  - jekyll-seo-tag
+
+# SEO and metadata
+author: "Stijnus"
+twitter:
+  username: stijnus
+logo: /assets/images/logo.png
+
+# Navigation (appears in header)
+navigation:
+  - title: "🏠 Home"
+    url: /
+  - title: "📖 Documentation"
+    url: /docs/
+  - title: "📋 Setup Guide"
+    url: /SETUP_GUIDE
+  - title: "🤖 AI Models"
+    url: /docs/ai-models
+  - title: "🐛 Troubleshooting" 
+    url: /docs/troubleshooting
+  - title: "❓ FAQ"
+    url: /docs/faq
+
+# Collections
+collections:
+  docs:
+    output: true
+    permalink: /:collection/:name/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "pages"
+    values:
+      layout: "page"
+  - scope:
+      path: "docs"
+      type: "pages"
+    values:
+      layout: "page"
+      sidebar: docs
+
+# Exclude from processing
+exclude:
+  - node_modules/
+  - .cache/
+  - .env*
+  - package.json
+  - package-lock.json
+  - pnpm-lock.yaml
+  - tsconfig.json
+  - vite.config.ts
+  - dist/
+  - .git/
+  - .github/
+  - scripts/
+  - app/
+  - public/
+  - CONTRIBUTING.md
+  - CLAUDE.md
+  - WARP.md
+  - TODO.md
+  - QUICK_FIX.md
+
+# Include specific files that might be excluded by default
+include:
+  - docs/
+  - README.md
+  - SETUP_GUIDE.md

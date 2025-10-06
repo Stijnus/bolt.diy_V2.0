@@ -66,11 +66,18 @@ Whether you're a developer, PM, or designer, you can build production-grade appl
 
 ## 📦 Installation & Setup
 
+> 🚀 **New to BoltDIY?** 
+> 
+> **For a complete, step-by-step guide with troubleshooting, see our [📋 Complete Setup Guide](./SETUP_GUIDE.md)**
+> 
+> **For quick setup (experienced users), follow the steps below:**
+
 ### Prerequisites
 
 - **Node.js** >= 18.18.0
 - **pnpm** 10.18.0 (recommended) or npm
 - **Git**
+- **Supabase account** (free tier available)
 
 ### Quick Start
 
@@ -114,10 +121,24 @@ Whether you're a developer, PM, or designer, you can build production-grade appl
    MISTRAL_API_KEY=xxxxx
    ```
 
-5. **Set up Supabase**
+5. **Set up Supabase database**
+   ```bash
+   # Easy automated setup (recommended)
+   npm run setup
+   ```
+   
+   This script will:
+   - ✅ Validate your environment variables
+   - ✅ Copy the database schema to your clipboard
+   - ✅ Open the Supabase SQL Editor
+   - ✅ Guide you through the setup
+   
+   **Manual alternative**: Copy `scripts/schema.sql` and run it in Supabase SQL Editor
+   
+   Then:
    - Create a new project at [supabase.com](https://supabase.com)
-   - Run the database migrations (check `app/lib/migration/` for scripts)
-   - Enable authentication providers in Supabase dashboard
+   - Enable Email authentication in Supabase dashboard
+   - Configure Site URL (http://localhost:5173 for development)
 
 6. **Start the development server**
    ```bash
@@ -265,11 +286,17 @@ pnpm lint:fix      # Fix linting issues
 
 ## 📖 Documentation
 
-For more detailed information, check out:
+### 📚 Getting Started
+- [📋 Complete Setup Guide](./SETUP_GUIDE.md) - Step-by-step installation and configuration
+- [📄 Documentation Hub](./docs/) - Complete project documentation
+- [🚀 Quick Start](#-installation--setup) - Fast setup for experienced users
 
-- [Multi-Model Implementation](./MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - Details on AI provider integration
-- [TODO.md](./TODO.md) - Current implementation status and roadmap
-- [.env.example](./.env.example) - Complete environment variable documentation
+### 🔧 Technical Details
+- [🤖 Multi-Model Implementation](./MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - AI provider integration details
+- [📋 Project Roadmap](./TODO.md) - Current status and future plans
+- [⚙️ Environment Variables](./.env.example) - Complete configuration reference
+- [🏗️ Architecture](./docs/CURRENT_ARCHITECTURE.md) - System architecture overview
+- [🎨 Design System](./docs/DESIGN_SYSTEM.md) - UI components and design patterns
 
 ## 🐛 Troubleshooting
 

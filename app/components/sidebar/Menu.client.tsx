@@ -85,7 +85,7 @@ export function Menu() {
           throw error;
         }
 
-        remoteChats = (data ?? []).map((chat) => ({
+        remoteChats = (data ?? []).map((chat: any) => ({
           id: chat.url_id,
           urlId: chat.url_id,
           description: chat.description ?? chat.url_id,
