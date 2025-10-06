@@ -16,6 +16,10 @@ updates:
     commit-message:
       prefix: "chore"
       include: "scope"
+    # Ignore major version updates for specific packages
+    ignore:
+      - dependency-name: "tailwindcss"
+        update-types: ["version-update:semver-major"]
     # Group minor and patch updates together
     groups:
       dev-dependencies:
