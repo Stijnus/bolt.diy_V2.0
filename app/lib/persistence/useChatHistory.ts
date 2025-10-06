@@ -4,13 +4,13 @@ import { atom } from 'nanostores';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
+import { useAuth } from '~/lib/contexts/AuthContext';
+import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { currentModel, parseFullModelId, setChatModel, setCurrentModel } from '~/lib/stores/model';
 import { workbenchStore } from '~/lib/stores/workbench';
-import type { FullModelId } from '~/types/model';
-import { useAuth } from '~/lib/contexts/AuthContext';
 import { createClient } from '~/lib/supabase/client';
+import type { FullModelId } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
-import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 
 const logger = createScopedLogger('ChatHistory');
 
@@ -220,6 +220,7 @@ export function useChatHistory() {
           if (error) {
             logger.error('Failed to sync chat to Supabase:', error);
             setConnectionError(`Sync failed: ${error.message}`);
+
             // Don't throw - we still have IndexedDB backup
           } else {
             logger.info(`Chat ${currentUrlId} synced to Supabase`);
@@ -227,6 +228,7 @@ export function useChatHistory() {
         } catch (error) {
           logger.error('Error syncing to Supabase:', error);
           setConnectionError(`Sync error: ${(error as Error).message}`);
+
           // Don't throw - we still have IndexedDB backup
         } finally {
           setSyncing(false);

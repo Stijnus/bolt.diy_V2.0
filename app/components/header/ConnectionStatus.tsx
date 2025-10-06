@@ -1,9 +1,9 @@
 import { useStore } from '@nanostores/react';
+import * as Tooltip from '@radix-ui/react-tooltip';
 import { Cloud, Database, CloudOff, Loader2 } from 'lucide-react';
 import { useEffect } from 'react';
-import { connectionStore, setConnected } from '~/lib/stores/connection';
 import { useAuth } from '~/lib/contexts/AuthContext';
-import * as Tooltip from '@radix-ui/react-tooltip';
+import { connectionStore, setConnected } from '~/lib/stores/connection';
 
 export function ConnectionStatus() {
   const { user } = useAuth();
@@ -84,9 +84,7 @@ export function ConnectionStatus() {
             <div className="space-y-1">
               <p className="text-sm font-medium text-bolt-elements-textPrimary">{config.label}</p>
               <p className="text-xs text-bolt-elements-textSecondary">{config.description}</p>
-              {syncing && (
-                <p className="text-xs text-bolt-elements-textSecondary italic mt-2">Syncing data...</p>
-              )}
+              {syncing && <p className="text-xs text-bolt-elements-textSecondary italic mt-2">Syncing data...</p>}
             </div>
             <Tooltip.Arrow className="fill-bolt-elements-background-depth-2" />
           </Tooltip.Content>

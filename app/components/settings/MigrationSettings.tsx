@@ -38,6 +38,7 @@ export function MigrationSettings() {
       if (!db) {
         toast.error('Could not access local database');
         setLoading(false);
+
         return;
       }
 
@@ -87,9 +88,7 @@ export function MigrationSettings() {
 
   const toggleChatSelection = (index: number) => {
     setChats(
-      chats.map((chat, i) =>
-        i === index && chat.status === 'pending' ? { ...chat, selected: !chat.selected } : chat,
-      ),
+      chats.map((chat, i) => (i === index && chat.status === 'pending' ? { ...chat, selected: !chat.selected } : chat)),
     );
   };
 
@@ -109,6 +108,7 @@ export function MigrationSettings() {
     setMigrating(true);
 
     const supabase = createClient();
+
     let successCount = 0;
     let errorCount = 0;
 
@@ -116,9 +116,7 @@ export function MigrationSettings() {
       const index = chats.indexOf(chatStatus);
 
       // Update status to migrating
-      setChats((prev) =>
-        prev.map((c, i) => (i === index ? { ...c, status: 'migrating' as const } : c)),
-      );
+      setChats((prev) => prev.map((c, i) => (i === index ? { ...c, status: 'migrating' as const } : c)));
 
       try {
         const { chat } = chatStatus;
@@ -143,9 +141,7 @@ export function MigrationSettings() {
 
         // Success
         setChats((prev) =>
-          prev.map((c, i) =>
-            i === index ? { ...c, status: 'success' as const, selected: false } : c,
-          ),
+          prev.map((c, i) => (i === index ? { ...c, status: 'success' as const, selected: false } : c)),
         );
         successCount++;
       } catch (error: any) {
@@ -153,9 +149,7 @@ export function MigrationSettings() {
 
         setChats((prev) =>
           prev.map((c, i) =>
-            i === index
-              ? { ...c, status: 'error' as const, error: error.message, selected: false }
-              : c,
+            i === index ? { ...c, status: 'error' as const, error: error.message, selected: false } : c,
           ),
         );
         errorCount++;
@@ -182,9 +176,7 @@ export function MigrationSettings() {
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
         <div className="text-center">
           <Database className="mx-auto h-12 w-12 text-bolt-elements-textTertiary" />
-          <h3 className="mt-4 text-base font-semibold text-bolt-elements-textPrimary">
-            Sign in to migrate chats
-          </h3>
+          <h3 className="mt-4 text-base font-semibold text-bolt-elements-textPrimary">Sign in to migrate chats</h3>
           <p className="mt-2 text-sm text-bolt-elements-textSecondary">
             You must be logged in to migrate your local chats to the cloud.
           </p>
@@ -300,21 +292,15 @@ export function MigrationSettings() {
                   {chatStatus.chat.messages.length} message{chatStatus.chat.messages.length !== 1 ? 's' : ''} •{' '}
                   {new Date(chatStatus.chat.timestamp).toLocaleDateString()}
                 </p>
-                {chatStatus.error && (
-                  <p className="mt-1 text-xs text-red-500">{chatStatus.error}</p>
-                )}
+                {chatStatus.error && <p className="mt-1 text-xs text-red-500">{chatStatus.error}</p>}
               </div>
 
               <div className="flex-shrink-0">
                 {chatStatus.status === 'migrating' && (
                   <Loader2 className="h-5 w-5 animate-spin text-bolt-elements-textSecondary" />
                 )}
-                {chatStatus.status === 'success' && (
-                  <CheckCircle2 className="h-5 w-5 text-green-500" />
-                )}
-                {chatStatus.status === 'error' && (
-                  <XCircle className="h-5 w-5 text-red-500" />
-                )}
+                {chatStatus.status === 'success' && <CheckCircle2 className="h-5 w-5 text-green-500" />}
+                {chatStatus.status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
               </div>
             </div>
           ))

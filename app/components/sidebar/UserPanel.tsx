@@ -68,7 +68,7 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
               </p>
             </div>
           </div>
-          
+
           {/* Help Section for non-authenticated users */}
           <div className="mt-4 flex justify-center">
             <a

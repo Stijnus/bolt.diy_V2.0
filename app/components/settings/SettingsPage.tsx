@@ -1,6 +1,6 @@
-import React from 'react';
 import { useStore } from '@nanostores/react';
 import { ArrowLeft, User } from 'lucide-react';
+import React from 'react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 

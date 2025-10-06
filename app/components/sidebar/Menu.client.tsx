@@ -14,9 +14,9 @@ import { Separator } from '~/components/ui/Separator';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { deleteById, getAll, openDatabase, chatId, type ChatHistoryItem, setMessages } from '~/lib/persistence';
+import { createClient } from '~/lib/supabase/client';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
-import { createClient } from '~/lib/supabase/client';
 
 const menuVariants = {
   closed: {
@@ -115,6 +115,7 @@ export function Menu() {
 
       if (database) {
         const stored = await getAll(database);
+
         const normalized = stored
           .filter((item) => item.urlId)
           .map((item) => ({

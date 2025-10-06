@@ -2,20 +2,20 @@
 
 /**
  * BoltDIY V2.0 - Automated Database Setup Script
- * 
+ *
  * This script automatically sets up your Supabase database with all required
  * tables, indexes, policies, and triggers.
- * 
+ *
  * Prerequisites:
  * 1. Create a Supabase project at https://supabase.com
  * 2. Fill in your .env.local file with Supabase credentials
  * 3. Run: npm run setup
  */
 
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -62,7 +62,7 @@ async function main() {
 
   // Step 1: Validate environment variables
   logStep('1/5', 'Validating environment variables...');
-  
+
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
@@ -80,8 +80,9 @@ async function main() {
 
   // Step 2: Connect to Supabase
   logStep('2/5', 'Connecting to Supabase...');
-  
+
   let supabase;
+
   try {
     supabase = createClient(supabaseUrl, supabaseServiceKey, {
       auth: {
@@ -89,13 +90,14 @@ async function main() {
         persistSession: false,
       },
     });
-    
+
     // Test connection
     const { error } = await supabase.from('_test_connection').select('*').limit(1);
+
     if (error && !error.message.includes('does not exist')) {
       throw error;
     }
-    
+
     logSuccess('Connected to Supabase');
   } catch (error) {
     logError(`Failed to connect: ${error.message}`);
@@ -104,9 +106,9 @@ async function main() {
 
   // Step 3: Read SQL schema
   logStep('3/5', 'Reading database schema...');
-  
+
   const schemaPath = path.join(__dirname, 'schema.sql');
-  
+
   if (!fs.existsSync(schemaPath)) {
     logError(`Schema file not found: ${schemaPath}`);
     process.exit(1);
@@ -118,13 +120,13 @@ async function main() {
 
   // Step 4: Execute SQL schema
   logStep('4/5', 'Setting up database tables and policies...');
-  
+
   try {
     // Split SQL into individual statements (basic split on ';')
     const statements = schemaSql
       .split(';')
-      .map(s => s.trim())
-      .filter(s => s.length > 0 && !s.startsWith('--'));
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0 && !s.startsWith('--'));
 
     log(`  Executing ${statements.length} SQL statements...`, 'blue');
 
@@ -134,21 +136,25 @@ async function main() {
       return supabase.from('_dummy').select('*').limit(0);
     });
 
-    // Since Supabase JS client doesn't support arbitrary SQL execution,
-    // we need to use the REST API directly
+    /*
+     * Since Supabase JS client doesn't support arbitrary SQL execution,
+     * we need to use the REST API directly
+     */
     const response = await fetch(`${supabaseUrl}/rest/v1/rpc/exec`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': supabaseServiceKey,
-        'Authorization': `Bearer ${supabaseServiceKey}`,
+        apikey: supabaseServiceKey,
+        Authorization: `Bearer ${supabaseServiceKey}`,
       },
       body: JSON.stringify({ query: schemaSql }),
     });
 
     if (!response.ok && response.status !== 404) {
-      // 404 means the exec endpoint doesn't exist, which is expected
-      // We'll need to tell users to run the SQL manually
+      /*
+       * 404 means the exec endpoint doesn't exist, which is expected
+       * We'll need to tell users to run the SQL manually
+       */
       throw new Error(`HTTP ${response.status}: ${await response.text()}`);
     }
 
@@ -158,7 +164,6 @@ async function main() {
     log('  2. Copy the contents of: scripts/schema.sql', 'yellow');
     log('  3. Paste and run in the SQL Editor', 'yellow');
     log('  4. Or run: npm run setup:manual\n', 'yellow');
-    
   } catch (error) {
     logWarning(`Could not execute SQL automatically: ${error.message}`);
     log('\n  Please complete setup manually:', 'yellow');
@@ -169,14 +174,15 @@ async function main() {
 
   // Step 5: Verify setup
   logStep('5/5', 'Verifying database setup...');
-  
+
   try {
     // Check if tables exist
     const tables = ['users', 'projects', 'chats', 'project_collaborators'];
     const existingTables = [];
-    
+
     for (const table of tables) {
       const { error } = await supabase.from(table).select('id').limit(1);
+
       if (!error || error.message.includes('permission denied')) {
         existingTables.push(table);
       }
@@ -184,15 +190,19 @@ async function main() {
 
     if (existingTables.length === tables.length) {
       logSuccess('All tables verified!');
-      tables.forEach(table => log(`  ✓ ${table}`, 'green'));
+      tables.forEach((table) => log(`  ✓ ${table}`, 'green'));
     } else {
       logWarning(`Found ${existingTables.length}/${tables.length} tables`);
+
       if (existingTables.length > 0) {
-        existingTables.forEach(table => log(`  ✓ ${table}`, 'green'));
+        existingTables.forEach((table) => log(`  ✓ ${table}`, 'green'));
       }
-      tables.filter(t => !existingTables.includes(t)).forEach(table => {
-        log(`  ✗ ${table} (missing)`, 'red');
-      });
+
+      tables
+        .filter((t) => !existingTables.includes(t))
+        .forEach((table) => {
+          log(`  ✗ ${table} (missing)`, 'red');
+        });
     }
   } catch (error) {
     logWarning('Could not verify tables automatically');

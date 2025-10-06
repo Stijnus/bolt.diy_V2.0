@@ -4,8 +4,10 @@ export const MAX_TOKENS = 8192;
 // limits the number of model responses that can be returned in a single request
 export const MAX_RESPONSE_SEGMENTS = 2;
 
-// model-specific maximum tokens
-// NOTE: Use the actual API model IDs, not shortened names
+/*
+ * model-specific maximum tokens
+ * NOTE: Use the actual API model IDs, not shortened names
+ */
 export const MODEL_MAX_TOKENS: Record<string, number> = {
   // anthropic
   'claude-sonnet-4-5-20250929': 8192,
