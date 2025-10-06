@@ -4,8 +4,8 @@ description: "Complete documentation for BoltDIY V2.0 - Enhanced AI Development 
 baseurl: "/bolt.diy_V2.0"
 url: "https://stijnus.github.io"
 
-# Theme
-theme: minima
+# Theme - use a better looking theme
+remote_theme: pages-themes/cayman@v0.2.0
 
 # Markdown processing
 markdown: kramdown
@@ -20,6 +20,11 @@ plugins:
   - jekyll-feed
   - jekyll-sitemap
   - jekyll-seo-tag
+  - jekyll-relative-links
+  - jekyll-optional-front-matter
+  - jekyll-readme-index
+  - jekyll-titles-from-headings
+  - jekyll-github-metadata
 
 # SEO and metadata
 author: "Stijnus"
