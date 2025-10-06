@@ -95,7 +95,54 @@ export function useChatHistory() {
 
       if (mixedId) {
         try {
-          const storedMessages = await getMessages(database, mixedId);
+          let storedMessages = await getMessages(database, mixedId);
+
+          if ((!storedMessages || storedMessages.messages.length === 0) && user) {
+            const supabase = createClient();
+
+            if (!supabase) {
+              logger.warn('Supabase client unavailable while attempting to load remote chat history');
+              toast.error('Cloud sync is disabled. Configure Supabase to load saved chats.');
+            } else {
+              try {
+                const { data, error } = await supabase
+                  .from('chats')
+                  .select('*')
+                  .eq('user_id', user.id)
+                  .eq('url_id', mixedId)
+                  .maybeSingle();
+
+                if (error && error.code !== 'PGRST116') {
+                  throw error;
+                }
+
+                const remoteMessages = ((data as any)?.messages ?? []) as UIMessage[];
+
+                if (data && remoteMessages.length > 0) {
+                  const remoteDescription = (data as { description?: string | null }).description ?? undefined;
+                  const remoteModel = (data as { model?: FullModelId | null }).model ?? undefined;
+                  const remoteTimestamp = (data as { updated_at?: string | null }).updated_at ?? new Date().toISOString();
+                  const remoteUrlId = (data as { url_id: string }).url_id;
+
+                  await setMessages(
+                    database,
+                    remoteUrlId,
+                    remoteMessages,
+                    remoteUrlId,
+                    remoteDescription,
+                    remoteModel,
+                    remoteTimestamp,
+                    'remote',
+                  );
+
+                  storedMessages = await getMessages(database, mixedId);
+                }
+              } catch (supabaseError) {
+                logger.error('Failed to load chat history from Supabase:', supabaseError);
+                toast.error('Unable to load cloud chat history. Please try again.');
+              }
+            }
+          }
 
           if (storedMessages && storedMessages.messages.length > 0) {
             setInitialMessages(storedMessages.messages);
@@ -127,114 +174,129 @@ export function useChatHistory() {
     return () => {
       cancelled = true;
     };
-  }, [mixedId, navigate]);
+  }, [mixedId, navigate, user]);
+
+  const storeMessageHistoryRef = useRef<(messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>>(
+    async () => {},
+  );
+
+  storeMessageHistoryRef.current = async (messages: UIMessage[], modelFullId?: FullModelId) => {
+    if (messages.length === 0) {
+      return;
+    }
+
+    if (!persistenceEnabled || typeof window === 'undefined') {
+      return;
+    }
+
+    let database = dbRef.current;
+
+    if (!database) {
+      database = await getDatabase();
+
+      if (!database) {
+        return;
+      }
+
+      dbRef.current = database;
+    }
+
+    const { firstArtifact } = workbenchStore;
+
+    // Fix: Use a separate variable name to avoid shadowing the state variable
+    let currentUrlId = urlId;
+
+    if (!currentUrlId && firstArtifact?.id) {
+      const generatedUrlId = await getUrlId(database, firstArtifact.id);
+
+      navigateChat(generatedUrlId);
+      setUrlId(generatedUrlId);
+      currentUrlId = generatedUrlId; // Use local variable immediately
+    }
+
+    if (!description.get() && firstArtifact?.title) {
+      description.set(firstArtifact?.title);
+    }
+
+    let currentChatId = chatId.get();
+
+    if (initialMessages.length === 0 && !currentChatId) {
+      const nextId = await getNextId(database);
+
+      chatId.set(nextId);
+      currentChatId = nextId; // Use local variable immediately
+
+      const currentSelection = currentModel.get();
+      setChatModel(nextId, currentSelection.provider, currentSelection.modelId);
+
+      if (!currentUrlId) {
+        navigateChat(nextId);
+        currentUrlId = nextId; // Use local variable immediately
+      }
+    }
+
+    const selection = modelFullId ?? currentModel.get().fullId;
+
+    // Save to IndexedDB (for offline support and fallback)
+    await setMessages(
+      database,
+      currentChatId as string,
+      messages,
+      currentUrlId,
+      description.get(),
+      selection,
+      undefined,
+      'local',
+    );
+
+    // Also save to Supabase if user is logged in
+    if (user) {
+      try {
+        setSyncing(true);
+        setConnectionError(null);
+
+        const supabase = createClient();
+        const finalUrlId = currentUrlId || currentChatId;
+
+        // Use upsert to insert or update the chat
+        const { error } = await supabase.from('chats').upsert(
+          {
+            url_id: finalUrlId,
+            user_id: user.id,
+            messages: messages as any,
+            description: description.get() || null,
+            model: selection, // Fix: Include model field
+            updated_at: new Date().toISOString(),
+          },
+          {
+            onConflict: 'url_id,user_id',
+          },
+        );
+
+        if (error) {
+          logger.error('Failed to sync chat to Supabase:', error);
+          setConnectionError(`Sync failed: ${error.message}`);
+
+          // Don't throw - we still have IndexedDB backup
+        } else {
+          logger.info(`Chat ${finalUrlId} synced to Supabase`);
+        }
+      } catch (error) {
+        logger.error('Error syncing to Supabase:', error);
+        setConnectionError(`Sync error: ${(error as Error).message}`);
+
+        // Don't throw - we still have IndexedDB backup
+      } finally {
+        setSyncing(false);
+      }
+    }
+  };
 
   return {
     ready: !mixedId || ready,
     initialMessages,
-    storeMessageHistory: async (messages: UIMessage[], modelFullId?: FullModelId) => {
-      if (messages.length === 0) {
-        return;
-      }
-
-      if (!persistenceEnabled || typeof window === 'undefined') {
-        return;
-      }
-
-      let database = dbRef.current;
-
-      if (!database) {
-        database = await getDatabase();
-
-        if (!database) {
-          return;
-        }
-
-        dbRef.current = database;
-      }
-
-      const { firstArtifact } = workbenchStore;
-
-      if (!urlId && firstArtifact?.id) {
-        const urlId = await getUrlId(database, firstArtifact.id);
-
-        navigateChat(urlId);
-        setUrlId(urlId);
-      }
-
-      if (!description.get() && firstArtifact?.title) {
-        description.set(firstArtifact?.title);
-      }
-
-      if (initialMessages.length === 0 && !chatId.get()) {
-        const nextId = await getNextId(database);
-
-        chatId.set(nextId);
-
-        const currentSelection = currentModel.get();
-        setChatModel(nextId, currentSelection.provider, currentSelection.modelId);
-
-        if (!urlId) {
-          navigateChat(nextId);
-        }
-      }
-
-      const selection = modelFullId ?? currentModel.get().fullId;
-
-      // Save to IndexedDB (for offline support and fallback)
-      await setMessages(
-        database,
-        chatId.get() as string,
-        messages,
-        urlId,
-        description.get(),
-        selection,
-        undefined,
-        'local',
-      );
-
-      // Also save to Supabase if user is logged in
-      if (user) {
-        try {
-          setSyncing(true);
-          setConnectionError(null);
-
-          const supabase = createClient();
-          const currentChatId = chatId.get() as string;
-          const currentUrlId = urlId || currentChatId;
-
-          // Use upsert to insert or update the chat
-          const { error } = await supabase.from('chats').upsert(
-            {
-              url_id: currentUrlId,
-              user_id: user.id,
-              messages: messages as any,
-              description: description.get() || null,
-              updated_at: new Date().toISOString(),
-            },
-            {
-              onConflict: 'url_id,user_id',
-            },
-          );
-
-          if (error) {
-            logger.error('Failed to sync chat to Supabase:', error);
-            setConnectionError(`Sync failed: ${error.message}`);
-
-            // Don't throw - we still have IndexedDB backup
-          } else {
-            logger.info(`Chat ${currentUrlId} synced to Supabase`);
-          }
-        } catch (error) {
-          logger.error('Error syncing to Supabase:', error);
-          setConnectionError(`Sync error: ${(error as Error).message}`);
-
-          // Don't throw - we still have IndexedDB backup
-        } finally {
-          setSyncing(false);
-        }
-      }
-    },
+    storeMessageHistory: (...args: Parameters<typeof storeMessageHistoryRef.current>) =>
+      storeMessageHistoryRef.current(...args),
   };
 }
 

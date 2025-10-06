@@ -22,7 +22,6 @@ plugins:
   - jekyll-seo-tag
   - jekyll-relative-links
   - jekyll-optional-front-matter
-  - jekyll-readme-index
   - jekyll-titles-from-headings
   - jekyll-github-metadata
 
@@ -59,13 +58,12 @@ defaults:
       path: ""
       type: "pages"
     values:
-      layout: "page"
+      layout: "default"
   - scope:
       path: "docs"
       type: "pages"
     values:
-      layout: "page"
-      sidebar: docs
+      layout: "default"
 
 # Exclude from processing
 exclude:
@@ -83,11 +81,16 @@ exclude:
   - scripts/
   - app/
   - public/
+  - CONTRIBUTING.md
   - CLAUDE.md
   - WARP.md
-  # AI configuration files should remain in root
-
+  - TODO.md
+  - QUICK_FIX.md
+  - README.md
+  - MULTI_MODEL_IMPLEMENTATION_SUMMARY.md
+  - GITHUB_PAGES_SETUP.md
 # Include specific files that might be excluded by default
 include:
   - docs/
-  - README.md
+  - SETUP_GUIDE.md
+  - assets/
