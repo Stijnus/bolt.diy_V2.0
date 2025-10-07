@@ -7,6 +7,20 @@ const logger = createScopedLogger('ChatHistory');
 
 export type SessionUsageWithTimestamp = SessionUsage & { timestamp: string };
 
+let dbPromise: Promise<IDBDatabase | undefined> | undefined;
+
+export async function getDatabase(): Promise<IDBDatabase | undefined> {
+  if (typeof window === 'undefined') {
+    return undefined;
+  }
+
+  if (!dbPromise) {
+    dbPromise = openDatabase();
+  }
+
+  return dbPromise;
+}
+
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   return new Promise((resolve) => {

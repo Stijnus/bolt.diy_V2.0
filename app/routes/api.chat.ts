@@ -51,7 +51,11 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
       const continued = await streamText(messages, context.cloudflare.env, streamOptions);
-      const continuedResp = continued.toUIMessageStreamResponse({ sendStart: false });
+      const continuedResp = continued.toUIMessageStreamResponse({
+        sendStart: false,
+        sendFinish: true,
+        messageMetadata: (args) => continued.usageMetadata(args),
+      });
 
       return stream.switchSource(continuedResp.body!);
     };
@@ -66,7 +70,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     options.onFinish = createOnFinishHandler(options);
 
     const result = await streamText(messages, context.cloudflare.env, options);
-    const resp = result.toUIMessageStreamResponse({ sendFinish: false });
+    const resp = result.toUIMessageStreamResponse({
+      sendFinish: true,
+      messageMetadata: (args) => result.usageMetadata(args),
+    });
 
     await stream.switchSource(resp.body!);
 
@@ -97,7 +104,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           fallbackOptions.onFinish = createOnFinishHandler(fallbackOptions);
 
           const result = await streamText(messages, context.cloudflare.env, fallbackOptions);
-          const resp = result.toUIMessageStreamResponse({ sendFinish: false });
+          const resp = result.toUIMessageStreamResponse({
+            sendFinish: true,
+            messageMetadata: (args) => result.usageMetadata(args),
+          });
 
           await stream.switchSource(resp.body!);
 

@@ -1,4 +1,4 @@
-import { streamText as _streamText, type ModelMessage, type StreamTextResult } from 'ai';
+import { streamText as _streamText, type LanguageModelUsage, type ModelMessage } from 'ai';
 import { MAX_TOKENS } from './constants';
 import { calculateCost } from './cost-calculator';
 import {
@@ -26,11 +26,24 @@ export interface StreamTextOptions extends StreamingOptions {
   fullModelId?: string;
 }
 
-export function streamText(
-  messages: Messages,
-  env: Env,
-  options?: StreamTextOptions,
-): StreamTextResult<any> {
+type UsageMetadata =
+  | {
+      usage: {
+        inputTokens: number;
+        outputTokens: number;
+        totalTokens: number;
+        cost: number | null;
+        provider: AIProvider;
+        modelId?: string;
+      };
+    }
+  | undefined;
+
+export type StreamTextReturn = ReturnType<typeof _streamText> & {
+  usageMetadata: (args: { part: { type: string; totalUsage?: LanguageModelUsage } }) => UsageMetadata;
+};
+
+export function streamText(messages: Messages, env: Env, options?: StreamTextOptions): StreamTextReturn {
   const { provider, modelId, fullModelId, ...streamOptions } = options || {};
 
   // determine which model to use
@@ -65,22 +78,40 @@ export function streamText(
   // use model-specific max tokens if available, otherwise use default
   const maxTokens = modelInfo?.maxTokens || MAX_TOKENS;
 
-  return _streamText({
+  const result = _streamText({
     model,
     system: getSystemPrompt(),
-    maxTokens,
+    maxOutputTokens: maxTokens,
     headers,
     messages,
     ...streamOptions,
     onFinish: (result) => {
-      // Calculate cost on finish
-      if (modelInfo) {
-        const cost = calculateCost(modelInfo, result.usage.promptTokens, result.usage.completionTokens);
-        // Extend the result with custom usage data
-        Object.assign(result.usage, { cost, provider: resolvedProvider, modelId: resolvedModelId });
-      }
-      // call original onFinish if it exists
       streamOptions.onFinish?.(result);
     },
   });
+
+  const usageMetadata = ({ part }: { part: { type: string; totalUsage?: LanguageModelUsage } }): UsageMetadata => {
+    if (part.type !== 'finish' || !part.totalUsage) {
+      return undefined;
+    }
+
+    const inputTokens = part.totalUsage.inputTokens ?? 0;
+    const outputTokens = part.totalUsage.outputTokens ?? 0;
+    const totalTokens = part.totalUsage.totalTokens ?? inputTokens + outputTokens;
+
+    const cost = modelInfo ? calculateCost(modelInfo, inputTokens, outputTokens) : null;
+
+    return {
+      usage: {
+        inputTokens,
+        outputTokens,
+        totalTokens,
+        cost,
+        provider: resolvedProvider,
+        modelId: resolvedModelId,
+      },
+    };
+  };
+
+  return Object.assign(result, { usageMetadata });
 }

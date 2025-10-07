@@ -6,7 +6,8 @@ describe('calculateCost', () => {
   const mockModelWithPricing: ModelInfo = {
     id: 'test-model',
     name: 'Test Model',
-    provider: 'test',
+    description: 'Mock model with pricing',
+    provider: 'anthropic',
     pricing: {
       input: 1.0, // $1 per 1M input tokens
       output: 2.0, // $2 per 1M output tokens
@@ -21,7 +22,8 @@ describe('calculateCost', () => {
   const mockModelWithoutPricing: ModelInfo = {
     id: 'free-model',
     name: 'Free Model',
-    provider: 'test',
+    description: 'Mock model without pricing',
+    provider: 'anthropic',
     contextWindow: 4096,
     maxTokens: 1024,
     capabilities: {
