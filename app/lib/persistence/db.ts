@@ -1,13 +1,17 @@
 import type { UIMessage } from 'ai';
 import type { ChatHistoryItem } from './useChatHistory';
 import { createScopedLogger } from '~/utils/logger';
+import type { SessionUsage } from '../stores/usage';
 
 const logger = createScopedLogger('ChatHistory');
+
+export type SessionUsageWithTimestamp = SessionUsage & { timestamp: string };
 
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   return new Promise((resolve) => {
-    const request = indexedDB.open('boltHistory', 1);
+    // Version 2: Added 'usage' object store
+    const request = indexedDB.open('boltHistory', 2);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = (event.target as IDBOpenDBRequest).result;
@@ -16,6 +20,11 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
         const store = db.createObjectStore('chats', { keyPath: 'id' });
         store.createIndex('id', 'id', { unique: true });
         store.createIndex('urlId', 'urlId', { unique: true });
+      }
+
+      if (!db.objectStoreNames.contains('usage')) {
+        const usageStore = db.createObjectStore('usage', { autoIncrement: true });
+        usageStore.createIndex('timestamp', 'timestamp', { unique: false });
       }
     };
 
@@ -163,5 +172,34 @@ async function getUrlIds(db: IDBDatabase): Promise<string[]> {
     request.onerror = () => {
       reject(request.error);
     };
+  });
+}
+
+// --- Usage tracking functions ---
+
+export async function saveUsage(db: IDBDatabase, usage: SessionUsage): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (usage.tokens.input === 0 && usage.tokens.output === 0) {
+      // Don't save empty usage records
+      return resolve();
+    }
+    const transaction = db.transaction('usage', 'readwrite');
+    const store = transaction.objectStore('usage');
+    const recordToStore = { ...usage, timestamp: new Date().toISOString() };
+    const request = store.add(recordToStore);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function getAllUsage(db: IDBDatabase): Promise<SessionUsageWithTimestamp[]> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('usage', 'readonly');
+    const store = transaction.objectStore('usage');
+    const request = store.getAll();
+
+    request.onsuccess = () => resolve(request.result as SessionUsageWithTimestamp[]);
+    request.onerror = () => reject(request.error);
   });
 }

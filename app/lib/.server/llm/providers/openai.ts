@@ -1,4 +1,5 @@
 import { createOpenAI } from '@ai-sdk/openai';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const openaiConfig: ProviderConfig = {
@@ -101,7 +102,11 @@ export const openaiProvider: Provider = {
   config: openaiConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const openai = createOpenAI({ apiKey });
-    const selectedModel = modelId || 'gpt-5';
+    const selectedModel = modelId || getDefaultModel('openai')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for OpenAI');
+    }
 
     return openai(selectedModel);
   },

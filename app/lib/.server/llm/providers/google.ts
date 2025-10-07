@@ -1,4 +1,5 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const googleConfig: ProviderConfig = {
@@ -68,7 +69,11 @@ export const googleProvider: Provider = {
   config: googleConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const google = createGoogleGenerativeAI({ apiKey });
-    const selectedModel = modelId || 'gemini-2.5-pro';
+    const selectedModel = modelId || getDefaultModel('google')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for Google');
+    }
 
     return google(selectedModel);
   },

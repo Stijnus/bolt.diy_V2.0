@@ -7,9 +7,10 @@ import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
-import { chatId, useChatHistory } from '~/lib/persistence';
+import { getDatabase, saveUsage, chatId, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { currentModel, setChatModel } from '~/lib/stores/model';
+import { $sessionUsage, addUsage, resetSessionUsage } from '~/lib/stores/usage';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
@@ -82,8 +83,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     messages: initialMessages,
     body: {
       model: modelSelection.fullId,
-    } as Record<string, unknown>,
-  } as any);
+    },
+    onFinish: (result) => {
+      if (result.usage && (result.usage.promptTokens > 0 || result.usage.completionTokens > 0)) {
+        // `usage` is extended in `stream-text.ts` to include cost, provider, and modelId
+        addUsage(result.usage as any);
+      }
+    },
+  });
 
   const isLoading = status === 'streaming';
   const [input, setInput] = useState('');
@@ -123,6 +130,27 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       console.warn('Failed to persist model preference', error);
     });
   }, [activeChatId, modelSelection.fullId, storeMessageHistory]);
+
+  useEffect(() => {
+    // When a new chat is loaded, reset the session usage counter.
+    resetSessionUsage();
+
+    return () => {
+      // When the chat session changes (e.g., navigating to a new chat),
+      // save the accumulated usage data for the completed session to IndexedDB.
+      const finalUsage = $sessionUsage.get();
+      if (finalUsage.tokens.input > 0 || finalUsage.tokens.output > 0) {
+        getDatabase().then((db) => {
+          if (db) {
+            saveUsage(db, finalUsage).catch((err) => {
+              console.error('Failed to save usage data', err);
+              toast.error('Could not save usage statistics.');
+            });
+          }
+        });
+      }
+    };
+  }, [activeChatId]); // This effect re-runs whenever the chat ID changes.
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;

@@ -1,4 +1,5 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const deepseekConfig: ProviderConfig = {
@@ -51,7 +52,11 @@ export const deepseekProvider: Provider = {
   config: deepseekConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const deepseek = createDeepSeek({ apiKey });
-    const selectedModel = modelId || 'deepseek-chat';
+    const selectedModel = modelId || getDefaultModel('deepseek')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for DeepSeek');
+    }
 
     return deepseek(selectedModel);
   },

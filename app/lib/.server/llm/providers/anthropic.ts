@@ -1,4 +1,5 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const anthropicConfig: ProviderConfig = {
@@ -66,7 +67,11 @@ export const anthropicProvider: Provider = {
   config: anthropicConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const anthropic = createAnthropic({ apiKey });
-    const selectedModel = modelId || 'claude-sonnet-4-5-20250929';
+    const selectedModel = modelId || getDefaultModel('anthropic')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for Anthropic');
+    }
 
     return anthropic(selectedModel);
   },

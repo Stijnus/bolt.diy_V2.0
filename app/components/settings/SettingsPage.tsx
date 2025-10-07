@@ -7,6 +7,7 @@ import { toast } from 'react-toastify';
 import { MigrationSettings } from './MigrationSettings';
 import { SettingItem } from './SettingItem';
 import { SettingsSection } from './SettingsSection';
+import { UsageDashboard } from './UsageDashboard';
 import { Button } from '~/components/ui/Button';
 import { Input } from '~/components/ui/Input';
 import { Switch } from '~/components/ui/Switch';
@@ -253,6 +254,16 @@ export function SettingsPage() {
     </SettingsSection>
   );
 
+  const usageSection = (
+    <SettingsSection
+      title="Usage"
+      description="View your token usage and estimated costs"
+      status="implemented"
+    >
+      <UsageDashboard />
+    </SettingsSection>
+  );
+
   const accountSection = (
     <SettingsSection title="Account" description="Manage your account" status="coming-soon">
       <div className="rounded-lg border border-bolt-elements-button-danger-background/20 bg-bolt-elements-button-danger-background/5 p-6">
@@ -277,6 +288,7 @@ export function SettingsPage() {
     { value: 'editor', label: 'Editor', content: editorSection },
     { value: 'ai-assistant', label: 'AI Assistant', content: aiSection },
     { value: 'preferences', label: 'Preferences', content: preferencesSection },
+    { value: 'usage', label: 'Usage', content: usageSection },
     { value: 'data-migration', label: 'Data Migration', content: migrationSection },
     { value: 'account', label: 'Account', content: accountSection },
   );

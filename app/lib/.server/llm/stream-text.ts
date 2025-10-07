@@ -1,9 +1,15 @@
-import { streamText as _streamText, type ModelMessage } from 'ai';
+import { streamText as _streamText, type ModelMessage, type StreamTextResult } from 'ai';
 import { MAX_TOKENS } from './constants';
-import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER, getDefaultModel, getModel as getModelInfo } from './model-config';
+import { calculateCost } from './cost-calculator';
+import {
+  DEFAULT_MODEL_ID,
+  DEFAULT_PROVIDER,
+  getDefaultModel,
+  getModel as getModelInfo,
+} from './model-config';
+import { createModel } from './provider-factory';
 import { getSystemPrompt } from './prompts';
 import type { AIProvider } from './providers/types';
-import { getModel } from '~/lib/.server/llm/model';
 
 export type Messages = ModelMessage[];
 
@@ -20,7 +26,11 @@ export interface StreamTextOptions extends StreamingOptions {
   fullModelId?: string;
 }
 
-export function streamText(messages: Messages, env: Env, options?: StreamTextOptions) {
+export function streamText(
+  messages: Messages,
+  env: Env,
+  options?: StreamTextOptions,
+): StreamTextResult<any> {
   const { provider, modelId, fullModelId, ...streamOptions } = options || {};
 
   // determine which model to use
@@ -41,7 +51,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
     getDefaultModel(resolvedProvider)?.id ??
     (resolvedProvider === DEFAULT_PROVIDER ? DEFAULT_MODEL_ID : undefined);
 
-  const model = getModel(env, selectedProvider, selectedModelId);
+  const model = createModel(resolvedProvider, resolvedModelId, env);
 
   const modelInfo = resolvedModelId ? getModelInfo(resolvedProvider, resolvedModelId) : undefined;
 
@@ -58,9 +68,19 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
   return _streamText({
     model,
     system: getSystemPrompt(),
-    maxOutputTokens: maxTokens,
+    maxTokens,
     headers,
     messages,
     ...streamOptions,
+    onFinish: (result) => {
+      // Calculate cost on finish
+      if (modelInfo) {
+        const cost = calculateCost(modelInfo, result.usage.promptTokens, result.usage.completionTokens);
+        // Extend the result with custom usage data
+        Object.assign(result.usage, { cost, provider: resolvedProvider, modelId: resolvedModelId });
+      }
+      // call original onFinish if it exists
+      streamOptions.onFinish?.(result);
+    },
   });
 }

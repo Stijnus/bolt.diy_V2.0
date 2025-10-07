@@ -1,4 +1,5 @@
 import { createXai } from '@ai-sdk/xai';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const xaiConfig: ProviderConfig = {
@@ -68,7 +69,11 @@ export const xaiProvider: Provider = {
   config: xaiConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const xai = createXai({ apiKey });
-    const selectedModel = modelId || 'grok-code-fast-1';
+    const selectedModel = modelId || getDefaultModel('xai')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for xAI');
+    }
 
     return xai(selectedModel);
   },

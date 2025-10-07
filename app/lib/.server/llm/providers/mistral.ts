@@ -1,4 +1,5 @@
 import { createMistral } from '@ai-sdk/mistral';
+import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
 
 export const mistralConfig: ProviderConfig = {
@@ -65,7 +66,11 @@ export const mistralProvider: Provider = {
   config: mistralConfig,
   createModel: (apiKey: string, modelId?: string) => {
     const mistral = createMistral({ apiKey });
-    const selectedModel = modelId || 'codestral-latest';
+    const selectedModel = modelId || getDefaultModel('mistral')?.id;
+
+    if (!selectedModel) {
+      throw new Error('No default model found for Mistral');
+    }
 
     return mistral(selectedModel);
   },

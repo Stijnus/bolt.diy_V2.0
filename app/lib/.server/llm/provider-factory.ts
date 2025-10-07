@@ -73,11 +73,18 @@ export function createModel(provider: AIProvider = DEFAULT_PROVIDER, modelId?: s
 
 /**
  * Create a model instance with full ID (provider:modelId format).
+ * Falls back to the default model if the provider is missing or unsupported.
  */
 export function createModelFromFullId(fullId: string, env: Env): LanguageModel {
   const [provider, modelId] = fullId.split(':') as [AIProvider, string];
 
-  if (!provider) {
+  // Fallback to default if provider is missing or not supported
+  if (!provider || !(provider in PROVIDERS)) {
+    if (provider) {
+      console.warn(
+        `Unsupported provider "${provider}" in full ID "${fullId}". Falling back to default.`,
+      );
+    }
     return createModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID, env);
   }
 

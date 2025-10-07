@@ -7,6 +7,7 @@ import styles from './BaseChat.module.scss';
 import { Messages } from './Messages.client';
 import { ModelSelector } from './ModelSelector';
 import { SendButton } from './SendButton.client';
+import { UsageStats } from './UsageStats';
 import { MigrationBanner } from '~/components/migration/MigrationBanner';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { AnimatedBadge } from '~/components/ui/AnimatedBadge';
@@ -229,6 +230,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                           </>
                         )}
                       </IconButton>
+                      <ClientOnly>{() => <UsageStats />}</ClientOnly>
                     </div>
                     <div className="flex gap-3 items-center">
                       <ClientOnly>{() => <ModelSelector />}</ClientOnly>

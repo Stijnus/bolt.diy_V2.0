@@ -143,7 +143,7 @@
 ### Model IDs by Provider
 
 **Anthropic:**
-- `claude-sonnet-4.5` - Latest, best overall coding
+- `claude-sonnet-4-5-20250929` - Latest, best overall coding
 
 **DeepSeek:**
 - `deepseek-chat` - V3.2, cost-effective
@@ -164,7 +164,7 @@
 - `codestral-latest` - 80+ languages
 
 ### Default Model Strategy
-- Keep Claude Sonnet 4.5 as default (backward compatible)
+- Keep `claude-sonnet-4-5-20250929` as default (backward compatible)
 - Allow users to set per-project defaults
 - Remember last used model per chat
 

@@ -73,5 +73,5 @@ export function getProvider(provider: AIProvider): ProviderConfig | undefined {
 /**
  * Default provider and model.
  */
-export const DEFAULT_PROVIDER: AIProvider = 'anthropic';
-export const DEFAULT_MODEL_ID = 'claude-sonnet-4-5-20250929';
+export const DEFAULT_PROVIDER: AIProvider = 'deepseek';
+export const DEFAULT_MODEL_ID = 'deepseek-chat';
