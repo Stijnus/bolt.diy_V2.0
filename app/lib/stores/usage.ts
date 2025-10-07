@@ -23,25 +23,30 @@ export const $sessionUsage = map<SessionUsage>({
 export const $totalUsage = atom<SessionUsage[]>([]);
 
 export function addUsage(usage: {
-  promptTokens: number;
-  completionTokens: number;
+  inputTokens?: number | null;
+  outputTokens?: number | null;
   cost?: number | null;
   provider?: string;
   modelId?: string;
 }) {
   const current = $sessionUsage.get();
+  const inputTokens = usage.inputTokens ?? 0;
+  const outputTokens = usage.outputTokens ?? 0;
+
   $sessionUsage.setKey('tokens', {
-    input: current.tokens.input + usage.promptTokens,
-    output: current.tokens.output + usage.completionTokens,
+    input: current.tokens.input + inputTokens,
+    output: current.tokens.output + outputTokens,
   });
 
-  if (usage.cost) {
+  if (typeof usage.cost === 'number') {
     $sessionUsage.setKey('cost', current.cost + usage.cost);
   }
-  if(usage.provider) {
+
+  if (usage.provider) {
     $sessionUsage.setKey('provider', usage.provider);
   }
-    if(usage.modelId) {
+
+  if (usage.modelId) {
     $sessionUsage.setKey('modelId', usage.modelId);
   }
 }

@@ -26,7 +26,7 @@ export interface ModelInfo {
   maxTokens: number;
   contextWindow: number;
   capabilities: ModelCapabilities;
-  pricing: ModelPricing;
+  pricing?: ModelPricing;
   isDefault?: boolean;
 }
 

@@ -65,7 +65,7 @@ export interface ModelInfo {
   capabilities: ModelCapabilities;
 
   /** Pricing information */
-  pricing: ModelPricing;
+  pricing?: ModelPricing;
 
   /** Is this the default model for the provider? */
   isDefault?: boolean;

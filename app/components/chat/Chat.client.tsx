@@ -1,9 +1,9 @@
 import { useChat } from '@ai-sdk/react';
 import { useStore } from '@nanostores/react';
-import type { UIMessage } from 'ai';
+import { DefaultChatTransport, type UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import { X, Check, AlertTriangle } from 'lucide-react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, toast, ToastContainer } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
@@ -79,15 +79,33 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<UIMessage>({
+        body: async () => ({
+          model: modelSelection.fullId,
+        }),
+      }),
+    [modelSelection.fullId],
+  );
+
   const { messages, status, stop, sendMessage } = useChat({
     messages: initialMessages,
-    body: {
-      model: modelSelection.fullId,
-    },
-    onFinish: (result) => {
-      if (result.usage && (result.usage.promptTokens > 0 || result.usage.completionTokens > 0)) {
-        // `usage` is extended in `stream-text.ts` to include cost, provider, and modelId
-        addUsage(result.usage as any);
+    transport,
+    onFinish: ({ message }) => {
+      const usage = (message.metadata as any)?.usage as
+        | { inputTokens?: number; outputTokens?: number; cost?: number | null; provider?: string; modelId?: string }
+        | undefined;
+
+      if (!usage) {
+        return;
+      }
+
+      const inputTokens = usage.inputTokens ?? 0;
+      const outputTokens = usage.outputTokens ?? 0;
+
+      if (inputTokens > 0 || outputTokens > 0) {
+        addUsage(usage);
       }
     },
   });
@@ -138,17 +156,26 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     return () => {
       // When the chat session changes (e.g., navigating to a new chat),
       // save the accumulated usage data for the completed session to IndexedDB.
-      const finalUsage = $sessionUsage.get();
-      if (finalUsage.tokens.input > 0 || finalUsage.tokens.output > 0) {
-        getDatabase().then((db) => {
-          if (db) {
-            saveUsage(db, finalUsage).catch((err) => {
-              console.error('Failed to save usage data', err);
-              toast.error('Could not save usage statistics.');
-            });
+      void (async () => {
+        const finalUsage = $sessionUsage.get();
+
+        if (finalUsage.tokens.input === 0 && finalUsage.tokens.output === 0) {
+          return;
+        }
+
+        try {
+          const db = await getDatabase();
+
+          if (!db) {
+            return;
           }
-        });
-      }
+
+          await saveUsage(db, finalUsage);
+        } catch (err) {
+          console.error('Failed to save usage data', err);
+          toast.error('Could not save usage statistics.');
+        }
+      })();
     };
   }, [activeChatId]); // This effect re-runs whenever the chat ID changes.
 

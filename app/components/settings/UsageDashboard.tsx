@@ -1,15 +1,15 @@
-import { useStore } from '@nanostores/react';
 import { useEffect, useState } from 'react';
-import { getDatabase, getAllUsage, type SessionUsageWithTimestamp } from '~/lib/persistence/db';
-import { formatNumber } from '~/utils/format';
-import { currentModel } from '~/lib/stores/model';
-import { Alert, AlertDescription, AlertTitle } from '~/components/ui/Alert';
 import { Info } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '~/components/ui/Alert';
+import { getModel } from '~/lib/models.client';
+import { getAllUsage, getDatabase, type SessionUsageWithTimestamp } from '~/lib/persistence/db';
+import type { AIProvider } from '~/types/model';
+import { formatNumber } from '~/utils/format';
 
 function UsageRow({ usage }: { usage: SessionUsageWithTimestamp }) {
   const { timestamp, tokens, cost, provider, modelId } = usage;
-  const model = useStore(currentModel);
-  const modelName = model.provider === provider && model.modelId === modelId ? model.name : modelId;
+  const modelInfo = provider && modelId ? getModel(provider as AIProvider, modelId) : undefined;
+  const modelName = modelInfo?.name ?? modelId;
 
   return (
     <tr className="border-b border-bolt-elements-borderColor/50 hover:bg-bolt-elements-background-depth-1">
@@ -29,24 +29,28 @@ export function UsageDashboard() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    getDatabase()
-      .then((db) => {
+    const loadUsage = async () => {
+      try {
+        const db = await getDatabase();
+
         if (!db) {
           throw new Error('Database not available.');
         }
-        return getAllUsage(db);
-      })
-      .then((data) => {
-        // Sort data by most recent first
-        setUsageData(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-      })
-      .catch((err) => {
+
+        const data = await getAllUsage(db);
+
+        setUsageData(
+          data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
+        );
+      } catch (err) {
         setError('Failed to load usage data from the database.');
         console.error(err);
-      })
-      .finally(() => {
+      } finally {
         setLoading(false);
-      });
+      }
+    };
+
+    void loadUsage();
   }, []);
 
   const totals = usageData.reduce(

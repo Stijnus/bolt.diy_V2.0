@@ -92,6 +92,7 @@ export function ModelSelector() {
 
 function ModelOption({ model }: { model: ModelInfo }) {
   const fullId = `${model.provider}:${model.id}`;
+  const pricing = model.pricing;
 
   return (
     <Select.Item
@@ -116,7 +117,9 @@ function ModelOption({ model }: { model: ModelInfo }) {
           <div className="flex items-center gap-2 mt-1">
             <ModelCapabilityBadges model={model} />
             <span className="text-xs text-bolt-elements-textTertiary">
-              ${model.pricing.input.toFixed(2)}/${model.pricing.output.toFixed(2)} per 1M tokens
+              {pricing
+                ? `$${pricing.input.toFixed(2)}/${pricing.output.toFixed(2)} per 1M tokens`
+                : 'Pricing unavailable'}
             </span>
           </div>
         </div>
