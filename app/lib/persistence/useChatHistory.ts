@@ -4,6 +4,8 @@ import { atom } from 'nanostores';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
+import { createFileState } from './file-state-cache';
+import { executeWithQueue } from './message-queue';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { currentModel, parseFullModelId, setChatModel, setCurrentModel } from '~/lib/stores/model';
@@ -22,6 +24,7 @@ export interface ChatHistoryItem {
   timestamp: string;
   model?: FullModelId;
   origin?: 'local' | 'remote';
+  fileState?: Record<string, { content: string; isBinary: boolean }>;
 }
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
@@ -136,6 +139,7 @@ export function useChatHistory() {
                     remoteModel,
                     remoteTimestamp,
                     'remote',
+                    (data as any)?.fileState || undefined,
                   );
 
                   storedMessages = await getMessages(database, mixedId);
@@ -152,6 +156,30 @@ export function useChatHistory() {
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
             chatId.set(storedMessages.id);
+
+            // Restore file state if available
+            if (storedMessages.fileState && Object.keys(storedMessages.fileState).length > 0) {
+              const fileMap: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+
+              Object.entries(storedMessages.fileState).forEach(([path, fileData]) => {
+                fileMap[path] = {
+                  type: 'file',
+                  content: fileData.content,
+                  isBinary: fileData.isBinary,
+                };
+              });
+
+              try {
+                await workbenchStore.restoreFiles(fileMap);
+                logger.info(`Restored ${Object.keys(fileMap).length} files to WebContainer`);
+              } catch (error) {
+                logger.error('Failed to restore files to WebContainer:', error);
+                toast.error('Failed to restore some files from project history');
+
+                // Still set the files in the store as a fallback
+                workbenchStore.files.set(fileMap);
+              }
+            }
 
             if (storedMessages.model) {
               const { provider, modelId } = parseFullModelId(storedMessages.model);
@@ -185,6 +213,9 @@ export function useChatHistory() {
     },
   );
 
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingStoreRef = useRef<{ messages: UIMessage[]; modelFullId?: FullModelId } | null>(null);
+
   storeMessageHistoryRef.current = async (messages: UIMessage[], modelFullId?: FullModelId) => {
     if (messages.length === 0) {
       return;
@@ -194,6 +225,53 @@ export function useChatHistory() {
       return;
     }
 
+    // Log potential race condition detection
+    const lastMessage = messages[messages.length - 1];
+    const messageId = lastMessage?.id || 'unknown';
+    logger.debug(`Store message history called for ${messageId}, current urlId: ${urlId}, chatId: ${chatId.get()}`);
+
+    // Use the message queue to prevent concurrent operations
+    void executeWithQueue(
+      messages,
+      async (msgs, mdlFullId) => {
+        // Clear any existing timer
+        if (debounceTimerRef.current) {
+          clearTimeout(debounceTimerRef.current);
+        }
+
+        // Store the latest request
+        pendingStoreRef.current = { messages: msgs, modelFullId: mdlFullId };
+
+        // Debounce the operation to prevent rapid successive saves
+        return new Promise<void>((resolve, reject) => {
+          debounceTimerRef.current = setTimeout(async () => {
+            const currentPending = pendingStoreRef.current;
+
+            if (!currentPending) {
+              resolve();
+              return;
+            }
+
+            try {
+              // Log before storing to detect potential issues
+              logger.debug(
+                `Storing ${currentPending.messages.length} messages for urlId: ${urlId}, chatId: ${chatId.get()}`,
+              );
+              await performStoreOperation(currentPending.messages, currentPending.modelFullId);
+              logger.debug(`Successfully stored messages for urlId: ${urlId}`);
+              resolve();
+            } catch (error) {
+              logger.error('Failed to store message history:', error);
+              reject(error);
+            }
+          }, 500); // 500ms debounce
+        });
+      },
+      modelFullId,
+    );
+  };
+
+  const performStoreOperation = async (messages: UIMessage[], modelFullId?: FullModelId) => {
     let database = dbRef.current;
 
     if (!database) {
@@ -210,20 +288,42 @@ export function useChatHistory() {
 
     // Fix: Use a separate variable name to avoid shadowing the state variable
     let currentUrlId = urlId;
+    let currentChatId = chatId.get();
 
+    // Only generate URL ID once - if we already have one, don't regenerate
     if (!currentUrlId && firstArtifact?.id) {
       const generatedUrlId = await getUrlId(database, firstArtifact.id);
 
       navigateChat(generatedUrlId);
       setUrlId(generatedUrlId);
       currentUrlId = generatedUrlId; // Use local variable immediately
+
+      // If we had a temporary chat ID and now have a proper urlId, update Supabase
+      if (user && currentChatId && currentChatId !== generatedUrlId) {
+        try {
+          const supabase = createClient();
+
+          // Update the chat record to use the proper urlId
+          const { error: updateError } = await supabase
+            .from('chats')
+            .update({ url_id: generatedUrlId })
+            .eq('user_id', user.id)
+            .eq('url_id', currentChatId);
+
+          if (updateError) {
+            logger.error('Failed to update chat urlId in Supabase:', updateError);
+          } else {
+            logger.info(`Updated chat urlId from ${currentChatId} to ${generatedUrlId} in Supabase`);
+          }
+        } catch (error) {
+          logger.error('Error updating chat urlId:', error);
+        }
+      }
     }
 
     if (!description.get() && firstArtifact?.title) {
       description.set(firstArtifact?.title);
     }
-
-    let currentChatId = chatId.get();
 
     if (initialMessages.length === 0 && !currentChatId) {
       const nextId = await getNextId(database);
@@ -249,21 +349,24 @@ export function useChatHistory() {
     const selection = modelFullId ?? currentModel.get().fullId;
 
     /*
-     * Save to IndexedDB (for offline support and fallback) - only for guest users
-     * For logged-in users, Supabase is the primary storage
+     * Always save to IndexedDB as backup (for offline support and quick access)
+     * Include file state in the saved chat
+     * Use cached file state to avoid expensive serialization
      */
-    if (!user) {
-      await setMessages(
-        database,
-        currentChatId as string,
-        messages,
-        currentUrlId,
-        description.get(),
-        selection,
-        undefined,
-        'local',
-      );
-    }
+    const currentFiles = workbenchStore.files.get();
+    const fileState = createFileState(currentChatId || 'temp', currentFiles);
+
+    await setMessages(
+      database,
+      currentChatId as string,
+      messages,
+      currentUrlId,
+      description.get(),
+      selection,
+      undefined,
+      user ? 'remote' : 'local',
+      fileState,
+    );
 
     // Also save to Supabase if user is logged in
     if (user) {
@@ -275,37 +378,61 @@ export function useChatHistory() {
         const finalUrlId = currentUrlId || currentChatId;
 
         /*
-         * Skip Supabase sync if we don't have a proper urlId yet (waiting for artifact)
-         * This prevents creating duplicate chats with generic IDs like "1"
+         * Always sync to Supabase, even if we only have a temporary ID
+         * The upsert with onConflict will handle updates when we get a proper urlId
          */
-        if (!currentUrlId || currentUrlId === currentChatId) {
-          logger.info('Skipping Supabase sync - waiting for proper urlId from artifact');
-          return;
-        }
 
-        // Use upsert to insert or update the chat
-        const { error } = await supabase.from('chats').upsert(
-          {
+        // Additional safeguard: check if this exact chat already exists to prevent duplicates
+        const { data: existingChat } = await supabase
+          .from('chats')
+          .select('id, url_id, updated_at')
+          .eq('user_id', user.id)
+          .eq('url_id', finalUrlId)
+          .single();
+
+        if (existingChat) {
+          // Chat exists, update it instead of creating duplicate
+          const { error: updateError } = await supabase
+            .from('chats')
+            .update({
+              messages: messages as any,
+              description: description.get() || null,
+              model: selection,
+              file_state: fileState,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('id', existingChat.id);
+
+          if (updateError) {
+            logger.error('Failed to update existing chat in Supabase:', updateError);
+            setConnectionError(`Sync failed: ${updateError.message}`);
+          } else {
+            logger.debug(`Updated existing chat ${finalUrlId} in Supabase`);
+          }
+        } else {
+          // Chat doesn't exist, create new one
+          const { error: insertError } = await supabase.from('chats').insert({
             url_id: finalUrlId,
             user_id: user.id,
             messages: messages as any,
             description: description.get() || null,
-            model: selection, // Fix: Include model field
+            model: selection,
+            file_state: fileState,
             updated_at: new Date().toISOString(),
-          },
-          {
-            onConflict: 'url_id,user_id',
-          },
-        );
+          });
 
-        if (error) {
-          logger.error('Failed to sync chat to Supabase:', error);
-          setConnectionError(`Sync failed: ${error.message}`);
-
-          // Don't throw - we still have IndexedDB backup
-        } else {
-          logger.info(`Chat ${finalUrlId} synced to Supabase`);
+          if (insertError) {
+            logger.error('Failed to create new chat in Supabase:', insertError);
+            setConnectionError(`Sync failed: ${insertError.message}`);
+          } else {
+            logger.debug(`Created new chat ${finalUrlId} in Supabase`);
+          }
         }
+
+        /*
+         * Note: We removed the upsert with onConflict to have more control
+         * over duplicate prevention and better error handling
+         */
       } catch (error) {
         logger.error('Error syncing to Supabase:', error);
         setConnectionError(`Sync error: ${(error as Error).message}`);

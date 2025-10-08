@@ -1,4 +1,5 @@
 import type { UIMessage } from 'ai';
+import { withRetry } from './timeout-wrapper';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { SessionUsage } from '~/lib/stores/usage';
 import { createScopedLogger } from '~/utils/logger';
@@ -93,26 +94,37 @@ export async function setMessages(
   model?: string,
   timestamp?: string,
   origin: 'local' | 'remote' = 'local',
+  fileState?: Record<string, { content: string; isBinary: boolean }>,
 ): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readwrite');
-    const store = transaction.objectStore('chats');
+  return withRetry(
+    async () => {
+      return new Promise<void>((resolve, reject) => {
+        const transaction = db.transaction('chats', 'readwrite');
+        const store = transaction.objectStore('chats');
 
-    const recordTimestamp = timestamp ?? new Date().toISOString();
+        const recordTimestamp = timestamp ?? new Date().toISOString();
 
-    const request = store.put({
-      id,
-      messages,
-      urlId,
-      description,
-      model,
-      timestamp: recordTimestamp,
-      origin,
-    });
+        const request = store.put({
+          id,
+          messages,
+          urlId,
+          description,
+          model,
+          timestamp: recordTimestamp,
+          origin,
+          fileState,
+        });
 
-    request.onsuccess = () => resolve();
-    request.onerror = () => reject(request.error);
-  });
+        request.onsuccess = () => resolve();
+        request.onerror = () => reject(request.error);
+      });
+    },
+    {
+      maxRetries: 3,
+      timeout: 15000, // 15 seconds for file operations
+      operationName: 'setMessages',
+    },
+  );
 }
 
 export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
@@ -157,84 +169,109 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
-    const request = store.getAllKeys();
 
-    request.onsuccess = () => {
-      try {
-        // Filter out non-numeric IDs and convert to numbers
-        const numericIds = request.result
-          .filter((id) => {
-            const num = Number(id);
-            return !isNaN(num) && num > 0;
-          })
-          .map((id) => Number(id));
+    // Use cursor-based approach for better performance with large datasets
+    const request = store.openCursor(null, 'prev'); // Start from the end
 
-        // If no valid numeric IDs found, start with '1'
-        if (numericIds.length === 0) {
-          resolve('1');
+    let highestNumericId = 0;
+    let foundValidId = false;
+
+    // Add timeout to prevent infinite waits
+    const timeout = setTimeout(() => {
+      logger.warn('getNextId operation timed out, using fallback ID');
+      resolve(String(Date.now()));
+    }, 5000); // 5 second timeout
+
+    request.onsuccess = (event: Event) => {
+      clearTimeout(timeout);
+
+      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
+
+      if (cursor && !foundValidId) {
+        const id = cursor.key as string;
+        const num = Number(id);
+
+        // Check if this is a valid numeric ID
+        if (!isNaN(num) && num > 0 && Number.isInteger(num)) {
+          highestNumericId = Math.max(highestNumericId, num);
+          foundValidId = true;
+
+          // Since we're going backwards (prev), we can stop at the first valid numeric ID
+          resolve(String(highestNumericId + 1));
+
           return;
         }
 
-        // Find the highest valid ID and increment by 1
-        const highestId = Math.max(...numericIds);
-        const nextId = highestId + 1;
-
-        resolve(String(nextId));
-      } catch (error) {
-        logger.error('Error in getNextId:', error);
-
-        // Fallback to timestamp-based ID if something goes wrong
-        resolve(String(Date.now()));
+        // Continue to previous entry
+        cursor.continue();
+      } else if (!foundValidId) {
+        // No valid numeric IDs found, start with '1'
+        resolve('1');
       }
+
+      // If we already found a valid ID and resolved, we don't need to do anything
     };
 
     request.onerror = () => {
-      logger.error('Failed to get all keys in getNextId:', request.error);
+      clearTimeout(timeout);
+      logger.error('Failed to open cursor in getNextId:', request.error);
       reject(request.error);
     };
   });
 }
 
 export async function getUrlId(db: IDBDatabase, id: string): Promise<string> {
-  const idList = await getUrlIds(db);
-
-  if (!idList.includes(id)) {
-    return id;
-  } else {
-    let i = 2;
-
-    while (idList.includes(`${id}-${i}`)) {
-      i++;
-    }
-
-    return `${id}-${i}`;
-  }
-}
-
-async function getUrlIds(db: IDBDatabase): Promise<string[]> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction('chats', 'readonly');
+    const transaction = db.transaction('chats', 'readwrite');
     const store = transaction.objectStore('chats');
-    const idList: string[] = [];
+    const index = store.index('urlId');
 
-    const request = store.openCursor();
+    // First check if the base ID exists
+    const getRequest = index.get(id);
 
-    request.onsuccess = (event: Event) => {
-      const cursor = (event.target as IDBRequest<IDBCursorWithValue>).result;
-
-      if (cursor) {
-        idList.push(cursor.value.urlId);
-        cursor.continue();
-      } else {
-        resolve(idList);
+    getRequest.onsuccess = () => {
+      if (!getRequest.result) {
+        // Base ID is available, use it
+        resolve(id);
+        return;
       }
+
+      // Base ID exists, find the next available suffixed ID
+      let suffix = 2;
+
+      const checkNextId = () => {
+        const testId = `${id}-${suffix}`;
+        const checkRequest = index.get(testId);
+
+        checkRequest.onsuccess = () => {
+          if (!checkRequest.result) {
+            // Found an available ID
+            resolve(testId);
+          } else {
+            // ID exists, try next
+            suffix++;
+            checkNextId();
+          }
+        };
+
+        checkRequest.onerror = () => {
+          logger.error('Error checking URL ID availability:', checkRequest.error);
+          reject(checkRequest.error);
+        };
+      };
+
+      // Start checking suffixed IDs
+      checkNextId();
     };
 
-    request.onerror = () => {
-      reject(request.error);
+    getRequest.onerror = () => {
+      logger.error('Error checking base URL ID:', getRequest.error);
+      reject(getRequest.error);
     };
   });
 }
+
+// getUrlIds function removed - no longer needed with atomic getUrlId implementation
 
 // --- Usage tracking functions ---
 

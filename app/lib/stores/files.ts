@@ -46,6 +46,11 @@ export class FilesStore {
    */
   files: MapStore<FileMap> = import.meta.hot?.data.files ?? map({});
 
+  /**
+   * Flag to prevent file watcher from interfering during file restoration
+   */
+  #isRestoring = false;
+
   get filesCount() {
     return this.#size;
   }
@@ -123,6 +128,12 @@ export class FilesStore {
     // watch for changes - use '.' for current workdir
     webcontainer.fs.watch('.', { recursive: true }, (event, filename) => {
       logger.debug(`File system change detected: ${event} ${filename || ''}`);
+
+      // Skip refreshes during file restoration to prevent infinite loops
+      if (this.#isRestoring) {
+        logger.debug('Skipping file refresh during restoration');
+        return;
+      }
 
       // coalesce bursts of events
       clearTimeout((this as any)._watchTimeout);
@@ -208,6 +219,64 @@ export class FilesStore {
       logger.info(`Refreshed ${size} files`);
     } catch (error) {
       logger.error('Error refreshing files:', error);
+    }
+  }
+
+  /**
+   * Restores files to WebContainer from a FileMap
+   * Used when loading chat history to restore project state
+   */
+  async restoreFiles(fileMap: FileMap): Promise<void> {
+    const webcontainer = await this.#webcontainer;
+    const filesToRestore = Object.entries(fileMap).filter(([, file]) => file?.type === 'file');
+
+    if (filesToRestore.length === 0) {
+      logger.debug('No files to restore');
+      return;
+    }
+
+    logger.info(`Restoring ${filesToRestore.length} files to WebContainer`);
+
+    // Prevent file watcher from interfering during restoration
+    this.#isRestoring = true;
+
+    try {
+      // Write each file to WebContainer
+      const writePromises = filesToRestore.map(async ([filePath, file]) => {
+        if (!file || file.type !== 'file') {
+          return;
+        }
+
+        try {
+          const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+
+          if (!relativePath) {
+            logger.error(`Invalid file path for restore: ${filePath}`);
+            return;
+          }
+
+          await webcontainer.fs.writeFile(relativePath, file.content);
+          logger.debug(`Restored file: ${relativePath}`);
+        } catch (error) {
+          logger.error(`Failed to restore file ${filePath}:`, error);
+          throw error;
+        }
+      });
+
+      await Promise.allSettled(writePromises);
+
+      // Update the store with the restored files
+      this.files.set(fileMap);
+      this.#size = filesToRestore.length;
+
+      logger.info(`Successfully restored ${filesToRestore.length} files`);
+    } catch (error) {
+      logger.error('Error restoring files:', error);
+      throw error;
+    } finally {
+      // Always clear the flag, even if restoration fails
+      this.#isRestoring = false;
+      logger.debug('File restoration completed, watcher re-enabled');
     }
   }
 

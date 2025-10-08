@@ -3,7 +3,6 @@ import React from 'react';
 import { useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { MigrationSettings } from './MigrationSettings';
 import { SettingItem } from './SettingItem';
 import { SettingsSection } from './SettingsSection';
 import { UsageDashboard } from './UsageDashboard';
@@ -300,16 +299,6 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
     </SettingsSection>
   );
 
-  const migrationSection = (
-    <SettingsSection
-      title="Data Migration"
-      description="Migrate your local chats to cloud storage"
-      status="implemented"
-    >
-      <MigrationSettings />
-    </SettingsSection>
-  );
-
   const usageSection = (
     <SettingsSection title="Usage" description="View your token usage and estimated costs" status="implemented">
       <UsageDashboard />
@@ -358,7 +347,6 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
     { value: 'ai-assistant', label: 'AI Assistant', content: aiSection },
     { value: 'preferences', label: 'Preferences', content: preferencesSection },
     { value: 'usage', label: 'Usage', content: usageSection },
-    { value: 'data-migration', label: 'Data Migration', content: migrationSection },
     { value: 'account', label: 'Account', content: accountSection },
   );
 

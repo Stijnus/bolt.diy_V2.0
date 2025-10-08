@@ -8,3 +8,4 @@ export { googleProvider, googleConfig } from './google';
 export { openaiProvider, openaiConfig } from './openai';
 export { xaiProvider, xaiConfig } from './xai';
 export { mistralProvider, mistralConfig } from './mistral';
+export { zaiProvider, zaiConfig } from './zai';

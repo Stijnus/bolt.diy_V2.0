@@ -7,6 +7,8 @@ export interface ConnectionState {
   syncing: boolean;
   lastSyncTime: Date | null;
   error: string | null;
+  queueSize: number;
+  savingInProgress: boolean;
 }
 
 export const connectionStore = map<ConnectionState>({
@@ -14,6 +16,8 @@ export const connectionStore = map<ConnectionState>({
   syncing: false,
   lastSyncTime: null,
   error: null,
+  queueSize: 0,
+  savingInProgress: false,
 });
 
 export function setConnectionStatus(status: ConnectionStatus) {
@@ -38,4 +42,12 @@ export function setSyncing(syncing: boolean) {
 
 export function setConnectionError(error: string | null) {
   connectionStore.setKey('error', error);
+}
+
+export function setQueueSize(size: number) {
+  connectionStore.setKey('queueSize', size);
+}
+
+export function setSavingInProgress(inProgress: boolean) {
+  connectionStore.setKey('savingInProgress', inProgress);
 }

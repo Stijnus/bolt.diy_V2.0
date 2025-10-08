@@ -8,7 +8,6 @@ import { Messages } from './Messages.client';
 import { ModelSelector } from './ModelSelector';
 import { SendButton } from './SendButton.client';
 import { UsageStats } from './UsageStats';
-import { MigrationBanner } from '~/components/migration/MigrationBanner';
 import { Menu } from '~/components/sidebar/Menu.client';
 import { AnimatedBadge } from '~/components/ui/AnimatedBadge';
 import { FeatureCard } from '~/components/ui/FeatureCard';
@@ -140,13 +139,6 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 'h-full flex flex-col': chatStarted,
               })}
             >
-              <ClientOnly>
-                {() => (
-                  <div className="w-full max-w-chat mx-auto mb-4">
-                    <MigrationBanner />
-                  </div>
-                )}
-              </ClientOnly>
               <ClientOnly>
                 {() => {
                   return chatStarted ? (

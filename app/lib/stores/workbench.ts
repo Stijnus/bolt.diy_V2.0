@@ -100,6 +100,14 @@ export class WorkbenchStore {
     }
   }
 
+  /**
+   * Restores files to WebContainer from a FileMap
+   * Used when loading chat history to restore project state
+   */
+  async restoreFiles(fileMap: FileMap): Promise<void> {
+    await this.#filesStore.restoreFiles(fileMap);
+  }
+
   setShowWorkbench(show: boolean) {
     this.showWorkbench.set(show);
   }

@@ -128,6 +128,7 @@ export function Menu() {
             timestamp: chat.updated_at ?? new Date().toISOString(),
             model: (chat as { model?: string }).model ?? undefined,
             origin: 'remote' as const,
+            fileState: (chat as { file_state?: any })?.file_state ?? undefined,
           }));
 
         if (database) {
@@ -142,6 +143,7 @@ export function Menu() {
                 chat.model,
                 chat.timestamp,
                 'remote',
+                chat.fileState,
               ),
             ),
           );

@@ -1,4 +1,12 @@
-import { anthropicConfig, deepseekConfig, googleConfig, openaiConfig, xaiConfig, mistralConfig } from './providers';
+import {
+  anthropicConfig,
+  deepseekConfig,
+  googleConfig,
+  openaiConfig,
+  xaiConfig,
+  mistralConfig,
+  zaiConfig,
+} from './providers';
 import type { AIProvider, ModelInfo, ProviderConfig } from './providers/types';
 
 /**
@@ -11,6 +19,7 @@ export const PROVIDER_CONFIGS: Record<AIProvider, ProviderConfig> = {
   openai: openaiConfig,
   xai: xaiConfig,
   mistral: mistralConfig,
+  zai: zaiConfig,
 };
 
 /**

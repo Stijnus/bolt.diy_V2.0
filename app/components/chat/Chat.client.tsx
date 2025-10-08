@@ -16,7 +16,10 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
+import { createScopedLogger } from '~/utils/logger';
 import { renderLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('Chat');
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -131,7 +134,16 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     parseMessages(messages, isLoading);
 
     if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages, modelSelection.fullId).catch((error) => toast.error(error.message));
+      storeMessageHistory(messages, modelSelection.fullId).catch((error) => {
+        logger.error('Failed to store message history:', error);
+
+        // Don't show toast for every database error to avoid spamming the user
+        if (error.message.includes('timed out')) {
+          toast.warning('Chat save is taking longer than expected. Your work is safe.');
+        } else if (!error.message.includes('Network') && !error.message.includes('connection')) {
+          toast.error('Failed to save chat history. Your work may not be preserved.');
+        }
+      });
     }
   }, [messages, isLoading, parseMessages, initialMessages.length, modelSelection.fullId, storeMessageHistory]);
 
