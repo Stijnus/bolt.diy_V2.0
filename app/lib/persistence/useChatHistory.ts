@@ -383,14 +383,52 @@ export function useChatHistory() {
          */
 
         // Additional safeguard: check if this exact chat already exists to prevent duplicates
-        const { data: existingChat } = await supabase
+        const { data: existingChat, error: existingChatError } = await supabase
           .from('chats')
           .select('id, url_id, updated_at')
           .eq('user_id', user.id)
           .eq('url_id', finalUrlId)
-          .single();
+          .order('updated_at', { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (existingChat) {
+        if (existingChatError && existingChatError.code !== 'PGRST116') {
+          throw existingChatError;
+        }
+
+        let chatRecord = existingChat as { id: string } | null;
+
+        if (!chatRecord && existingChatError?.code === 'PGRST116') {
+          const { data: duplicateChats, error: duplicateFetchError } = await supabase
+            .from('chats')
+            .select('id')
+            .eq('user_id', user.id)
+            .eq('url_id', finalUrlId)
+            .order('updated_at', { ascending: false });
+
+          if (duplicateFetchError) {
+            throw duplicateFetchError;
+          }
+
+          chatRecord = (duplicateChats?.[0] as { id: string }) ?? null;
+
+          const duplicateIds = (duplicateChats ?? [])
+            .slice(1)
+            .map((row) => (row as { id: string }).id)
+            .filter((id): id is string => Boolean(id));
+
+          if (duplicateIds.length > 0) {
+            const { error: duplicateDeleteError } = await supabase.from('chats').delete().in('id', duplicateIds);
+
+            if (duplicateDeleteError) {
+              logger.error('Failed to remove duplicate chats in Supabase:', duplicateDeleteError);
+            } else {
+              logger.warn(`Removed ${duplicateIds.length} duplicate chat(s) for ${finalUrlId}`);
+            }
+          }
+        }
+
+        if (chatRecord) {
           // Chat exists, update it instead of creating duplicate
           const { error: updateError } = await supabase
             .from('chats')
@@ -401,7 +439,7 @@ export function useChatHistory() {
               file_state: fileState,
               updated_at: new Date().toISOString(),
             })
-            .eq('id', existingChat.id);
+            .eq('id', chatRecord.id);
 
           if (updateError) {
             logger.error('Failed to update existing chat in Supabase:', updateError);
