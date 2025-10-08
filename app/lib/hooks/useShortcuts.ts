@@ -31,6 +31,7 @@ export function useShortcuts(): void {
         const shortcut = shortcuts[name as keyof Shortcuts];
 
         if (
+          shortcut.key &&
           shortcut.key.toLowerCase() === key.toLowerCase() &&
           (shortcut.ctrlOrMetaKey
             ? ctrlKey || metaKey

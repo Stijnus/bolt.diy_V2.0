@@ -2,12 +2,18 @@ import { atom, map } from 'nanostores';
 import type { AIProvider, FullModelId, ModelSelection } from '~/types/model';
 
 /**
- * Currently selected model.
+ * Default model configuration (matches server-side defaults)
+ */
+const DEFAULT_PROVIDER: AIProvider = 'deepseek';
+const DEFAULT_MODEL_ID = 'deepseek-chat';
+
+/**
+ * Currently selected model - uses system defaults.
  */
 export const currentModel = atom<ModelSelection>({
-  provider: 'anthropic',
-  modelId: 'claude-sonnet-4-5-20250929',
-  fullId: 'anthropic:claude-sonnet-4-5-20250929',
+  provider: DEFAULT_PROVIDER,
+  modelId: DEFAULT_MODEL_ID,
+  fullId: `${DEFAULT_PROVIDER}:${DEFAULT_MODEL_ID}`,
 });
 
 /**

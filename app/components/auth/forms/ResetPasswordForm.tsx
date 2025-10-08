@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Loader2 } from 'lucide-react';
 import { useEffect, useMemo } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -57,50 +57,45 @@ export function ResetPasswordForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Email address</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</FormLabel>
               <FormControl>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  {...field}
-                  disabled={loading}
-                  className="h-12 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-4 text-base shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1 dark:shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
-                />
+                <Input type="email" placeholder="you@example.com" {...field} disabled={loading} />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage className="text-sm text-red-600 dark:text-red-400" />
             </FormItem>
           )}
         />
 
         {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-sm dark:border-red-400/40 dark:bg-red-500/15">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500 dark:text-red-400" />
-              <span className="text-bolt-elements-textPrimary">{error}</span>
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+              <span className="text-sm text-red-800 dark:text-red-200">{error}</span>
             </div>
           </div>
         )}
 
         {success && (
-          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm shadow-sm dark:border-green-400/40 dark:bg-green-500/15">
+          <div className="rounded-xl border border-green-200 bg-green-50 px-4 py-3 dark:border-green-800 dark:bg-green-900/20">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" />
-              <span className="text-bolt-elements-textPrimary">Password reset link sent! Check your email inbox.</span>
+              <CheckCircle2 className="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400 mt-0.5" />
+              <div className="text-sm text-green-800 dark:text-green-200">
+                <p className="font-medium">Reset link sent!</p>
+                <p className="text-green-700 dark:text-green-300 mt-1">
+                  Check your email inbox for the password reset link.
+                </p>
+              </div>
             </div>
           </div>
         )}
 
-        <Button
-          type="submit"
-          className="h-12 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:shadow-xl focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1"
-          disabled={loading}
-        >
+        <Button type="submit" size="lg" disabled={loading || success} className="w-full">
           {loading ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />

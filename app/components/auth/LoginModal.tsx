@@ -1,4 +1,4 @@
-import { Github, ArrowLeft, CheckCircle2, Sparkles } from 'lucide-react';
+import { Github, ArrowLeft, Sparkles } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import { ResetPasswordForm } from '~/components/auth/forms/ResetPasswordForm';
@@ -7,7 +7,6 @@ import { SignUpForm } from '~/components/auth/forms/SignUpForm';
 import { type ResetFormValues, type SignInFormValues, type SignUpFormValues } from '~/components/auth/forms/schemas';
 import { Button } from '~/components/ui/Button';
 import { Dialog, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
-import { Separator } from '~/components/ui/Separator';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { classNames } from '~/utils/classNames';
 
@@ -17,13 +16,6 @@ interface LoginModalProps {
 }
 
 type AuthMode = 'signin' | 'signup' | 'reset';
-
-type OAuthProvider = {
-  key: 'github' | 'google';
-  label: string;
-  description: string;
-  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
-};
 
 const GoogleIcon = (props: React.SVGProps<SVGSVGElement>) => (
   <svg viewBox="0 0 24 24" aria-hidden focusable="false" {...props}>
@@ -77,39 +69,11 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     }
   }, [mode]);
 
-  const oauthProviders = useMemo<OAuthProvider[]>(
-    () => [
-      {
-        key: 'github',
-        label: 'Continue with GitHub',
-        description: 'Sign in using your GitHub account',
-        icon: Github,
-      },
-      {
-        key: 'google',
-        label: 'Continue with Google',
-        description: 'Use your Google account to sign in',
-        icon: GoogleIcon,
-      },
-    ],
-    [],
-  );
-
   const modeCopy = useMemo(() => {
     if (mode === 'signup') {
       return {
-        heading: 'Create your BoltDIY account',
-        subheading: 'Set up your workspace to save prompts, collaborate, and sync projects across devices.',
-        badge: 'Join the builders',
-        sideTitle: 'Build faster together',
-        sideSubtitle:
-          'Collaborate with your team, keep conversations versioned, and deploy updates with a single command.',
-        bullets: [
-          'Save chats with full repo context so you never lose track of decisions.',
-          'Generate boilerplate, migrations, and docs in seconds with AI copilots.',
-          'Invite teammates to co-edit prompts inside shared BoltDIY workspaces.',
-        ],
-        tip: 'Pro tip: Use your work email to auto-discover team workspaces.',
+        heading: 'Create your account',
+        subheading: 'Get started with your secure workspace.',
         switchPrompt: 'Already have an account?',
         switchAction: 'Sign in',
         switchTarget: 'signin' as const,
@@ -119,16 +83,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     if (mode === 'reset') {
       return {
         heading: 'Reset your password',
-        subheading: 'We’ll email you a secure link so you can create a new password right away.',
-        badge: 'Need a hand?',
-        sideTitle: 'Recover access securely',
-        sideSubtitle: 'We protect your projects with single-use reset links and security notifications.',
-        bullets: [
-          'Reset links expire after 10 minutes to keep access protected.',
-          'Choose a brand new password immediately after opening the email.',
-          'Still stuck? Reach out at support@boltdiy.app for direct help.',
-        ],
-        tip: 'If the email hasn’t arrived within a few minutes, check spam or resend the request.',
+        subheading: "We'll email you a secure link to create a new password.",
         switchPrompt: 'Remembered your password?',
         switchAction: 'Back to sign in',
         switchTarget: 'signin' as const,
@@ -137,16 +92,7 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
 
     return {
       heading: 'Welcome back',
-      subheading: 'Sign in to unlock saved chats, shared workspaces, and synced projects.',
-      badge: 'Trusted by builders',
-      sideTitle: 'Your progress, everywhere',
-      sideSubtitle: 'Resume conversations with context, ship updates faster, and keep teammates aligned in real time.',
-      bullets: [
-        'Persistent chat history with code-aware memory whenever you return.',
-        'Deploy Supabase projects with preconfigured environments in seconds.',
-        'Pair program in shared canvases that stay perfectly in sync.',
-      ],
-      tip: 'Tip: Enable two-factor authentication in Settings for an extra layer of security.',
+      subheading: 'Sign in to access your account.',
       switchPrompt: 'New to BoltDIY?',
       switchAction: 'Create an account',
       switchTarget: 'signup' as const,
@@ -253,76 +199,65 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
   return (
     <DialogRoot open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <Dialog className="relative max-w-3xl md:max-w-4xl border-0 bg-transparent p-0 shadow-none">
-        <div className="relative isolate overflow-hidden rounded-[28px] border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 shadow-[0_32px_80px_-40px_rgba(15,23,42,0.45)] dark:shadow-[0_32px_80px_-28px_rgba(0,0,0,0.7)]">
-          <div className="absolute inset-0 -z-10 opacity-40">
-            <div className="absolute -right-16 top-10 h-48 w-48 rounded-full bg-bolt-elements-button-primary-background blur-3xl" />
-            <div className="absolute -bottom-24 left-[-10%] h-56 w-56 rounded-full bg-accent-500/20 blur-[90px]" />
-          </div>
-
+        <div className="relative overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900 animate-slideInFromBottom">
           <div className="relative grid gap-0 md:grid-cols-[1.05fr,1fr]">
-            <aside className="relative hidden flex-col gap-6 overflow-hidden border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-8 backdrop-blur-sm md:flex">
-              <div className="absolute inset-0 -z-10 bg-gradient-to-br from-accent-500/25 via-transparent to-accent-700/20 dark:from-accent-400/20 dark:to-white/10" />
-              <div className="relative z-10 flex flex-col gap-6 text-bolt-elements-textPrimary">
-                <span className="inline-flex items-center gap-2 self-start rounded-full border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-bolt-elements-textSecondary">
-                  <Sparkles className="h-3.5 w-3.5 text-bolt-elements-button-primary-background" />
-                  {modeCopy.badge}
-                </span>
-                <div>
-                  <h3 className="text-2xl font-semibold leading-tight">{modeCopy.sideTitle}</h3>
-                  <p className="mt-3 text-sm leading-relaxed text-bolt-elements-textSecondary">
-                    {modeCopy.sideSubtitle}
-                  </p>
+            <aside className="relative hidden flex-col justify-center overflow-hidden border-r border-gray-200 bg-gradient-to-br from-blue-50 to-indigo-100 p-8 dark:border-gray-700 dark:from-gray-800 dark:to-gray-900 md:flex">
+              <div className="text-center">
+                <div className="mx-auto mb-6 h-16 w-16 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 p-1">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl bg-white dark:bg-gray-800">
+                    <Sparkles className="h-8 w-8 text-blue-600 dark:text-blue-400" />
+                  </div>
                 </div>
-                <ul className="space-y-3 text-sm text-bolt-elements-textPrimary">
-                  {modeCopy.bullets.map((bullet) => (
-                    <li
-                      key={bullet}
-                      className="flex items-start gap-3 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-3 py-2 shadow-sm"
-                    >
-                      <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0 text-bolt-elements-button-primary-background" />
-                      <span>{bullet}</span>
-                    </li>
-                  ))}
-                </ul>
-                <div className="mt-auto rounded-2xl border border-dashed border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 p-4 text-xs leading-relaxed text-bolt-elements-textSecondary">
-                  {modeCopy.tip}
-                </div>
+                <h3 className="text-2xl font-semibold text-gray-900 dark:text-white">
+                  {mode === 'signup' ? 'Welcome to BoltDIY' : 'Welcome Back'}
+                </h3>
+                <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
+                  {mode === 'signup'
+                    ? 'Create your account to get started with your secure workspace.'
+                    : 'Sign in to access your workspace and continue where you left off.'}
+                </p>
               </div>
             </aside>
 
-            <main className="flex flex-col gap-6 p-6 md:p-8">
+            <main
+              className="flex flex-col gap-6 p-6 md:p-8 animate-slideInFromBottom"
+              style={{ animationDelay: '0.2s' }}
+            >
               {mode === 'reset' && (
                 <button
                   type="button"
                   onClick={() => setMode('signin')}
-                  className="inline-flex items-center gap-2 self-start rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-2 text-sm font-semibold text-bolt-elements-textSecondary transition-all hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-textPrimary"
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 bg-gray-50 px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:border-gray-400 hover:text-gray-900 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-100 dark:hover:bg-gray-700"
                 >
                   <ArrowLeft className="h-4 w-4" />
                   Back to sign in
                 </button>
               )}
 
-              <DialogTitle className="flex flex-col gap-3 border-none p-0 text-left text-2xl font-semibold leading-tight text-bolt-elements-textPrimary md:text-[28px]">
+              <DialogTitle
+                className="flex flex-col gap-3 border-none p-0 text-left text-2xl font-semibold leading-tight text-gray-900 md:text-[28px] animate-slideInFromBottom dark:text-white"
+                style={{ animationDelay: '0.3s' }}
+              >
                 <span>{modeCopy.heading}</span>
-                <span className="text-base font-normal text-bolt-elements-textSecondary md:text-lg">
+                <span className="text-base font-normal text-gray-600 md:text-lg dark:text-gray-400">
                   {modeCopy.subheading}
                 </span>
               </DialogTitle>
 
               {mode !== 'reset' && (
-                <div className="flex flex-col gap-2">
-                  <div className="inline-flex w-full items-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-inner">
+                <div className="flex flex-col gap-2 animate-slideInFromBottom" style={{ animationDelay: '0.4s' }}>
+                  <div className="inline-flex w-full items-center rounded-lg border border-gray-200 bg-gray-50 p-1 dark:border-gray-700 dark:bg-gray-800">
                     {(['signin', 'signup'] as const).map((item) => (
                       <button
                         key={item}
                         type="button"
                         onClick={() => setMode(item)}
                         className={classNames(
-                          'flex-1 rounded-full px-4 py-2 text-sm font-semibold transition-all focus-visible:outline-none',
+                          'flex-1 rounded-md px-4 py-2 text-sm font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
                           {
-                            'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text shadow-sm':
-                              mode === item,
-                            'text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary': mode !== item,
+                            'bg-white text-gray-900 shadow-sm dark:bg-gray-900 dark:text-white': mode === item,
+                            'text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100':
+                              mode !== item,
                           },
                         )}
                       >
@@ -330,89 +265,94 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
                       </button>
                     ))}
                   </div>
-                  <p className="text-xs text-bolt-elements-textTertiary">Switch anytime—your details stay in place.</p>
                 </div>
               )}
 
               {mode !== 'reset' && (
-                <>
-                  <div className="space-y-3">
-                    {oauthProviders.map((provider) => (
-                      <Button
-                        key={provider.key}
-                        variant="outline"
-                        size="lg"
-                        className={classNames(
-                          'group w-full justify-start gap-3 rounded-2xl border px-4 py-3 text-base font-semibold shadow-sm transition-all hover:shadow-md focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1',
-                          provider.key === 'github'
-                            ? 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2'
-                            : 'border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 text-bolt-elements-textPrimary hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2',
-                        )}
-                        onClick={() => handleOAuth(provider.key)}
-                      >
-                        <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 text-bolt-elements-textSecondary transition-all group-hover:border-bolt-elements-borderColorActive group-hover:text-bolt-elements-textPrimary">
-                          <provider.icon className="h-5 w-5" />
-                        </span>
-                        <span className="flex-1 text-left">
-                          <span>{provider.label}</span>
-                          <span className="mt-0.5 block text-xs font-normal text-bolt-elements-textSecondary">
-                            {provider.description}
-                          </span>
-                        </span>
-                      </Button>
-                    ))}
-                  </div>
+                <div className="space-y-3 animate-slideInFromBottom" style={{ animationDelay: '0.5s' }}>
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-start gap-3 border-gray-300 bg-white hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    onClick={() => handleOAuth('github')}
+                  >
+                    <Github className="h-5 w-5" />
+                    <span className="flex-1 text-left">Continue with GitHub</span>
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="w-full justify-start gap-3 border-gray-300 bg-white hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-800 dark:hover:bg-gray-700"
+                    onClick={() => handleOAuth('google')}
+                  >
+                    <GoogleIcon className="h-5 w-5" />
+                    <span className="flex-1 text-left">Continue with Google</span>
+                  </Button>
 
                   <div className="relative text-center">
-                    <Separator className="bg-bolt-elements-borderColor" />
-                    <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-bolt-elements-bg-depth-1 px-4 text-[11px] font-semibold uppercase tracking-[0.24em] text-bolt-elements-textTertiary">
-                      or continue with email
-                    </span>
+                    <div className="absolute inset-0 flex items-center">
+                      <div className="w-full border-t border-gray-300 dark:border-gray-600" />
+                    </div>
+                    <div className="relative flex justify-center text-xs">
+                      <span className="bg-white px-2 text-gray-500 dark:bg-gray-900 dark:text-gray-400">
+                        or continue with email
+                      </span>
+                    </div>
                   </div>
-                </>
+                </div>
               )}
 
               {mode === 'signin' && (
-                <SignInForm
-                  loading={loading}
-                  error={error}
-                  open={open}
-                  onSubmit={handleSignInSubmit}
-                  onForgotPassword={() => setMode('reset')}
-                  initialValues={signInDefaults}
-                  onValuesChange={handleSignInValuesChange}
-                />
+                <div className="animate-slideInFromBottom" style={{ animationDelay: '0.8s' }}>
+                  <SignInForm
+                    loading={loading}
+                    error={error}
+                    open={open}
+                    onSubmit={handleSignInSubmit}
+                    onForgotPassword={() => setMode('reset')}
+                    initialValues={signInDefaults}
+                    onValuesChange={handleSignInValuesChange}
+                  />
+                </div>
               )}
 
               {mode === 'signup' && (
-                <SignUpForm
-                  loading={loading}
-                  error={error}
-                  open={open}
-                  onSubmit={handleSignUpSubmit}
-                  initialValues={signUpDefaults}
-                  onValuesChange={handleSignUpValuesChange}
-                />
+                <div className="animate-slideInFromBottom" style={{ animationDelay: '0.8s' }}>
+                  <SignUpForm
+                    loading={loading}
+                    error={error}
+                    open={open}
+                    onSubmit={handleSignUpSubmit}
+                    initialValues={signUpDefaults}
+                    onValuesChange={handleSignUpValuesChange}
+                  />
+                </div>
               )}
 
               {mode === 'reset' && (
-                <ResetPasswordForm
-                  loading={loading}
-                  error={error}
-                  success={resetSuccess}
-                  open={open}
-                  onSubmit={handleResetSubmit}
-                  initialValues={resetDefaults}
-                  onValuesChange={handleResetValuesChange}
-                />
+                <div className="animate-slideInFromBottom" style={{ animationDelay: '0.8s' }}>
+                  <ResetPasswordForm
+                    loading={loading}
+                    error={error}
+                    success={resetSuccess}
+                    open={open}
+                    onSubmit={handleResetSubmit}
+                    initialValues={resetDefaults}
+                    onValuesChange={handleResetValuesChange}
+                  />
+                </div>
               )}
 
-              <div className="flex items-center justify-center gap-1.5 rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-4 text-sm text-bolt-elements-textSecondary">
+              <div
+                className="flex items-center justify-center gap-1.5 rounded-lg bg-gray-50 px-4 py-4 text-sm text-gray-600 animate-slideInFromBottom dark:bg-gray-800 dark:text-gray-400"
+                style={{ animationDelay: '0.9s' }}
+              >
                 <span>{modeCopy.switchPrompt}</span>
                 <button
                   type="button"
                   onClick={() => setMode(modeCopy.switchTarget)}
-                  className="font-semibold text-bolt-elements-button-primary-background transition-all hover:text-bolt-elements-button-primary-background/80 hover:underline"
+                  className="font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
                 >
                   {modeCopy.switchAction}
                 </button>

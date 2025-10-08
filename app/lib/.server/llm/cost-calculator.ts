@@ -8,11 +8,7 @@ import type { ModelInfo } from './providers/types';
  * @param outputTokens - The number of output tokens used.
  * @returns The calculated cost in USD, or null if pricing is unavailable.
  */
-export function calculateCost(
-  model: ModelInfo,
-  inputTokens: number,
-  outputTokens: number,
-): number | null {
+export function calculateCost(model: ModelInfo, inputTokens: number, outputTokens: number): number | null {
   if (!model.pricing) {
     return null;
   }

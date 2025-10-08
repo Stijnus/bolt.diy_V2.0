@@ -10,6 +10,7 @@ import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from
 import { getDatabase, saveUsage, chatId, useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { currentModel, setChatModel } from '~/lib/stores/model';
+import { settingsStore } from '~/lib/stores/settings';
 import { $sessionUsage, addUsage, resetSessionUsage } from '~/lib/stores/usage';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
@@ -75,6 +76,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const { showChat } = useStore(chatStore);
   const modelSelection = useStore(currentModel);
+  const settings = useStore(settingsStore);
   const activeChatId = useStore(chatId);
 
   const [animationScope, animate] = useAnimate();
@@ -84,9 +86,11 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       new DefaultChatTransport<UIMessage>({
         body: async () => ({
           model: modelSelection.fullId,
+          temperature: settings.ai.temperature,
+          maxTokens: settings.ai.maxTokens,
         }),
       }),
-    [modelSelection.fullId],
+    [modelSelection.fullId, settings.ai.temperature, settings.ai.maxTokens],
   );
 
   const { messages, status, stop, sendMessage } = useChat({
@@ -154,8 +158,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     resetSessionUsage();
 
     return () => {
-      // When the chat session changes (e.g., navigating to a new chat),
-      // save the accumulated usage data for the completed session to IndexedDB.
+      /*
+       * When the chat session changes (e.g., navigating to a new chat),
+       * save the accumulated usage data for the completed session to IndexedDB.
+       */
       void (async () => {
         const finalUsage = $sessionUsage.get();
 

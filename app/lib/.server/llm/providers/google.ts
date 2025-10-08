@@ -1,6 +1,6 @@
 import { createGoogleGenerativeAI } from '@ai-sdk/google';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const googleConfig: ProviderConfig = {
   id: 'google',

@@ -68,7 +68,7 @@ function formatMessage(message: unknown): string {
   if (typeof message === 'object') {
     try {
       return JSON.stringify(message);
-    } catch (error) {
+    } catch {
       return Object.prototype.toString.call(message);
     }
   }

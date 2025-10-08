@@ -14,8 +14,10 @@ import {
 import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
+import { settingsStore } from '~/lib/stores/settings';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
+import { debounce } from '~/utils/debounce';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
 
@@ -64,6 +66,23 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
   const unsavedFiles = useStore(workbenchStore.unsavedFiles);
   const files = useStore(workbenchStore.files);
   const selectedView = useStore(workbenchStore.currentView);
+  const settings = useStore(settingsStore);
+
+  /*
+   * Auto-save functionality
+   * Note: autoSaveTimeoutRef is reserved for future auto-save timer implementation
+   */
+
+  const debouncedAutoSave = useCallback(
+    debounce(() => {
+      if (settings.preferences.autoSave && currentDocument && unsavedFiles.has(currentDocument.filePath)) {
+        workbenchStore.saveCurrentDocument().catch(() => {
+          // Silent fail for auto-save to avoid annoying the user
+        });
+      }
+    }, settings.preferences.autoSaveDelay || 1000),
+    [settings.preferences.autoSave, settings.preferences.autoSaveDelay, currentDocument, unsavedFiles],
+  );
 
   const setSelectedView = (view: WorkbenchViewType) => {
     workbenchStore.currentView.set(view);
@@ -79,9 +98,17 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     workbenchStore.setDocuments(files);
   }, [files]);
 
-  const onEditorChange = useCallback<OnEditorChange>((update) => {
-    workbenchStore.setCurrentDocumentContent(update.content);
-  }, []);
+  const onEditorChange = useCallback<OnEditorChange>(
+    (update) => {
+      workbenchStore.setCurrentDocumentContent(update.content);
+
+      // Trigger auto-save if enabled
+      if (settings.preferences.autoSave) {
+        debouncedAutoSave();
+      }
+    },
+    [debouncedAutoSave, settings.preferences.autoSave],
+  );
 
   const onEditorScroll = useCallback<OnEditorScroll>((position) => {
     workbenchStore.setCurrentDocumentScrollPosition(position);

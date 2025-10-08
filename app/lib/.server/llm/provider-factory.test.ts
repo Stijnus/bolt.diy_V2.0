@@ -1,7 +1,6 @@
 import { describe, it, expect, vi } from 'vitest';
-import { createModel, createModelFromFullId, getProviderApiKey } from './provider-factory';
 import { DEFAULT_PROVIDER, DEFAULT_MODEL_ID } from './model-config';
-import type { AIProvider } from './providers/types';
+import { createModel, createModelFromFullId, getProviderApiKey } from './provider-factory';
 
 // Mock the provider modules
 vi.mock('./providers', () => ({
@@ -39,9 +38,11 @@ vi.mock('./model-config', () => ({
     if (provider === 'anthropic' && modelId === 'claude-sonnet-4-5-20250929') {
       return { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5' };
     }
+
     if (provider === 'openai' && modelId === 'gpt-5') {
-        return { id: 'gpt-5', name: 'GPT-5' };
+      return { id: 'gpt-5', name: 'GPT-5' };
     }
+
     return null;
   }),
 }));
@@ -49,6 +50,7 @@ vi.mock('./model-config', () => ({
 const mockEnv = {
   ANTHROPIC_API_KEY: 'anthropic-key',
   OPENAI_API_KEY: 'openai-key',
+
   // Missing other keys to test fallback and error handling
 } as any;
 
@@ -91,13 +93,13 @@ describe('Provider Factory', () => {
     });
 
     it('should use the default model for a provider if the specified modelId is invalid', () => {
-        const model = createModel('openai', 'invalid-model', mockEnv);
-        expect(model).toEqual({
-          provider: 'openai',
-          apiKey: 'openai-key',
-          modelId: undefined, // Falls back to default
-        });
+      const model = createModel('openai', 'invalid-model', mockEnv);
+      expect(model).toEqual({
+        provider: 'openai',
+        apiKey: 'openai-key',
+        modelId: undefined, // Falls back to default
       });
+    });
   });
 
   describe('createModelFromFullId', () => {
@@ -121,12 +123,12 @@ describe('Provider Factory', () => {
     });
 
     it('should create a default model if the fullId is just a provider', () => {
-        const model = createModelFromFullId('openai:', mockEnv);
-        expect(model).toEqual({
-          provider: 'openai',
-          apiKey: 'openai-key',
-          modelId: '',
-        });
+      const model = createModelFromFullId('openai:', mockEnv);
+      expect(model).toEqual({
+        provider: 'openai',
+        apiKey: 'openai-key',
+        modelId: '',
       });
+    });
   });
 });

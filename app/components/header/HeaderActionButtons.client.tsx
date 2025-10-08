@@ -1,6 +1,8 @@
 import { useStore } from '@nanostores/react';
-import { Code2, MessageSquare } from 'lucide-react';
+import { Code2, MessageSquare, Settings } from 'lucide-react';
+import { useState } from 'react';
 
+import { SettingsModal } from '~/components/settings/SettingsModal';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -10,37 +12,44 @@ interface HeaderActionButtonsProps {}
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const { showChat } = useStore(chatStore);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const canHideChat = showWorkbench || !showChat;
 
   return (
-    <div className="flex items-center gap-1 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-sm">
-      <Button
-        active={showChat}
-        disabled={!canHideChat}
-        onClick={() => {
-          if (canHideChat) {
-            chatStore.setKey('showChat', !showChat);
-          }
-        }}
-        label="Chat"
-      >
-        <MessageSquare className="h-4 w-4" />
-      </Button>
-      <Button
-        active={showWorkbench}
-        onClick={() => {
-          if (showWorkbench && !showChat) {
-            chatStore.setKey('showChat', true);
-          }
+    <>
+      <div className="flex items-center gap-1 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-1 shadow-sm">
+        <Button
+          active={showChat}
+          disabled={!canHideChat}
+          onClick={() => {
+            if (canHideChat) {
+              chatStore.setKey('showChat', !showChat);
+            }
+          }}
+          label="Chat"
+        >
+          <MessageSquare className="h-4 w-4" />
+        </Button>
+        <Button
+          active={showWorkbench}
+          onClick={() => {
+            if (showWorkbench && !showChat) {
+              chatStore.setKey('showChat', true);
+            }
 
-          workbenchStore.showWorkbench.set(!showWorkbench);
-        }}
-        label="Code"
-      >
-        <Code2 className="h-4 w-4" />
-      </Button>
-    </div>
+            workbenchStore.showWorkbench.set(!showWorkbench);
+          }}
+          label="Code"
+        >
+          <Code2 className="h-4 w-4" />
+        </Button>
+        <Button onClick={() => setSettingsModalOpen(true)} label="Settings">
+          <Settings className="h-4 w-4" />
+        </Button>
+      </div>
+      <SettingsModal open={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
+    </>
   );
 }
 

@@ -1,6 +1,6 @@
 import { createMistral } from '@ai-sdk/mistral';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const mistralConfig: ProviderConfig = {
   id: 'mistral',

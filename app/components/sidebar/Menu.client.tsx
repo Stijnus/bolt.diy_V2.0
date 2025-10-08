@@ -13,7 +13,16 @@ import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from
 import { Separator } from '~/components/ui/Separator';
 import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useAuth } from '~/lib/contexts/AuthContext';
-import { deleteById, getAll, openDatabase, chatId, type ChatHistoryItem, setMessages } from '~/lib/persistence';
+import {
+  deleteById,
+  getAll,
+  openDatabase,
+  chatId,
+  type ChatHistoryItem,
+  setMessages,
+  cleanupInvalidChatEntries,
+} from '~/lib/persistence';
+import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { createClient } from '~/lib/supabase/client';
 import { cubicEasingFn } from '~/utils/easings';
 import { logger } from '~/utils/logger';
@@ -77,6 +86,19 @@ export function Menu() {
     try {
       let remoteChats: ChatHistoryItem[] = [];
 
+      // Clean up invalid entries from IndexedDB
+      if (database) {
+        try {
+          const cleanedCount = await cleanupInvalidChatEntries(database);
+
+          if (cleanedCount > 0) {
+            logger.info(`Cleaned up ${cleanedCount} invalid chat entries from IndexedDB`);
+          }
+        } catch (cleanupError) {
+          logger.warn('Failed to cleanup invalid entries:', cleanupError);
+        }
+      }
+
       if (user) {
         const supabase = createClient();
         const { data, error } = await supabase.from('chats').select('*').eq('user_id', user.id);
@@ -85,15 +107,28 @@ export function Menu() {
           throw error;
         }
 
-        remoteChats = (data ?? []).map((chat: any) => ({
-          id: chat.url_id,
-          urlId: chat.url_id,
-          description: chat.description ?? chat.url_id,
-          messages: (chat.messages ?? []) as ChatHistoryItem['messages'],
-          timestamp: chat.updated_at ?? new Date().toISOString(),
-          model: (chat as { model?: string }).model ?? undefined,
-          origin: 'remote' as const,
-        }));
+        // Filter out invalid remote chats before processing
+        remoteChats = (data ?? [])
+          .filter((chat: any) => {
+            // Filter out chats with invalid url_id
+            return (
+              chat.url_id &&
+              chat.url_id !== 'NaN' &&
+              chat.url_id !== 'undefined' &&
+              chat.url_id !== 'null' &&
+              chat.url_id !== 'Infinity' &&
+              chat.url_id !== '-Infinity'
+            );
+          })
+          .map((chat: any) => ({
+            id: chat.url_id,
+            urlId: chat.url_id,
+            description: chat.description ?? chat.url_id,
+            messages: (chat.messages ?? []) as ChatHistoryItem['messages'],
+            timestamp: chat.updated_at ?? new Date().toISOString(),
+            model: (chat as { model?: string }).model ?? undefined,
+            origin: 'remote' as const,
+          }));
 
         if (database) {
           await Promise.all(
@@ -117,7 +152,23 @@ export function Menu() {
         const stored = await getAll(database);
 
         const normalized = stored
-          .filter((item) => item.urlId)
+          .filter((item) => {
+            // Filter out items with invalid or missing IDs
+            return (
+              item.urlId &&
+              item.id &&
+              item.urlId !== 'NaN' &&
+              item.urlId !== 'undefined' &&
+              item.urlId !== 'null' &&
+              item.urlId !== 'Infinity' &&
+              item.urlId !== '-Infinity' &&
+              item.id !== 'NaN' &&
+              item.id !== 'undefined' &&
+              item.id !== 'null' &&
+              item.id !== 'Infinity' &&
+              item.id !== '-Infinity'
+            );
+          })
           .map((item) => ({
             ...item,
             description: item.description ?? item.urlId,
@@ -130,9 +181,19 @@ export function Menu() {
           if (remoteOnly.length > 0) {
             await Promise.all(remoteOnly.map((item) => deleteById(database, item.id).catch(() => void 0)));
           }
+        } else {
+          // For logged-in users, clean up local entries to avoid duplicates
+          const localOnly = normalized.filter((item) => item.origin === 'local');
+
+          if (localOnly.length > 0) {
+            logger.info(`Cleaning up ${localOnly.length} local IndexedDB entries for logged-in user`);
+            await Promise.all(localOnly.map((item) => deleteById(database, item.id).catch(() => void 0)));
+          }
         }
 
-        const filtered = user ? normalized : normalized.filter((item) => item.origin !== 'remote');
+        const filtered = user
+          ? normalized.filter((item) => item.origin === 'remote')
+          : normalized.filter((item) => item.origin !== 'remote');
 
         setList(filtered);
       } else {
@@ -145,26 +206,58 @@ export function Menu() {
   }, [database, user]);
 
   const deleteItem = useCallback(
-    (event: React.UIEvent, item: ChatHistoryItem) => {
+    async (event: React.UIEvent, item: ChatHistoryItem) => {
       event.preventDefault();
 
-      if (database) {
-        deleteById(database, item.id)
-          .then(() => {
-            void loadEntries();
+      if (!database) {
+        return;
+      }
 
-            if (chatId.get() === item.id) {
-              // hard page navigation to clear the stores
-              window.location.pathname = '/';
+      try {
+        // Delete from IndexedDB first
+        await deleteById(database, item.id);
+
+        // If user is authenticated, also delete from Supabase
+        if (user && item.urlId) {
+          try {
+            setSyncing(true);
+            setConnectionError(null);
+
+            const supabase = createClient();
+
+            const { error } = await supabase.from('chats').delete().eq('user_id', user.id).eq('url_id', item.urlId);
+
+            if (error) {
+              logger.error('Failed to delete chat from Supabase:', error);
+              setConnectionError(`Delete from cloud failed: ${error.message}`);
+              toast.error('Chat deleted locally but failed to delete from cloud');
+            } else {
+              logger.info(`Chat ${item.urlId} deleted from Supabase`);
             }
-          })
-          .catch((error) => {
-            toast.error('Failed to delete conversation');
-            logger.error(error);
-          });
+          } catch (error) {
+            logger.error('Error deleting from Supabase:', error);
+            setConnectionError(`Cloud delete error: ${(error as Error).message}`);
+            toast.error('Chat deleted locally but failed to delete from cloud');
+          } finally {
+            setSyncing(false);
+          }
+        }
+
+        // Reload the entries to update the UI
+        await loadEntries();
+
+        // Navigate away if we're currently viewing the deleted chat
+        if (chatId.get() === item.id) {
+          window.location.pathname = '/';
+        }
+
+        toast.success('Conversation deleted successfully');
+      } catch (error) {
+        toast.error('Failed to delete conversation');
+        logger.error(error);
       }
     },
-    [database, loadEntries],
+    [database, loadEntries, user],
   );
 
   const closeDialog = () => {

@@ -1,6 +1,6 @@
 import { createAnthropic } from '@ai-sdk/anthropic';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const anthropicConfig: ProviderConfig = {
   id: 'anthropic',

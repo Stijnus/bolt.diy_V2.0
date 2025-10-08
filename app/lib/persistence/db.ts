@@ -1,7 +1,7 @@
 import type { UIMessage } from 'ai';
 import type { ChatHistoryItem } from './useChatHistory';
+import type { SessionUsage } from '~/lib/stores/usage';
 import { createScopedLogger } from '~/utils/logger';
-import type { SessionUsage } from '../stores/usage';
 
 const logger = createScopedLogger('ChatHistory');
 
@@ -24,21 +24,41 @@ export async function getDatabase(): Promise<IDBDatabase | undefined> {
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   return new Promise((resolve) => {
-    // Version 2: Added 'usage' object store
-    const request = indexedDB.open('boltHistory', 2);
+    // Version 3: Fixed urlId unique constraint to match Supabase schema
+    const request = indexedDB.open('boltHistory', 3);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       const db = (event.target as IDBOpenDBRequest).result;
+      const currentVersion = event.oldVersion;
 
+      // Create chats store if it doesn't exist
       if (!db.objectStoreNames.contains('chats')) {
         const store = db.createObjectStore('chats', { keyPath: 'id' });
         store.createIndex('id', 'id', { unique: true });
-        store.createIndex('urlId', 'urlId', { unique: true });
+        store.createIndex('urlId', 'urlId', { unique: false });
+        store.createIndex('urlId_userId', ['urlId', 'userId'], { unique: true });
+      } else if (currentVersion < 3) {
+        // Version 3: Fix the urlId unique constraint issue
+        const store = (event.target as IDBOpenDBRequest).transaction!.objectStore('chats');
+
+        // Delete the old unique urlId index if it exists
+        if (store.indexNames.contains('urlId')) {
+          store.deleteIndex('urlId');
+        }
+
+        // Create new non-unique urlId index and composite unique index
+        store.createIndex('urlId', 'urlId', { unique: false });
+        store.createIndex('urlId_userId', ['urlId', 'userId'], { unique: true });
       }
 
       if (!db.objectStoreNames.contains('usage')) {
         const usageStore = db.createObjectStore('usage', { autoIncrement: true });
         usageStore.createIndex('timestamp', 'timestamp', { unique: false });
+      } else if (currentVersion < 2) {
+        /*
+         * Version 2: Added 'usage' object store (for completeness)
+         * This is handled by the initial creation check above
+         */
       }
     };
 
@@ -140,11 +160,38 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
     const request = store.getAllKeys();
 
     request.onsuccess = () => {
-      const highestId = request.result.reduce((cur, acc) => Math.max(+cur, +acc), 0);
-      resolve(String(+highestId + 1));
+      try {
+        // Filter out non-numeric IDs and convert to numbers
+        const numericIds = request.result
+          .filter((id) => {
+            const num = Number(id);
+            return !isNaN(num) && num > 0;
+          })
+          .map((id) => Number(id));
+
+        // If no valid numeric IDs found, start with '1'
+        if (numericIds.length === 0) {
+          resolve('1');
+          return;
+        }
+
+        // Find the highest valid ID and increment by 1
+        const highestId = Math.max(...numericIds);
+        const nextId = highestId + 1;
+
+        resolve(String(nextId));
+      } catch (error) {
+        logger.error('Error in getNextId:', error);
+
+        // Fallback to timestamp-based ID if something goes wrong
+        resolve(String(Date.now()));
+      }
     };
 
-    request.onerror = () => reject(request.error);
+    request.onerror = () => {
+      logger.error('Failed to get all keys in getNextId:', request.error);
+      reject(request.error);
+    };
   });
 }
 
@@ -195,8 +242,10 @@ export async function saveUsage(db: IDBDatabase, usage: SessionUsage): Promise<v
   return new Promise((resolve, reject) => {
     if (usage.tokens.input === 0 && usage.tokens.output === 0) {
       // Don't save empty usage records
-      return resolve();
+      resolve();
+      return;
     }
+
     const transaction = db.transaction('usage', 'readwrite');
     const store = transaction.objectStore('usage');
     const recordToStore = { ...usage, timestamp: new Date().toISOString() };
@@ -214,6 +263,80 @@ export async function getAllUsage(db: IDBDatabase): Promise<SessionUsageWithTime
     const request = store.getAll();
 
     request.onsuccess = () => resolve(request.result as SessionUsageWithTimestamp[]);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Cleanup function to remove invalid chat entries with NaN or invalid IDs
+export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const allChats = request.result as ChatHistoryItem[];
+
+      const invalidChats = allChats.filter((chat) => {
+        // Check for invalid IDs
+        if (
+          !chat.id ||
+          chat.id === 'NaN' ||
+          chat.id === 'undefined' ||
+          chat.id === 'null' ||
+          chat.id === 'Infinity' ||
+          chat.id === '-Infinity'
+        ) {
+          return true;
+        }
+
+        // Check for invalid urlId
+        if (
+          !chat.urlId ||
+          chat.urlId === 'NaN' ||
+          chat.urlId === 'undefined' ||
+          chat.urlId === 'null' ||
+          chat.urlId === 'Infinity' ||
+          chat.urlId === '-Infinity'
+        ) {
+          return true;
+        }
+
+        return false;
+      });
+
+      if (invalidChats.length === 0) {
+        resolve(0);
+        return;
+      }
+
+      let deletedCount = 0;
+      let pendingDeletes = invalidChats.length;
+
+      invalidChats.forEach((chat) => {
+        const deleteRequest = store.delete(chat.id);
+
+        deleteRequest.onsuccess = () => {
+          deletedCount++;
+          pendingDeletes--;
+
+          if (pendingDeletes === 0) {
+            logger.info(`Cleaned up ${deletedCount} invalid chat entries`);
+            resolve(deletedCount);
+          }
+        };
+
+        deleteRequest.onerror = () => {
+          pendingDeletes--;
+
+          if (pendingDeletes === 0) {
+            logger.info(`Cleaned up ${deletedCount} invalid chat entries`);
+            resolve(deletedCount);
+          }
+        };
+      });
+    };
+
     request.onerror = () => reject(request.error);
   });
 }

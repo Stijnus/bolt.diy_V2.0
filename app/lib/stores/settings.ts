@@ -65,7 +65,7 @@ const defaultEditorSettings: EditorSettings = {
 };
 
 const defaultAISettings: AISettings = {
-  model: 'claude-sonnet-3.5',
+  model: 'deepseek:deepseek-chat',
   temperature: 0.7,
   maxTokens: 8192,
   streamResponse: true,

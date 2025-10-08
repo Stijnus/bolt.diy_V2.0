@@ -59,25 +59,19 @@ export function SignInForm({
   );
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
       <Form {...form}>
-        <form onSubmit={handleSubmit} className="space-y-5">
+        <form onSubmit={handleSubmit} className="space-y-6">
           <FormField
             control={form.control}
             name="email"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Email address</FormLabel>
+              <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</FormLabel>
                 <FormControl>
-                  <Input
-                    type="email"
-                    placeholder="you@example.com"
-                    {...field}
-                    disabled={loading}
-                    className="h-12 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-4 text-base shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1 dark:shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
-                  />
+                  <Input type="email" placeholder="you@example.com" {...field} disabled={loading} />
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage className="text-sm text-red-600 dark:text-red-400" />
               </FormItem>
             )}
           />
@@ -86,8 +80,8 @@ export function SignInForm({
             control={form.control}
             name="password"
             render={({ field }) => (
-              <FormItem>
-                <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Password</FormLabel>
+              <FormItem className="space-y-2">
+                <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</FormLabel>
                 <FormControl>
                   <div className="relative">
                     <Input
@@ -95,36 +89,32 @@ export function SignInForm({
                       placeholder="Enter your password"
                       {...field}
                       disabled={loading}
-                      className="h-12 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-4 pr-12 text-base shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1 dark:shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+                      className="pr-12"
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textPrimary"
+                      className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
                   </div>
                 </FormControl>
-                <FormMessage className="text-xs" />
+                <FormMessage className="text-sm text-red-600 dark:text-red-400" />
               </FormItem>
             )}
           />
 
           {error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-sm dark:border-red-400/40 dark:bg-red-500/15">
+            <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500 dark:text-red-400" />
-                <span className="text-bolt-elements-textPrimary">{error}</span>
+                <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+                <span className="text-sm text-red-800 dark:text-red-200">{error}</span>
               </div>
             </div>
           )}
 
-          <Button
-            type="submit"
-            className="h-12 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:shadow-xl focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1"
-            disabled={loading}
-          >
+          <Button type="submit" size="lg" disabled={loading} className="w-full">
             {loading ? (
               <>
                 <Loader2 className="h-5 w-5 animate-spin" />
@@ -141,7 +131,7 @@ export function SignInForm({
         <button
           type="button"
           onClick={onForgotPassword}
-          className="text-sm font-semibold text-bolt-elements-button-primary-background transition-all hover:text-bolt-elements-button-primary-background/80 hover:underline"
+          className="text-sm font-medium text-blue-600 transition-colors hover:text-blue-700 hover:underline dark:text-blue-400 dark:hover:text-blue-300"
         >
           Forgot password?
         </button>

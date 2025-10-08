@@ -1,14 +1,9 @@
 import { streamText as _streamText, type LanguageModelUsage, type ModelMessage } from 'ai';
 import { MAX_TOKENS } from './constants';
 import { calculateCost } from './cost-calculator';
-import {
-  DEFAULT_MODEL_ID,
-  DEFAULT_PROVIDER,
-  getDefaultModel,
-  getModel as getModelInfo,
-} from './model-config';
-import { createModel } from './provider-factory';
+import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER, getDefaultModel, getModel as getModelInfo } from './model-config';
 import { getSystemPrompt } from './prompts';
+import { createModel } from './provider-factory';
 import type { AIProvider } from './providers/types';
 
 export type Messages = ModelMessage[];
@@ -24,6 +19,12 @@ export interface StreamTextOptions extends StreamingOptions {
 
   /** Full model ID in format "provider:modelId" (overrides provider and modelId) */
   fullModelId?: string;
+
+  /** Temperature setting (0-1) for response randomness */
+  temperature?: number;
+
+  /** Maximum number of tokens in response */
+  maxTokens?: number;
 }
 
 type UsageMetadata =
@@ -44,7 +45,7 @@ export type StreamTextReturn = ReturnType<typeof _streamText> & {
 };
 
 export function streamText(messages: Messages, env: Env, options?: StreamTextOptions): StreamTextReturn {
-  const { provider, modelId, fullModelId, ...streamOptions } = options || {};
+  const { provider, modelId, fullModelId, temperature, maxTokens, ...streamOptions } = options || {};
 
   // determine which model to use
   let selectedProvider = provider;
@@ -75,13 +76,14 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
     headers['anthropic-beta'] = 'max-tokens-3-5-sonnet-2024-07-15';
   }
 
-  // use model-specific max tokens if available, otherwise use default
-  const maxTokens = modelInfo?.maxTokens || MAX_TOKENS;
+  // use user-specified max tokens, model-specific max tokens, or default
+  const finalMaxTokens = maxTokens ?? modelInfo?.maxTokens ?? MAX_TOKENS;
 
   const result = _streamText({
     model,
     system: getSystemPrompt(),
-    maxOutputTokens: maxTokens,
+    maxOutputTokens: finalMaxTokens,
+    temperature,
     headers,
     messages,
     ...streamOptions,

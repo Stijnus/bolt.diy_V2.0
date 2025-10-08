@@ -31,6 +31,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   // extract model selection from request body (optional)
   const fullModelId = body?.model as string | undefined;
 
+  // extract AI settings from request body (optional)
+  const temperature = body?.temperature as number | undefined;
+  const maxTokens = body?.maxTokens as number | undefined;
+
   const stream = new SwitchableStream();
 
   // define onFinish handler that can be reused
@@ -51,6 +55,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       messages.push({ role: 'user', content: CONTINUE_PROMPT });
 
       const continued = await streamText(messages, context.cloudflare.env, streamOptions);
+
       const continuedResp = continued.toUIMessageStreamResponse({
         sendStart: false,
         sendFinish: true,
@@ -65,11 +70,14 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
     const options: StreamTextOptions = {
       toolChoice: 'none',
       fullModelId, // pass model selection to streamText
+      temperature, // pass temperature setting
+      maxTokens, // pass max tokens setting
     };
 
     options.onFinish = createOnFinishHandler(options);
 
     const result = await streamText(messages, context.cloudflare.env, options);
+
     const resp = result.toUIMessageStreamResponse({
       sendFinish: true,
       messageMetadata: (args) => result.usageMetadata(args),
@@ -104,6 +112,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
           fallbackOptions.onFinish = createOnFinishHandler(fallbackOptions);
 
           const result = await streamText(messages, context.cloudflare.env, fallbackOptions);
+
           const resp = result.toUIMessageStreamResponse({
             sendFinish: true,
             messageMetadata: (args) => result.usageMetadata(args),

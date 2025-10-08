@@ -121,7 +121,10 @@ export function useChatHistory() {
                 if (data && remoteMessages.length > 0) {
                   const remoteDescription = (data as { description?: string | null }).description ?? undefined;
                   const remoteModel = (data as { model?: FullModelId | null }).model ?? undefined;
-                  const remoteTimestamp = (data as { updated_at?: string | null }).updated_at ?? new Date().toISOString();
+
+                  const remoteTimestamp =
+                    (data as { updated_at?: string | null }).updated_at ?? new Date().toISOString();
+
                   const remoteUrlId = (data as { url_id: string }).url_id;
 
                   await setMessages(
@@ -177,7 +180,9 @@ export function useChatHistory() {
   }, [mixedId, navigate, user]);
 
   const storeMessageHistoryRef = useRef<(messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>>(
-    async () => {},
+    async () => {
+      // Default empty implementation
+    },
   );
 
   storeMessageHistoryRef.current = async (messages: UIMessage[], modelFullId?: FullModelId) => {
@@ -223,6 +228,12 @@ export function useChatHistory() {
     if (initialMessages.length === 0 && !currentChatId) {
       const nextId = await getNextId(database);
 
+      // Validate the generated ID before using it
+      if (!nextId || nextId === 'NaN' || nextId === 'undefined' || nextId === 'null') {
+        logger.error('Invalid chat ID generated:', nextId);
+        throw new Error('Failed to generate valid chat ID');
+      }
+
       chatId.set(nextId);
       currentChatId = nextId; // Use local variable immediately
 
@@ -237,17 +248,22 @@ export function useChatHistory() {
 
     const selection = modelFullId ?? currentModel.get().fullId;
 
-    // Save to IndexedDB (for offline support and fallback)
-    await setMessages(
-      database,
-      currentChatId as string,
-      messages,
-      currentUrlId,
-      description.get(),
-      selection,
-      undefined,
-      'local',
-    );
+    /*
+     * Save to IndexedDB (for offline support and fallback) - only for guest users
+     * For logged-in users, Supabase is the primary storage
+     */
+    if (!user) {
+      await setMessages(
+        database,
+        currentChatId as string,
+        messages,
+        currentUrlId,
+        description.get(),
+        selection,
+        undefined,
+        'local',
+      );
+    }
 
     // Also save to Supabase if user is logged in
     if (user) {
@@ -257,6 +273,15 @@ export function useChatHistory() {
 
         const supabase = createClient();
         const finalUrlId = currentUrlId || currentChatId;
+
+        /*
+         * Skip Supabase sync if we don't have a proper urlId yet (waiting for artifact)
+         * This prevents creating duplicate chats with generic IDs like "1"
+         */
+        if (!currentUrlId || currentUrlId === currentChatId) {
+          logger.info('Skipping Supabase sync - waiting for proper urlId from artifact');
+          return;
+        }
 
         // Use upsert to insert or update the chat
         const { error } = await supabase.from('chats').upsert(

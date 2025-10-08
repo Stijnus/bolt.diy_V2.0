@@ -1,6 +1,7 @@
 import { ChevronDown, ChevronUp, HelpCircle, LogIn, LogOut, Settings, Sparkles } from 'lucide-react';
 import { useState } from 'react';
 
+import { SettingsModal } from '~/components/settings/SettingsModal';
 import { Button } from '~/components/ui/Button';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { getAvatarUrl } from '~/utils/avatar';
@@ -12,6 +13,7 @@ interface UserPanelProps {
 export function UserPanel({ onRequestAuth }: UserPanelProps) {
   const { user, signOut, loading } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const handleAuthRequest = () => {
     onRequestAuth?.();
@@ -96,69 +98,73 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
   };
 
   return (
-    <div className="border-t border-bolt-elements-borderColor">
-      {/* User Info Button */}
-      <button
-        type="button"
-        onClick={() => setMenuOpen((value) => !value)}
-        className="group flex w-full items-center gap-3 border-t border-transparent px-5 py-4 text-left transition-all hover:bg-bolt-elements-sidebar-buttonBackgroundHover"
-        aria-expanded={menuOpen}
-        aria-label="User menu"
-      >
-        <div className="relative">
-          <img
-            src={getAvatarUrl(user)}
-            alt={user.email || 'User'}
-            className="h-10 w-10 rounded-full ring-2 ring-bolt-elements-borderColor transition-all group-hover:ring-bolt-elements-borderColorActive"
-            onError={(e) => {
-              // fallback to generated avatar if the original fails to load
-              e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`;
-            }}
-          />
-          <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bolt-elements-background-depth-2 bg-bolt-elements-icon-success"></div>
-        </div>
-        <div className="min-w-0 flex-1 text-left">
-          <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">
-            {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+    <>
+      <div className="border-t border-bolt-elements-borderColor">
+        {/* User Info Button */}
+        <button
+          type="button"
+          onClick={() => setMenuOpen((value) => !value)}
+          className="group flex w-full items-center gap-3 border-t border-transparent px-5 py-4 text-left transition-all hover:bg-bolt-elements-sidebar-buttonBackgroundHover"
+          aria-expanded={menuOpen}
+          aria-label="User menu"
+        >
+          <div className="relative">
+            <img
+              src={getAvatarUrl(user)}
+              alt={user.email || 'User'}
+              className="h-10 w-10 rounded-full ring-2 ring-bolt-elements-borderColor transition-all group-hover:ring-bolt-elements-borderColorActive"
+              onError={(e) => {
+                // fallback to generated avatar if the original fails to load
+                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.email || 'User')}&background=8b5cf6&color=fff&bold=true`;
+              }}
+            />
+            <div className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full border-2 border-bolt-elements-background-depth-2 bg-bolt-elements-icon-success"></div>
           </div>
-          <div className="truncate text-xs text-bolt-elements-textTertiary">{user.email}</div>
-        </div>
-        {menuOpen ? (
-          <ChevronUp className="h-4 w-4 text-bolt-elements-textTertiary transition-transform" />
-        ) : (
-          <ChevronDown className="h-4 w-4 text-bolt-elements-textTertiary transition-transform" />
-        )}
-      </button>
+          <div className="min-w-0 flex-1 text-left">
+            <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">
+              {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+            </div>
+            <div className="truncate text-xs text-bolt-elements-textTertiary">{user.email}</div>
+          </div>
+          {menuOpen ? (
+            <ChevronUp className="h-4 w-4 text-bolt-elements-textTertiary transition-transform" />
+          ) : (
+            <ChevronDown className="h-4 w-4 text-bolt-elements-textTertiary transition-transform" />
+          )}
+        </button>
 
-      {/* Expanded Menu */}
-      {menuOpen && (
-        <div className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-3">
-          <a
-            href="/settings"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
-          >
-            <Settings className="h-4 w-4" />
-            Settings
-          </a>
-          <a
-            href="https://stijnus.github.io/bolt.diy_V2.0/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
-          >
-            <HelpCircle className="h-4 w-4" />
-            Help & Documentation
-          </a>
-          <button
-            type="button"
-            onClick={handleSignOut}
-            className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text mt-1"
-          >
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </button>
-        </div>
-      )}
-    </div>
+        {/* Expanded Menu */}
+        {menuOpen && (
+          <div className="border-t border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-3">
+            <button
+              type="button"
+              onClick={() => setSettingsOpen(true)}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </button>
+            <a
+              href="https://stijnus.github.io/bolt.diy_V2.0/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
+            >
+              <HelpCircle className="h-4 w-4" />
+              Help & Documentation
+            </a>
+            <button
+              type="button"
+              onClick={handleSignOut}
+              className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text mt-1"
+            >
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </button>
+          </div>
+        )}
+      </div>
+      <SettingsModal open={settingsOpen} onClose={() => setSettingsOpen(false)} />
+    </>
   );
 }

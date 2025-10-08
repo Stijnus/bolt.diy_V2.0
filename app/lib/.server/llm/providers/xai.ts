@@ -1,6 +1,6 @@
 import { createXai } from '@ai-sdk/xai';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const xaiConfig: ProviderConfig = {
   id: 'xai',

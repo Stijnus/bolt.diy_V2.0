@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const openaiConfig: ProviderConfig = {
   id: 'openai',

@@ -81,10 +81,9 @@ export function createModelFromFullId(fullId: string, env: Env): LanguageModel {
   // Fallback to default if provider is missing or not supported
   if (!provider || !(provider in PROVIDERS)) {
     if (provider) {
-      console.warn(
-        `Unsupported provider "${provider}" in full ID "${fullId}". Falling back to default.`,
-      );
+      console.warn(`Unsupported provider "${provider}" in full ID "${fullId}". Falling back to default.`);
     }
+
     return createModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID, env);
   }
 

@@ -32,7 +32,7 @@ function getEditorTheme(settings: EditorSettings) {
       borderLeft: 'var(--cm-cursor-width) solid var(--cm-cursor-backgroundColor)',
     },
     '.cm-scroller': {
-      lineHeight: '1.5',
+      lineHeight: settings.lineHeight ? String(settings.lineHeight) : '1.5',
       '&:focus-visible': {
         outline: 'none',
       },

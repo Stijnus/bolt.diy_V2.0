@@ -1,5 +1,6 @@
 import type { User, Session } from '@supabase/supabase-js';
 import { createContext, useContext, useEffect, useState } from 'react';
+import { loadUserSettings } from '~/lib/settings/loader';
 import { createClient } from '~/lib/supabase/client';
 
 interface AuthContextType {
@@ -12,6 +13,8 @@ interface AuthContextType {
   signInWithGitHub: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
+  updateUser: (metadata: { name?: string }) => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -42,6 +45,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setSession(session);
         setUser(session?.user ?? null);
+
+        // Load user settings for existing session
+        if (session?.user) {
+          setTimeout(() => {
+            loadUserSettings();
+          }, 100); // Small delay to ensure authentication is fully established
+        }
+
         setLoading(false);
       })
       .catch((error: any) => {
@@ -52,9 +63,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // listen for auth changes
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event: any, session: any) => {
+    } = supabase.auth.onAuthStateChange(async (_event: any, session: any) => {
       setSession(session);
       setUser(session?.user ?? null);
+
+      // Load user settings when they log in
+      if (session?.user) {
+        setTimeout(() => {
+          loadUserSettings();
+        }, 100); // Small delay to ensure authentication is fully established
+      }
+
       setLoading(false);
     });
 
@@ -153,6 +172,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUser = async (metadata: { name?: string }) => {
+    if (!supabase || !user) {
+      throw new Error('User not authenticated or authentication is not configured.');
+    }
+
+    const { error } = await supabase.auth.updateUser({
+      data: { user_metadata: metadata },
+    });
+
+    if (error) {
+      throw error;
+    }
+
+    // Update local user state to reflect changes
+    setUser({ ...user, user_metadata: { ...user.user_metadata, ...metadata } });
+  };
+
+  const deleteAccount = async () => {
+    if (!supabase || !user) {
+      throw new Error('User not authenticated or authentication is not configured.');
+    }
+
+    /*
+     * Delete user data from database first (this would need to be implemented server-side)
+     * For now, we'll just delete the auth user
+     */
+
+    const { error } = await supabase.auth.admin.deleteUser(user.id);
+
+    if (error) {
+      throw error;
+    }
+
+    // Clear local state
+    setUser(null);
+    setSession(null);
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -165,6 +222,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signInWithGitHub,
         signInWithGoogle,
         resetPassword,
+        updateUser,
+        deleteAccount,
       }}
     >
       {children}

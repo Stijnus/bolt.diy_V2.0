@@ -39,6 +39,10 @@ export interface EditorSettings {
   fontSize?: string;
   gutterFontSize?: string;
   tabSize?: number;
+  lineHeight?: number;
+  wordWrap?: boolean;
+  minimap?: boolean;
+  lineNumbers?: boolean;
 }
 
 type TextEditorDocument = EditorDocument & {
@@ -202,6 +206,124 @@ export const CodeMirrorEditor = memo(
       });
     }, [theme]);
 
+    // Update editor settings dynamically when they change
+    useEffect(() => {
+      const view = viewRef.current;
+
+      if (!view || !settings) {
+        return;
+      }
+
+      // Reconfigure the theme and settings
+      const state = view.state;
+      const effects = [];
+
+      // Update tab size
+      if (settings.tabSize !== undefined) {
+        effects.push(StateEffect.appendConfig.of(EditorState.tabSize.of(settings.tabSize)));
+      }
+
+      // Reconfigure theme with new settings
+      effects.push(reconfigureTheme(theme));
+
+      if (effects.length > 0) {
+        // We need to recreate the editor state with new settings for fontSize and lineHeight
+        const newState = EditorState.create({
+          doc: state.doc,
+          selection: state.selection,
+          extensions: [
+            EditorView.domEventHandlers({
+              scroll: onScrollRef.current
+                ? debounce((event, view) => {
+                    if (event.target !== view.scrollDOM) {
+                      return;
+                    }
+
+                    onScrollRef.current?.({ left: view.scrollDOM.scrollLeft, top: view.scrollDOM.scrollTop });
+                  }, debounceScroll)
+                : undefined,
+              keydown: (event, view) => {
+                if (view.state.readOnly) {
+                  view.dispatch({
+                    effects: [readOnlyTooltipStateEffect.of(event.key !== 'Escape')],
+                  });
+                  return true;
+                }
+
+                return false;
+              },
+            }),
+            getTheme(theme, settings),
+            history(),
+            keymap.of([
+              ...defaultKeymap,
+              ...historyKeymap,
+              ...searchKeymap,
+              { key: 'Tab', run: acceptCompletion },
+              {
+                key: 'Mod-s',
+                preventDefault: true,
+                run: () => {
+                  onSaveRef.current?.();
+                  return true;
+                },
+              },
+              indentKeyBinding,
+            ]),
+            indentUnit.of('\t'),
+            autocompletion({ closeOnBlur: false }),
+            tooltips({
+              position: 'absolute',
+              parent: document.body,
+              tooltipSpace: (view) => {
+                const rect = view.dom.getBoundingClientRect();
+                return {
+                  top: rect.top - 50,
+                  left: rect.left,
+                  bottom: rect.bottom,
+                  right: rect.right + 10,
+                };
+              },
+            }),
+            closeBrackets(),
+            ...(settings?.lineNumbers !== false ? [lineNumbers()] : []),
+            scrollPastEnd(),
+            dropCursor(),
+            drawSelection(),
+            bracketMatching(),
+            EditorState.tabSize.of(settings?.tabSize ?? 2),
+            indentOnInput(),
+            editableTooltipField,
+            editableStateField,
+            EditorState.readOnly.from(editableStateField, (editable) => !editable),
+            highlightActiveLineGutter(),
+            highlightActiveLine(),
+            foldGutter({
+              markerDOM: (open) => {
+                const icon = document.createElement('div');
+                icon.className = `fold-icon ${open ? 'i-ph-caret-down-bold' : 'i-ph-caret-right-bold'}`;
+
+                return icon;
+              },
+            }),
+            languageCompartment.of([]),
+          ],
+        });
+        view.setState(newState);
+
+        // Restore language support if there's a document
+        if (docRef.current && !docRef.current.isBinary) {
+          getLanguage(docRef.current.filePath).then((languageSupport) => {
+            if (languageSupport && viewRef.current) {
+              viewRef.current.dispatch({
+                effects: [languageCompartment.reconfigure([languageSupport])],
+              });
+            }
+          });
+        }
+      }
+    }, [settings?.fontSize, settings?.tabSize, settings?.lineHeight, settings?.lineNumbers, settings?.wordWrap]);
+
     useEffect(() => {
       editorStatesRef.current = new Map<string, EditorState>();
     }, [id]);
@@ -334,7 +456,7 @@ function newEditorState(
         },
       }),
       closeBrackets(),
-      lineNumbers(),
+      ...(settings?.lineNumbers !== false ? [lineNumbers()] : []),
       scrollPastEnd(),
       dropCursor(),
       drawSelection(),

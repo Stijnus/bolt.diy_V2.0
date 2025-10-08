@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
 import { Info } from 'lucide-react';
+import { useEffect, useState } from 'react';
 import { Alert, AlertDescription, AlertTitle } from '~/components/ui/Alert';
 import { getModel } from '~/lib/models.client';
 import { getAllUsage, getDatabase, type SessionUsageWithTimestamp } from '~/lib/persistence/db';
@@ -39,9 +39,7 @@ export function UsageDashboard() {
 
         const data = await getAllUsage(db);
 
-        setUsageData(
-          data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()),
-        );
+        setUsageData(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
       } catch (err) {
         setError('Failed to load usage data from the database.');
         console.error(err);
@@ -58,6 +56,7 @@ export function UsageDashboard() {
       acc.inputTokens += session.tokens.input;
       acc.outputTokens += session.tokens.output;
       acc.cost += session.cost;
+
       return acc;
     },
     { inputTokens: 0, outputTokens: 0, cost: 0 },
@@ -79,7 +78,8 @@ export function UsageDashboard() {
         <Info className="h-4 w-4" />
         <AlertTitle>Note</AlertTitle>
         <AlertDescription>
-          Usage data is stored locally in your browser and may not be perfectly accurate. This is for estimation purposes only.
+          Usage data is stored locally in your browser and may not be perfectly accurate. This is for estimation
+          purposes only.
         </AlertDescription>
       </Alert>
 
@@ -102,12 +102,24 @@ export function UsageDashboard() {
         <table className="min-w-full divide-y divide-bolt-elements-borderColor/50">
           <thead className="bg-bolt-elements-background-depth-1">
             <tr>
-              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Date</th>
-              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Provider</th>
-              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Model</th>
-              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Input Tokens</th>
-              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Output Tokens</th>
-              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">Cost</th>
+              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Date
+              </th>
+              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Provider
+              </th>
+              <th className="p-3 text-left text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Model
+              </th>
+              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Input Tokens
+              </th>
+              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Output Tokens
+              </th>
+              <th className="p-3 text-right text-xs font-medium text-bolt-elements-textSecondary uppercase tracking-wider">
+                Cost
+              </th>
             </tr>
           </thead>
           <tbody className="bg-bolt-elements-background divide-y divide-bolt-elements-borderColor/50">

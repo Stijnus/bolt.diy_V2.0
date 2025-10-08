@@ -16,7 +16,7 @@ describe('calculateCost', () => {
     maxTokens: 1024,
     capabilities: {
       coding: true,
-    }
+    },
   };
 
   const mockModelWithoutPricing: ModelInfo = {
@@ -28,13 +28,14 @@ describe('calculateCost', () => {
     maxTokens: 1024,
     capabilities: {
       coding: true,
-    }
+    },
   };
 
   it('should calculate the cost correctly for a given number of input and output tokens', () => {
     const inputTokens = 500_000;
     const outputTokens = 250_000;
-    const expectedCost = (500_000 / 1_000_000) * 1.0 + (250_000 / 1_000_000) * 2.0; // 0.5 * 1.0 + 0.25 * 2.0 = 0.5 + 0.5 = 1.0
+
+    // Expected cost: (500_000 / 1_000_000) * 1.0 + (250_000 / 1_000_000) * 2.0 = 0.5 * 1.0 + 0.25 * 2.0 = 0.5 + 0.5 = 1.0
     const cost = calculateCost(mockModelWithPricing, inputTokens, outputTokens);
     expect(cost).toBeCloseTo(1.0);
   });

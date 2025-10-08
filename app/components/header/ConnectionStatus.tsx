@@ -25,7 +25,7 @@ export function ConnectionStatus() {
     }
 
     switch (status) {
-      case 'supabase':
+      case 'supabase': {
         return {
           icon: Cloud,
           color: 'text-green-500',
@@ -33,7 +33,8 @@ export function ConnectionStatus() {
           label: 'Cloud Storage',
           description: 'Your data is being synced to the cloud',
         };
-      case 'indexeddb':
+      }
+      case 'indexeddb': {
         return {
           icon: Database,
           color: 'text-yellow-500',
@@ -41,7 +42,8 @@ export function ConnectionStatus() {
           label: 'Local Storage',
           description: 'Your data is stored locally. Sign in to sync to cloud.',
         };
-      case 'disconnected':
+      }
+      case 'disconnected': {
         return {
           icon: CloudOff,
           color: 'text-gray-500',
@@ -49,6 +51,16 @@ export function ConnectionStatus() {
           label: 'Disconnected',
           description: 'No storage available',
         };
+      }
+      default: {
+        return {
+          icon: CloudOff,
+          color: 'text-gray-500',
+          bgColor: 'bg-gray-500/10',
+          label: 'Unknown Status',
+          description: 'Status unknown',
+        };
+      }
     }
   };
 

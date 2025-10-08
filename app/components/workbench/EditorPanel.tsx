@@ -8,7 +8,6 @@ import { Terminal, type TerminalRef } from './terminal/Terminal';
 import {
   CodeMirrorEditor,
   type EditorDocument,
-  type EditorSettings,
   type OnChangeCallback as OnEditorChange,
   type OnSaveCallback as OnEditorSave,
   type OnScrollCallback as OnEditorScroll,
@@ -18,6 +17,7 @@ import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
 import type { FileMap } from '~/lib/stores/files';
+import { settingsStore } from '~/lib/stores/settings';
 import { themeStore } from '~/lib/stores/theme';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -42,8 +42,6 @@ const MAX_TERMINALS = 3;
 const DEFAULT_TERMINAL_SIZE = 25;
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
 
-const editorSettings: EditorSettings = { tabSize: 2 };
-
 export const EditorPanel = memo(
   ({
     files,
@@ -60,6 +58,7 @@ export const EditorPanel = memo(
     renderLogger.trace('EditorPanel');
 
     const theme = useStore(themeStore);
+    const settings = useStore(settingsStore);
     const showTerminal = useStore(workbenchStore.showTerminal);
 
     const terminalRefs = useRef<Array<TerminalRef | null>>([]);
@@ -169,7 +168,14 @@ export const EditorPanel = memo(
                 <CodeMirrorEditor
                   theme={theme}
                   editable={!isStreaming && editorDocument !== undefined}
-                  settings={editorSettings}
+                  settings={{
+                    fontSize: `${settings.editor.fontSize}px`,
+                    tabSize: settings.editor.tabSize,
+                    lineHeight: settings.editor.lineHeight,
+                    wordWrap: settings.editor.wordWrap,
+                    minimap: settings.editor.minimap,
+                    lineNumbers: settings.editor.lineNumbers,
+                  }}
                   doc={editorDocument}
                   autoFocusOnDocumentChange={!isMobile()}
                   onScroll={onEditorScroll}

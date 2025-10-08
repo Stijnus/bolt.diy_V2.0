@@ -1,5 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { AlertCircle, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { useForm } from 'react-hook-form';
 
@@ -93,23 +93,17 @@ export function SignUpForm({ loading, error, open, onSubmit, initialValues, onVa
 
   return (
     <Form {...form}>
-      <form onSubmit={handleSubmit} className="space-y-5">
+      <form onSubmit={handleSubmit} className="space-y-6">
         <FormField
           control={form.control}
           name="email"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Email address</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Email address</FormLabel>
               <FormControl>
-                <Input
-                  type="email"
-                  placeholder="you@example.com"
-                  {...field}
-                  disabled={loading}
-                  className="h-12 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-4 text-base shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1 dark:shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
-                />
+                <Input type="email" placeholder="you@example.com" {...field} disabled={loading} />
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage className="text-sm text-red-600 dark:text-red-400" />
             </FormItem>
           )}
         />
@@ -118,8 +112,8 @@ export function SignUpForm({ loading, error, open, onSubmit, initialValues, onVa
           control={form.control}
           name="password"
           render={({ field }) => (
-            <FormItem>
-              <FormLabel className="text-sm font-semibold text-bolt-elements-textPrimary">Password</FormLabel>
+            <FormItem className="space-y-2">
+              <FormLabel className="text-sm font-medium text-gray-700 dark:text-gray-300">Password</FormLabel>
               <FormControl>
                 <div className="relative">
                   <Input
@@ -127,79 +121,82 @@ export function SignUpForm({ loading, error, open, onSubmit, initialValues, onVa
                     placeholder="Create a strong password"
                     {...field}
                     disabled={loading}
-                    className="h-12 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 px-4 pr-12 text-base shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-all placeholder:text-bolt-elements-textTertiary focus-visible:border-bolt-elements-borderColorActive focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1 dark:shadow-[0_1px_2px_rgba(0,0,0,0.45)]"
+                    className="pr-12"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword((prev) => !prev)}
-                    className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textPrimary"
+                    className="absolute right-3 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 transition-colors hover:text-gray-600 hover:bg-gray-100 dark:hover:text-gray-300 dark:hover:bg-gray-700"
                   >
                     {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                   </button>
                 </div>
               </FormControl>
-              <FormMessage className="text-xs" />
+              <FormMessage className="text-sm text-red-600 dark:text-red-400" />
 
               {field.value ? (
-                <div className="space-y-2">
-                  <div className="flex gap-1">
+                <div className="space-y-3">
+                  <div className="flex gap-1.5">
                     <span
-                      className={classNames('h-1 flex-1 rounded-full transition-all', {
+                      className={classNames('h-2 flex-1 rounded-full transition-all duration-300', {
                         'bg-red-500': passwordStrength === 'weak',
-                        'bg-orange-400': passwordStrength === 'medium',
+                        'bg-orange-500': passwordStrength === 'medium',
                         'bg-green-500': passwordStrength === 'strong',
-                        'bg-bolt-elements-borderColor': !passwordStrength,
+                        'bg-gray-200 dark:bg-gray-700': !passwordStrength,
                       })}
                     />
                     <span
-                      className={classNames('h-1 flex-1 rounded-full transition-all', {
-                        'bg-orange-400': passwordStrength === 'medium',
+                      className={classNames('h-2 flex-1 rounded-full transition-all duration-300', {
+                        'bg-orange-500': passwordStrength === 'medium',
                         'bg-green-500': passwordStrength === 'strong',
-                        'bg-bolt-elements-borderColor': passwordStrength !== 'medium' && passwordStrength !== 'strong',
+                        'bg-gray-200 dark:bg-gray-700': passwordStrength !== 'medium' && passwordStrength !== 'strong',
                       })}
                     />
                     <span
-                      className={classNames('h-1 flex-1 rounded-full transition-all', {
+                      className={classNames('h-2 flex-1 rounded-full transition-all duration-300', {
                         'bg-green-500': passwordStrength === 'strong',
-                        'bg-bolt-elements-borderColor': passwordStrength !== 'strong',
+                        'bg-gray-200 dark:bg-gray-700': passwordStrength !== 'strong',
                       })}
                     />
                   </div>
-                  <p
-                    className={classNames('text-xs font-medium', {
-                      'text-red-500': passwordStrength === 'weak',
-                      'text-orange-500': passwordStrength === 'medium',
-                      'text-green-600': passwordStrength === 'strong',
-                    })}
-                  >
-                    {passwordStrength === 'weak' && 'Weak password'}
-                    {passwordStrength === 'medium' && 'Medium password'}
-                    {passwordStrength === 'strong' && 'Strong password'}
-                  </p>
+                  <div className="flex items-center justify-between">
+                    <p
+                      className={classNames('text-sm font-medium', {
+                        'text-red-600 dark:text-red-400': passwordStrength === 'weak',
+                        'text-orange-600 dark:text-orange-400': passwordStrength === 'medium',
+                        'text-green-600 dark:text-green-400': passwordStrength === 'strong',
+                      })}
+                    >
+                      {passwordStrength === 'weak' && 'Weak password'}
+                      {passwordStrength === 'medium' && 'Medium strength'}
+                      {passwordStrength === 'strong' && 'Strong password'}
+                    </p>
+                    {passwordStrength === 'strong' && (
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
+                    )}
+                  </div>
                 </div>
               ) : (
-                <p className="text-xs text-bolt-elements-textTertiary">
-                  At least 6 characters, one uppercase letter, and one number
-                </p>
+                <div className="rounded-lg bg-gray-50 px-3 py-2 dark:bg-gray-800/50">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
+                    Use 6+ characters with uppercase, lowercase, and numbers
+                  </p>
+                </div>
               )}
             </FormItem>
           )}
         />
 
         {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-sm dark:border-red-400/40 dark:bg-red-500/15">
+          <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 dark:border-red-800 dark:bg-red-900/20">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500 dark:text-red-400" />
-              <span className="text-bolt-elements-textPrimary">{error}</span>
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-600 dark:text-red-400 mt-0.5" />
+              <span className="text-sm text-red-800 dark:text-red-200">{error}</span>
             </div>
           </div>
         )}
 
-        <Button
-          type="submit"
-          className="h-12 w-full rounded-xl text-base font-semibold shadow-lg transition-all hover:shadow-xl focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1"
-          disabled={loading}
-        >
+        <Button type="submit" size="lg" disabled={loading} className="w-full">
           {loading ? (
             <>
               <Loader2 className="h-5 w-5 animate-spin" />

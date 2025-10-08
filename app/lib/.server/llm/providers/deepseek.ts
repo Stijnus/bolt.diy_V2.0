@@ -1,6 +1,6 @@
 import { createDeepSeek } from '@ai-sdk/deepseek';
-import { getDefaultModel } from '../model-config';
 import type { Provider, ProviderConfig } from './types';
+import { getDefaultModel } from '~/lib/.server/llm/model-config';
 
 export const deepseekConfig: ProviderConfig = {
   id: 'deepseek',
