@@ -15,8 +15,8 @@ import './styles/tailwind.css';
 export const links: LinksFunction = () => [
   {
     rel: 'icon',
-    href: '/favicon.png',
-    type: 'image/png',
+    href: '/favicon.svg',
+    type: 'image/svg+xml',
   },
   { rel: 'stylesheet', href: reactToastifyStyles },
   { rel: 'stylesheet', href: xtermStyles },

@@ -1,5 +1,4 @@
 import type { UIMessage } from 'ai';
-import { withRetry } from './timeout-wrapper';
 import type { ChatHistoryItem } from './useChatHistory';
 import type { SessionUsage } from '~/lib/stores/usage';
 import { createScopedLogger } from '~/utils/logger';
@@ -24,16 +23,22 @@ export async function getDatabase(): Promise<IDBDatabase | undefined> {
 
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
+  console.log('[DB] openDatabase called');
+
   return new Promise((resolve) => {
     // Version 3: Fixed urlId unique constraint to match Supabase schema
     const request = indexedDB.open('boltHistory', 3);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
+      console.log('[DB] Database upgrade needed, current version:', event.oldVersion);
+
       const db = (event.target as IDBOpenDBRequest).result;
       const currentVersion = event.oldVersion;
 
       // Create chats store if it doesn't exist
       if (!db.objectStoreNames.contains('chats')) {
+        console.log('[DB] Creating chats store');
+
         const store = db.createObjectStore('chats', { keyPath: 'id' });
         store.createIndex('id', 'id', { unique: true });
         store.createIndex('urlId', 'urlId', { unique: false });
@@ -64,10 +69,12 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
     };
 
     request.onsuccess = (event: Event) => {
+      console.log('[DB] Database opened successfully');
       resolve((event.target as IDBOpenDBRequest).result);
     };
 
     request.onerror = (event: Event) => {
+      console.error('[DB] Database failed to open:', (event.target as IDBOpenDBRequest).error);
       resolve(undefined);
       logger.error((event.target as IDBOpenDBRequest).error);
     };
@@ -94,37 +101,102 @@ export async function setMessages(
   model?: string,
   timestamp?: string,
   origin: 'local' | 'remote' = 'local',
-  fileState?: Record<string, { content: string; isBinary: boolean }>,
+  fileState?: Record<string, { content: string; isBinary: boolean; encoding?: 'plain' | 'base64' }>,
+  terminalState?: { isVisible: boolean },
+  workbenchState?: { currentView: 'code' | 'preview'; showWorkbench: boolean },
+  editorState?: { selectedFile?: string; scrollPositions?: Record<string, { top: number; left: number }> },
 ): Promise<void> {
-  return withRetry(
-    async () => {
-      return new Promise<void>((resolve, reject) => {
-        const transaction = db.transaction('chats', 'readwrite');
-        const store = transaction.objectStore('chats');
+  console.log('[DB] setMessages called for:', id, 'messages:', messages.length);
 
-        const recordTimestamp = timestamp ?? new Date().toISOString();
+  // Validate input parameters
+  if (!id || typeof id !== 'string' || id.trim() === '') {
+    throw new Error('Invalid or missing chat ID');
+  }
 
-        const request = store.put({
-          id,
-          messages,
-          urlId,
-          description,
-          model,
-          timestamp: recordTimestamp,
-          origin,
-          fileState,
-        });
+  if (!Array.isArray(messages) || messages.length === 0) {
+    throw new Error('Messages must be a non-empty array');
+  }
 
-        request.onsuccess = () => resolve();
-        request.onerror = () => reject(request.error);
-      });
-    },
-    {
-      maxRetries: 3,
-      timeout: 15000, // 15 seconds for file operations
-      operationName: 'setMessages',
-    },
-  );
+  // Validate message structure
+  for (const [index, message] of messages.entries()) {
+    if (!message || typeof message !== 'object') {
+      throw new Error(`Invalid message at index ${index}: not an object`);
+    }
+
+    if (!message.role || typeof message.role !== 'string') {
+      throw new Error(`Invalid message at index ${index}: missing or invalid role`);
+    }
+  }
+
+  // Validate and clean file state if present
+  let cleanFileState = fileState;
+
+  if (fileState) {
+    cleanFileState = Object.fromEntries(
+      Object.entries(fileState).filter(([path, fileData]) => {
+        const isValidPath = path && typeof path === 'string' && path.trim() !== '';
+
+        const isValidFileData =
+          fileData && typeof fileData === 'object' && 'content' in fileData && typeof fileData.content === 'string';
+
+        if (!isValidPath || !isValidFileData) {
+          logger.warn(`Skipping invalid file data for path: ${path}`);
+          return false;
+        }
+
+        // Additional validation for file size (prevent extremely large files)
+        const contentLength = fileData.content.length;
+
+        if (contentLength > 5 * 1024 * 1024) {
+          // 5MB limit
+          logger.warn(`Skipping large file ${path}: ${contentLength} bytes exceeds 5MB limit`);
+          return false;
+        }
+
+        // Skip binary files that are too large to store efficiently
+        const isBinary = fileData.isBinary || false;
+
+        if (isBinary && contentLength > 1024 * 1024) {
+          // 1MB limit for binary files
+          logger.warn(`Skipping large binary file ${path}: ${contentLength} bytes exceeds 1MB limit`);
+          return false;
+        }
+
+        return true;
+      }),
+    );
+  }
+
+  return new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+
+    const recordTimestamp = timestamp ?? new Date().toISOString();
+
+    const request = store.put({
+      id: id.trim(),
+      messages,
+      urlId: urlId?.trim() || id.trim(),
+      description: description?.trim() || undefined,
+      model: model?.trim() || undefined,
+      timestamp: recordTimestamp,
+      origin,
+      fileState: cleanFileState,
+      terminalState,
+      workbenchState,
+      editorState,
+    });
+
+    request.onsuccess = () => {
+      console.log('[DB] setMessages completed successfully for:', id);
+      resolve();
+    };
+
+    request.onerror = () => {
+      console.error('[DB] setMessages failed for:', id, request.error);
+      reject(request.error);
+    };
+  });
 }
 
 export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
@@ -165,6 +237,68 @@ export async function deleteById(db: IDBDatabase, id: string): Promise<void> {
   });
 }
 
+// Generate a consistent, reliable chat ID
+export function generateChatId(): string {
+  const timestamp = Date.now();
+  const randomPart = Math.random().toString(36).substring(2, 11);
+
+  return `chat-${timestamp}-${randomPart}`;
+}
+
+// Generate a proper description for a chat based on its messages
+export function generateChatDescription(messages: any[]): string {
+  if (!Array.isArray(messages) || messages.length === 0) {
+    return 'New Chat';
+  }
+
+  // Try to find the first user message
+  const firstUserMessage = messages.find((msg) => msg.role === 'user');
+
+  if (firstUserMessage) {
+    let content = '';
+
+    // Handle different message formats
+    if (typeof firstUserMessage.content === 'string') {
+      content = firstUserMessage.content;
+    } else if (Array.isArray(firstUserMessage.parts)) {
+      // Extract text content from parts
+      const textParts = firstUserMessage.parts.filter(
+        (part: any) => part?.type === 'text' && typeof part.text === 'string',
+      );
+      content = textParts.map((part: any) => part.text).join('');
+    }
+
+    // Clean up and truncate the content
+    if (content && content.trim()) {
+      const cleaned = content.trim().replace(/[\r\n]+/g, ' ');
+      return cleaned.length > 50 ? cleaned.substring(0, 47) + '...' : cleaned;
+    }
+  }
+
+  // Fallback to the first message if no user message found
+  const firstMessage = messages[0];
+
+  if (firstMessage) {
+    const role = firstMessage.role || 'Unknown';
+    return `${role.charAt(0).toUpperCase() + role.slice(1)} message`;
+  }
+
+  return 'New Chat';
+}
+
+// Validate that a chat ID is in the expected format
+export function isValidChatId(id: string): boolean {
+  if (typeof id !== 'string' || id.trim() === '') {
+    return false;
+  }
+
+  // Check for our standard format: chat-timestamp-random
+  const chatIdPattern = /^chat-\d{13}-[a-z0-9]{9}$/;
+
+  return chatIdPattern.test(id);
+}
+
+// Legacy getNextId function for backward compatibility
 export async function getNextId(db: IDBDatabase): Promise<string> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
@@ -179,7 +313,7 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
     // Add timeout to prevent infinite waits
     const timeout = setTimeout(() => {
       logger.warn('getNextId operation timed out, using fallback ID');
-      resolve(String(Date.now()));
+      resolve(generateChatId()); // Use the new consistent ID generator
     }, 5000); // 5 second timeout
 
     request.onsuccess = (event: Event) => {
@@ -205,8 +339,8 @@ export async function getNextId(db: IDBDatabase): Promise<string> {
         // Continue to previous entry
         cursor.continue();
       } else if (!foundValidId) {
-        // No valid numeric IDs found, start with '1'
-        resolve('1');
+        // No valid numeric IDs found, use the new consistent ID generator
+        resolve(generateChatId());
       }
 
       // If we already found a valid ID and resolved, we don't need to do anything
@@ -304,7 +438,7 @@ export async function getAllUsage(db: IDBDatabase): Promise<SessionUsageWithTime
   });
 }
 
-// Cleanup function to remove invalid chat entries with NaN or invalid IDs
+// Enhanced cleanup function to remove invalid chat entries and fix data integrity issues
 export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readwrite');
@@ -322,7 +456,9 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
           chat.id === 'undefined' ||
           chat.id === 'null' ||
           chat.id === 'Infinity' ||
-          chat.id === '-Infinity'
+          chat.id === '-Infinity' ||
+          typeof chat.id !== 'string' ||
+          chat.id.trim() === ''
         ) {
           return true;
         }
@@ -334,7 +470,25 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
           chat.urlId === 'undefined' ||
           chat.urlId === 'null' ||
           chat.urlId === 'Infinity' ||
-          chat.urlId === '-Infinity'
+          chat.urlId === '-Infinity' ||
+          typeof chat.urlId !== 'string' ||
+          chat.urlId.trim() === ''
+        ) {
+          return true;
+        }
+
+        // Check for empty or invalid messages array
+        if (!Array.isArray(chat.messages) || chat.messages.length === 0) {
+          return true;
+        }
+
+        // Check for invalid timestamp
+        if (
+          !chat.timestamp ||
+          chat.timestamp === 'NaN' ||
+          chat.timestamp === 'undefined' ||
+          chat.timestamp === 'null' ||
+          typeof chat.timestamp !== 'string'
         ) {
           return true;
         }
@@ -350,6 +504,8 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
       let deletedCount = 0;
       let pendingDeletes = invalidChats.length;
 
+      logger.info(`Found ${invalidChats.length} invalid chat entries to clean up`);
+
       invalidChats.forEach((chat) => {
         const deleteRequest = store.delete(chat.id);
 
@@ -364,6 +520,7 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
         };
 
         deleteRequest.onerror = () => {
+          logger.error(`Failed to delete invalid chat ${chat.id}:`, deleteRequest.error);
           pendingDeletes--;
 
           if (pendingDeletes === 0) {
@@ -372,6 +529,118 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
           }
         };
       });
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
+// Comprehensive database repair function
+export async function repairDatabase(db: IDBDatabase): Promise<{
+  cleanedInvalid: number;
+  fixedInconsistent: number;
+  totalProcessed: number;
+}> {
+  return new Promise((resolve, reject) => {
+    const transaction = db.transaction('chats', 'readwrite');
+    const store = transaction.objectStore('chats');
+    const request = store.getAll();
+
+    request.onsuccess = () => {
+      const allChats = request.result as ChatHistoryItem[];
+
+      let cleanedInvalid = 0;
+      let fixedInconsistent = 0;
+      let pendingOperations = 0;
+
+      logger.info(`Starting database repair for ${allChats.length} chat entries`);
+
+      // Group 1: Remove completely invalid entries
+      const invalidChats = allChats.filter((chat) => {
+        return (
+          !chat.id ||
+          chat.id === 'NaN' ||
+          chat.id === 'undefined' ||
+          chat.id === 'null' ||
+          chat.id === 'Infinity' ||
+          chat.id === '-Infinity' ||
+          typeof chat.id !== 'string' ||
+          chat.id.trim() === '' ||
+          !Array.isArray(chat.messages) ||
+          chat.messages.length === 0
+        );
+      });
+
+      // Group 2: Fix entries with inconsistent id/urlId
+      const fixableChats = allChats.filter((chat) => {
+        return !invalidChats.includes(chat) && chat.id && chat.urlId && chat.id !== chat.urlId;
+      });
+
+      pendingOperations = invalidChats.length + fixableChats.length;
+
+      if (pendingOperations === 0) {
+        resolve({
+          cleanedInvalid: 0,
+          fixedInconsistent: 0,
+          totalProcessed: allChats.length,
+        });
+        return;
+      }
+
+      let completedOperations = 0;
+
+      // Remove invalid entries
+      invalidChats.forEach((chat) => {
+        const deleteRequest = store.delete(chat.id);
+
+        deleteRequest.onsuccess = () => {
+          cleanedInvalid++;
+          completedOperations++;
+          checkComplete();
+        };
+
+        deleteRequest.onerror = () => {
+          logger.error(`Failed to delete invalid chat ${chat.id}:`, deleteRequest.error);
+          completedOperations++;
+          checkComplete();
+        };
+      });
+
+      // Fix inconsistent entries
+      fixableChats.forEach((chat) => {
+        const fixedChat = {
+          ...chat,
+          urlId: chat.id, // Make urlId consistent with id
+          timestamp: chat.timestamp || new Date().toISOString(),
+        };
+
+        const updateRequest = store.put(fixedChat);
+
+        updateRequest.onsuccess = () => {
+          fixedInconsistent++;
+          completedOperations++;
+          checkComplete();
+        };
+
+        updateRequest.onerror = () => {
+          logger.error(`Failed to fix chat ${chat.id}:`, updateRequest.error);
+          completedOperations++;
+          checkComplete();
+        };
+      });
+
+      function checkComplete() {
+        if (completedOperations === pendingOperations) {
+          logger.info(
+            `Database repair completed: ${cleanedInvalid} invalid entries removed, ${fixedInconsistent} entries fixed`,
+          );
+          resolve({
+            cleanedInvalid,
+            fixedInconsistent,
+            totalProcessed: allChats.length,
+          });
+        }
+      }
     };
 
     request.onerror = () => reject(request.error);

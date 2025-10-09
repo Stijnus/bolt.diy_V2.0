@@ -8,7 +8,9 @@ import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { webcontainer } from '~/lib/webcontainer';
 import type { ITerminal } from '~/types/terminal';
-import { unreachable } from '~/utils/unreachable';
+import { createScopedLogger } from '~/utils/logger';
+
+const logger = createScopedLogger('WorkbenchStore');
 
 export interface ArtifactState {
   id: string;
@@ -257,7 +259,8 @@ export class WorkbenchStore {
     const artifact = this.#getArtifact(messageId);
 
     if (!artifact) {
-      unreachable('Artifact not found');
+      logger.warn('addAction skipped: Artifact not found', { messageId });
+      return;
     }
 
     artifact.runner.addAction(data);
@@ -269,7 +272,8 @@ export class WorkbenchStore {
     const artifact = this.#getArtifact(messageId);
 
     if (!artifact) {
-      unreachable('Artifact not found');
+      logger.warn('runAction skipped: Artifact not found', { messageId, action: data.action });
+      return;
     }
 
     artifact.runner.runAction(data);

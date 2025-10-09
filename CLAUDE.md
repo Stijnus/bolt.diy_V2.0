@@ -26,6 +26,16 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `pnpm run clean:cache` - Remove all cache files (.vite, .remix, node_modules/.cache)
 - `pnpm run clean:build` - Remove build outputs (dist, build, public/build)
 
+### Docker Commands
+- `pnpm run docker:build` - Build production Docker image
+- `pnpm run docker:build:dev` - Build development Docker image
+- `pnpm run docker:dev` - Run development environment with docker-compose
+- `pnpm run docker:prod` - Run production environment with docker-compose
+- `pnpm run docker:up` - Start containers in detached mode
+- `pnpm run docker:down` - Stop and remove containers
+- `pnpm run docker:logs` - View container logs
+- `pnpm run docker:clean` - Clean up containers and unused Docker resources
+
 ### Environment Setup
 Create `.env.local` with required variables:
 ```bash
@@ -50,7 +60,7 @@ MISTRAL_API_KEY=xxxxx
 VITE_LOG_LEVEL=debug
 ```
 
-**Setup Database**: Run `pnpm run setup` for guided Supabase database setup, or manually execute `scripts/schema.sql` in Supabase SQL Editor.
+**Setup Database**: Run `pnpm run setup` for guided Supabase database setup (automated script copies schema to clipboard and opens SQL Editor), or manually execute `scripts/schema.sql` in Supabase SQL Editor.
 
 **Important:** Chrome 129 has known issues with Vite local development. Use Chrome Canary for development testing. Production builds work fine in Chrome 129.
 
@@ -203,6 +213,7 @@ app/
 - ✅ Chat history sync across devices with dual storage (IndexedDB + Supabase)
 - ✅ Row Level Security (RLS) policies for data isolation
 - ✅ Migration tools for moving IndexedDB chats to Supabase
+- ✅ Automated setup script: `./scripts/setup.sh` - Guided database configuration
 - Server-side client uses environment variables (SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
 - Client-side client uses Vite env vars (VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY)
 - Auth context: `app/lib/contexts/AuthContext.tsx` - React context for user session
@@ -263,6 +274,32 @@ Based on recent commits, the project is:
 - Model selector with capability badges
 
 The codebase is an enhanced fork of StackBlitz's bolt.new with significant custom enhancements around multi-model AI support, authentication, and persistence.
+
+### Key Architectural Decisions
+
+#### Dual Storage Pattern
+- **Primary**: Supabase (PostgreSQL) for persistent, cross-device storage
+- **Fallback**: IndexedDB for offline support and rapid local access
+- **Sync Strategy**: Write to IndexedDB first, then sync to Supabase if authenticated
+- **Migration**: Built-in tools to migrate from IndexedDB-only to Supabase
+
+#### Multi-Model Provider Architecture
+- **Factory Pattern**: `provider-factory.ts` dynamically loads appropriate SDK
+- **Unified Interface**: All providers implement the same streaming interface
+- **Per-Chat Models**: Each chat session can use different models/providers
+- **Capability Mapping**: Models categorized by coding ability, speed, and cost
+
+#### WebContainer Integration
+- **Global Instance**: Single WebContainer instance persists across HMR
+- **File System**: Virtual filesystem managed through WebContainer API
+- **Terminal Integration**: xterm.js with WebContainer shell integration
+- **Preview System**: iframe with WebContainer-served development server
+
+#### Authentication Flow
+- **Email/Password**: Native Supabase auth with email verification
+- **Session Management**: JWT tokens with refresh handling
+- **Protected Routes**: Server-side auth checks with `@supabase/ssr`
+- **Profile Auto-Creation**: User profiles created on first signup
 
 ### Important Constraints
 - WebContainer API requires commercial license for commercial use

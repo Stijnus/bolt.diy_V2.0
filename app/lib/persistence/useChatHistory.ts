@@ -4,8 +4,6 @@ import { atom } from 'nanostores';
 import { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
-import { createFileState } from './file-state-cache';
-import { executeWithQueue } from './message-queue';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { currentModel, parseFullModelId, setChatModel, setCurrentModel } from '~/lib/stores/model';
@@ -16,6 +14,21 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ChatHistory');
 
+export interface TerminalState {
+  isVisible: boolean;
+  // Future: Add command history, CWD, etc.
+}
+
+export interface WorkbenchState {
+  currentView: 'code' | 'preview';
+  showWorkbench: boolean;
+}
+
+export interface EditorState {
+  selectedFile?: string;
+  scrollPositions?: Record<string, { top: number; left: number }>;
+}
+
 export interface ChatHistoryItem {
   id: string;
   urlId?: string;
@@ -24,7 +37,10 @@ export interface ChatHistoryItem {
   timestamp: string;
   model?: FullModelId;
   origin?: 'local' | 'remote';
-  fileState?: Record<string, { content: string; isBinary: boolean }>;
+  fileState?: Record<string, { content: string; isBinary: boolean; encoding?: 'plain' | 'base64' }>;
+  terminalState?: TerminalState;
+  workbenchState?: WorkbenchState;
+  editorState?: EditorState;
 }
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
@@ -130,6 +146,23 @@ export function useChatHistory() {
 
                   const remoteUrlId = (data as { url_id: string }).url_id;
 
+                  const remoteFileState =
+                    (data as { file_state?: Record<string, { content: string; isBinary: boolean }> | null })
+                      .file_state ?? undefined;
+
+                  const remoteTerminalState = (data as { terminal_state?: { isVisible: boolean } | null })
+                    .terminal_state ?? undefined;
+
+                  const remoteWorkbenchState = (
+                    data as { workbench_state?: { currentView: 'code' | 'preview'; showWorkbench: boolean } | null }
+                  ).workbench_state ?? undefined;
+
+                  const remoteEditorState = (
+                    data as {
+                      editor_state?: { selectedFile?: string; scrollPositions?: Record<string, { top: number; left: number }> } | null;
+                    }
+                  ).editor_state ?? undefined;
+
                   await setMessages(
                     database,
                     remoteUrlId,
@@ -139,7 +172,10 @@ export function useChatHistory() {
                     remoteModel,
                     remoteTimestamp,
                     'remote',
-                    (data as any)?.fileState || undefined,
+                    remoteFileState,
+                    remoteTerminalState,
+                    remoteWorkbenchState,
+                    remoteEditorState,
                   );
 
                   storedMessages = await getMessages(database, mixedId);
@@ -159,25 +195,208 @@ export function useChatHistory() {
 
             // Restore file state if available
             if (storedMessages.fileState && Object.keys(storedMessages.fileState).length > 0) {
-              const fileMap: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+              const totalFiles = Object.keys(storedMessages.fileState).length;
+              logger.info(`Found ${totalFiles} files in chat history, starting restoration...`);
 
-              Object.entries(storedMessages.fileState).forEach(([path, fileData]) => {
-                fileMap[path] = {
-                  type: 'file',
-                  content: fileData.content,
-                  isBinary: fileData.isBinary,
-                };
+              // Show loading toast for file restoration
+              const restorationToast = toast.loading(`Restoring ${totalFiles} project files...`, {
+                autoClose: false,
+                closeOnClick: false,
+                draggable: false,
               });
 
               try {
-                await workbenchStore.restoreFiles(fileMap);
-                logger.info(`Restored ${Object.keys(fileMap).length} files to WebContainer`);
-              } catch (error) {
-                logger.error('Failed to restore files to WebContainer:', error);
-                toast.error('Failed to restore some files from project history');
+                // Import decoding utilities
+                const { decodeFileContent } = await import('~/utils/file-encoding');
 
-                // Still set the files in the store as a fallback
-                workbenchStore.files.set(fileMap);
+                const fileMap: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+
+                // Validate and clean file state before restoration
+                Object.entries(storedMessages.fileState).forEach(([path, fileData]) => {
+                  // Validate file data structure
+                  if (
+                    path &&
+                    typeof path === 'string' &&
+                    fileData &&
+                    typeof fileData === 'object' &&
+                    'content' in fileData &&
+                    typeof fileData.content === 'string'
+                  ) {
+                    // Decode binary files from base64
+                    const encoding = fileData.encoding || 'plain';
+                    const decodedContent = decodeFileContent(fileData.content, encoding);
+
+                    fileMap[path] = {
+                      type: 'file',
+                      content: decodedContent,
+                      isBinary: fileData.isBinary || false,
+                    };
+                  } else {
+                    logger.warn(`Skipping invalid file data for path: ${path}`);
+                  }
+                });
+
+                const validFileCount = Object.keys(fileMap).length;
+
+                if (validFileCount > 0) {
+                  logger.info(`Attempting to restore ${validFileCount} valid files to WebContainer...`);
+
+                  try {
+                    // Ensure workbench is visible before restoring files
+                    workbenchStore.setShowWorkbench(true);
+
+                    // Import WebContainer readiness check
+                    const { waitForWebContainer } = await import('~/lib/webcontainer/utils');
+
+                    // Wait for WebContainer to be ready before attempting file restoration
+                    toast.update(restorationToast, {
+                      render: `Initializing WebContainer...`,
+                      isLoading: true,
+                    });
+
+                    const wcResult = await waitForWebContainer({ timeout: 30000, throwOnTimeout: false });
+
+                    if (!wcResult.ready || !wcResult.container) {
+                      throw new Error(
+                        wcResult.error?.message || 'WebContainer failed to initialize within 30 seconds',
+                      );
+                    }
+
+                    logger.info(`WebContainer ready after ${wcResult.timeWaited}ms, proceeding with file restoration`);
+
+                    toast.update(restorationToast, {
+                      render: `Restoring ${validFileCount} files...`,
+                      isLoading: true,
+                    });
+
+                    await workbenchStore.restoreFiles(fileMap);
+
+                    // Success! Update the toast
+                    toast.update(restorationToast, {
+                      render: `✅ Successfully restored ${validFileCount} files`,
+                      type: 'success',
+                      isLoading: false,
+                      autoClose: 3000,
+                      closeOnClick: true,
+                      draggable: true,
+                    });
+
+                    logger.info(`Successfully restored ${validFileCount} files to WebContainer`);
+                  } catch (error) {
+                    logger.error('Failed to restore files to WebContainer:', error);
+
+                    // Try partial restoration or fallback
+                    try {
+                      // Still set the files in the store as a fallback
+                      workbenchStore.files.set(fileMap);
+                      workbenchStore.setShowWorkbench(true);
+
+                      toast.update(restorationToast, {
+                        render: `⚠️ Restored ${validFileCount} files to editor only (WebContainer unavailable)`,
+                        type: 'warning',
+                        isLoading: false,
+                        autoClose: 5000,
+                        closeOnClick: true,
+                        draggable: true,
+                      });
+
+                      logger.info(`Fallback: Set ${validFileCount} files in store`);
+                    } catch (fallbackError) {
+                      logger.error('Failed to restore files even with fallback:', fallbackError);
+
+                      toast.update(restorationToast, {
+                        render: `❌ Failed to restore project files. You may need to recreate them.`,
+                        type: 'error',
+                        isLoading: false,
+                        autoClose: false,
+                        closeOnClick: true,
+                        draggable: true,
+                      });
+                    }
+                  }
+                } else {
+                  logger.warn('No valid file data found in chat history');
+
+                  toast.update(restorationToast, {
+                    render: 'ℹ️ No files found to restore from this chat',
+                    type: 'info',
+                    isLoading: false,
+                    autoClose: 3000,
+                    closeOnClick: true,
+                    draggable: true,
+                  });
+                }
+              } catch (error) {
+                logger.error('Unexpected error during file restoration:', error);
+
+                toast.update(restorationToast, {
+                  render: `❌ Unexpected error during file restoration`,
+                  type: 'error',
+                  isLoading: false,
+                  autoClose: false,
+                  closeOnClick: true,
+                  draggable: true,
+                });
+              }
+            }
+
+            // Restore terminal state if available
+            if (storedMessages.terminalState) {
+              logger.info('Restoring terminal state...');
+
+              try {
+                // Restore terminal visibility
+                if (storedMessages.terminalState.isVisible) {
+                  workbenchStore.toggleTerminal(true);
+                  logger.info('Terminal visibility restored');
+                }
+              } catch (error) {
+                logger.error('Failed to restore terminal state:', error);
+                // Non-critical, continue
+              }
+            }
+
+            // Restore workbench state if available
+            if (storedMessages.workbenchState) {
+              logger.info('Restoring workbench state...');
+
+              try {
+                // Restore workbench visibility
+                if (storedMessages.workbenchState.showWorkbench) {
+                  workbenchStore.setShowWorkbench(true);
+                }
+
+                // Restore view mode (code vs preview)
+                workbenchStore.currentView.set(storedMessages.workbenchState.currentView);
+
+                logger.info(
+                  `Workbench state restored: view=${storedMessages.workbenchState.currentView}, visible=${storedMessages.workbenchState.showWorkbench}`,
+                );
+              } catch (error) {
+                logger.error('Failed to restore workbench state:', error);
+                // Non-critical, continue
+              }
+            }
+
+            // Restore editor state if available
+            if (storedMessages.editorState) {
+              logger.info('Restoring editor state...');
+
+              try {
+                // Restore selected file
+                if (storedMessages.editorState.selectedFile) {
+                  // Wait a moment for files to be loaded before selecting
+                  setTimeout(() => {
+                    workbenchStore.setSelectedFile(storedMessages.editorState!.selectedFile);
+                    logger.info(`Selected file restored: ${storedMessages.editorState!.selectedFile}`);
+                  }, 500);
+                }
+
+                // Note: Scroll positions are stored but restoration requires deeper integration
+                // with the editor store. This could be added in a future enhancement.
+              } catch (error) {
+                logger.error('Failed to restore editor state:', error);
+                // Non-critical, continue
               }
             }
 
@@ -207,14 +426,9 @@ export function useChatHistory() {
     };
   }, [mixedId, navigate, user]);
 
-  const storeMessageHistoryRef = useRef<(messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>>(
-    async () => {
-      // Default empty implementation
-    },
-  );
-
-  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const pendingStoreRef = useRef<{ messages: UIMessage[]; modelFullId?: FullModelId } | null>(null);
+  const storeMessageHistoryRef = useRef<
+    ((messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>) | undefined
+  >(undefined);
 
   storeMessageHistoryRef.current = async (messages: UIMessage[], modelFullId?: FullModelId) => {
     if (messages.length === 0) {
@@ -225,53 +439,6 @@ export function useChatHistory() {
       return;
     }
 
-    // Log potential race condition detection
-    const lastMessage = messages[messages.length - 1];
-    const messageId = lastMessage?.id || 'unknown';
-    logger.debug(`Store message history called for ${messageId}, current urlId: ${urlId}, chatId: ${chatId.get()}`);
-
-    // Use the message queue to prevent concurrent operations
-    void executeWithQueue(
-      messages,
-      async (msgs, mdlFullId) => {
-        // Clear any existing timer
-        if (debounceTimerRef.current) {
-          clearTimeout(debounceTimerRef.current);
-        }
-
-        // Store the latest request
-        pendingStoreRef.current = { messages: msgs, modelFullId: mdlFullId };
-
-        // Debounce the operation to prevent rapid successive saves
-        return new Promise<void>((resolve, reject) => {
-          debounceTimerRef.current = setTimeout(async () => {
-            const currentPending = pendingStoreRef.current;
-
-            if (!currentPending) {
-              resolve();
-              return;
-            }
-
-            try {
-              // Log before storing to detect potential issues
-              logger.debug(
-                `Storing ${currentPending.messages.length} messages for urlId: ${urlId}, chatId: ${chatId.get()}`,
-              );
-              await performStoreOperation(currentPending.messages, currentPending.modelFullId);
-              logger.debug(`Successfully stored messages for urlId: ${urlId}`);
-              resolve();
-            } catch (error) {
-              logger.error('Failed to store message history:', error);
-              reject(error);
-            }
-          }, 500); // 500ms debounce
-        });
-      },
-      modelFullId,
-    );
-  };
-
-  const performStoreOperation = async (messages: UIMessage[], modelFullId?: FullModelId) => {
     let database = dbRef.current;
 
     if (!database) {
@@ -288,51 +455,23 @@ export function useChatHistory() {
 
     // Fix: Use a separate variable name to avoid shadowing the state variable
     let currentUrlId = urlId;
-    let currentChatId = chatId.get();
 
-    // Only generate URL ID once - if we already have one, don't regenerate
     if (!currentUrlId && firstArtifact?.id) {
       const generatedUrlId = await getUrlId(database, firstArtifact.id);
 
       navigateChat(generatedUrlId);
       setUrlId(generatedUrlId);
       currentUrlId = generatedUrlId; // Use local variable immediately
-
-      // If we had a temporary chat ID and now have a proper urlId, update Supabase
-      if (user && currentChatId && currentChatId !== generatedUrlId) {
-        try {
-          const supabase = createClient();
-
-          // Update the chat record to use the proper urlId
-          const { error: updateError } = await supabase
-            .from('chats')
-            .update({ url_id: generatedUrlId })
-            .eq('user_id', user.id)
-            .eq('url_id', currentChatId);
-
-          if (updateError) {
-            logger.error('Failed to update chat urlId in Supabase:', updateError);
-          } else {
-            logger.info(`Updated chat urlId from ${currentChatId} to ${generatedUrlId} in Supabase`);
-          }
-        } catch (error) {
-          logger.error('Error updating chat urlId:', error);
-        }
-      }
     }
 
     if (!description.get() && firstArtifact?.title) {
       description.set(firstArtifact?.title);
     }
 
+    let currentChatId = chatId.get();
+
     if (initialMessages.length === 0 && !currentChatId) {
       const nextId = await getNextId(database);
-
-      // Validate the generated ID before using it
-      if (!nextId || nextId === 'NaN' || nextId === 'undefined' || nextId === 'null') {
-        logger.error('Invalid chat ID generated:', nextId);
-        throw new Error('Failed to generate valid chat ID');
-      }
 
       chatId.set(nextId);
       currentChatId = nextId; // Use local variable immediately
@@ -348,14 +487,96 @@ export function useChatHistory() {
 
     const selection = modelFullId ?? currentModel.get().fullId;
 
-    /*
-     * Always save to IndexedDB as backup (for offline support and quick access)
-     * Include file state in the saved chat
-     * Use cached file state to avoid expensive serialization
-     */
-    const currentFiles = workbenchStore.files.get();
-    const fileState = createFileState(currentChatId || 'temp', currentFiles);
+    // Wait for any ongoing file operations to complete before capturing state
+    await new Promise((resolve) => setTimeout(resolve, 100));
 
+    // Capture terminal state
+    const terminalState: TerminalState = {
+      isVisible: workbenchStore.showTerminal.get(),
+    };
+
+    // Capture workbench state (view mode and visibility)
+    const workbenchState: WorkbenchState = {
+      currentView: workbenchStore.currentView.get(),
+      showWorkbench: workbenchStore.showWorkbench.get(),
+    };
+
+    // Capture editor state (selected file)
+    const editorState: EditorState = {
+      selectedFile: workbenchStore.selectedFile.get(),
+      // Note: Scroll positions are tracked per file in editor documents
+      // but are not easily accessible from here. Could be added in the future.
+    };
+
+    // Get current file state from workbench store
+    const currentFiles = workbenchStore.files.get();
+
+    let fileState: Record<string, { content: string; isBinary: boolean; encoding?: 'plain' | 'base64' }> | undefined;
+
+    if (currentFiles) {
+      // Import encoding utilities
+      const { encodeFileContent } = await import('~/utils/file-encoding');
+
+      fileState = Object.fromEntries(
+        Object.entries(currentFiles)
+          .map(([path, file]) => {
+            if (file && file.type === 'file' && file.content !== undefined) {
+              const isBinary = file.isBinary || false;
+
+              // Encode binary files as base64 for storage
+              const { content: encodedContent, encoding } = encodeFileContent(file.content, isBinary);
+
+              return [
+                path,
+                {
+                  content: encodedContent,
+                  isBinary,
+                  encoding,
+                },
+              ];
+            }
+
+            return undefined;
+          })
+          .filter(
+            (entry): entry is [string, { content: string; isBinary: boolean; encoding: 'plain' | 'base64' }] =>
+              entry !== undefined,
+          ),
+      );
+
+      // Apply the same filtering logic as FilesStore to exclude unwanted files
+      if (fileState) {
+        const hiddenPatterns = [
+          /\/node_modules\//,
+          /\/\.next/,
+          /\/\.astro/,
+          /\/\.git/,
+          /\/\.vscode/,
+          /\/\.idea/,
+          /\/dist/,
+          /\/build/,
+          /\/\.cache/,
+          /\/coverage/,
+          /\/\.nyc_output/,
+          /\/\.env/,
+          /\/\.env\./,
+          /\/\.DS_Store/,
+          /\/Thumbs\.db/,
+        ];
+
+        const filteredEntries = Object.entries(fileState).filter(
+          ([path]) => !hiddenPatterns.some((pattern) => pattern.test(path)),
+        );
+
+        if (filteredEntries.length !== Object.keys(fileState).length) {
+          const excludedCount = Object.keys(fileState).length - filteredEntries.length;
+          logger.info(`Excluding ${excludedCount} files from chat history (node_modules, build artifacts, etc.)`);
+          fileState = Object.fromEntries(filteredEntries);
+        }
+      }
+    }
+
+    // Save to IndexedDB (for offline support and fallback)
     await setMessages(
       database,
       currentChatId as string,
@@ -364,8 +585,11 @@ export function useChatHistory() {
       description.get(),
       selection,
       undefined,
-      user ? 'remote' : 'local',
+      'local',
       fileState,
+      terminalState,
+      workbenchState,
+      editorState,
     );
 
     // Also save to Supabase if user is logged in
@@ -377,62 +601,33 @@ export function useChatHistory() {
         const supabase = createClient();
         const finalUrlId = currentUrlId || currentChatId;
 
-        /*
-         * Always sync to Supabase, even if we only have a temporary ID
-         * The upsert with onConflict will handle updates when we get a proper urlId
-         */
-
-        // Additional safeguard: check if this exact chat already exists to prevent duplicates
-        const { data: existingChat } = await supabase
-          .from('chats')
-          .select('id, url_id, updated_at')
-          .eq('user_id', user.id)
-          .eq('url_id', finalUrlId)
-          .single();
-
-        if (existingChat) {
-          // Chat exists, update it instead of creating duplicate
-          const { error: updateError } = await supabase
-            .from('chats')
-            .update({
-              messages: messages as any,
-              description: description.get() || null,
-              model: selection,
-              file_state: fileState,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('id', existingChat.id);
-
-          if (updateError) {
-            logger.error('Failed to update existing chat in Supabase:', updateError);
-            setConnectionError(`Sync failed: ${updateError.message}`);
-          } else {
-            logger.debug(`Updated existing chat ${finalUrlId} in Supabase`);
-          }
-        } else {
-          // Chat doesn't exist, create new one
-          const { error: insertError } = await supabase.from('chats').insert({
+        // Use upsert to insert or update the chat
+        const { error } = await supabase.from('chats').upsert(
+          {
             url_id: finalUrlId,
             user_id: user.id,
             messages: messages as any,
             description: description.get() || null,
             model: selection,
             file_state: fileState,
+            terminal_state: terminalState,
+            workbench_state: workbenchState,
+            editor_state: editorState,
             updated_at: new Date().toISOString(),
-          });
+          },
+          {
+            onConflict: 'url_id,user_id',
+          },
+        );
 
-          if (insertError) {
-            logger.error('Failed to create new chat in Supabase:', insertError);
-            setConnectionError(`Sync failed: ${insertError.message}`);
-          } else {
-            logger.debug(`Created new chat ${finalUrlId} in Supabase`);
-          }
+        if (error) {
+          logger.error('Failed to sync chat to Supabase:', error);
+          setConnectionError(`Sync failed: ${error.message}`);
+
+          // Don't throw - we still have IndexedDB backup
+        } else {
+          logger.info(`Chat ${finalUrlId} synced to Supabase`);
         }
-
-        /*
-         * Note: We removed the upsert with onConflict to have more control
-         * over duplicate prevention and better error handling
-         */
       } catch (error) {
         logger.error('Error syncing to Supabase:', error);
         setConnectionError(`Sync error: ${(error as Error).message}`);
@@ -447,8 +642,8 @@ export function useChatHistory() {
   return {
     ready: !mixedId || ready,
     initialMessages,
-    storeMessageHistory: (...args: Parameters<typeof storeMessageHistoryRef.current>) =>
-      storeMessageHistoryRef.current(...args),
+    storeMessageHistory: (...args: Parameters<NonNullable<typeof storeMessageHistoryRef.current>>) =>
+      storeMessageHistoryRef.current?.(...args) ?? Promise.resolve(),
   };
 }
 

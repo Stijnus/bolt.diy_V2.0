@@ -1,4 +1,3 @@
-import * as Dialog from '@radix-ui/react-dialog';
 import { motion } from 'framer-motion';
 import { MessageSquare, Trash2 } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
@@ -58,18 +57,16 @@ export function HistoryItem({ item, onDelete }: HistoryItemProps) {
             exit={{ opacity: 0, scale: 0.8 }}
             transition={{ duration: 0.15 }}
           >
-            <Dialog.Trigger asChild>
-              <button
-                className="flex h-7 w-7 items-center justify-center rounded-lg text-bolt-elements-textTertiary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text"
-                onClick={(event) => {
-                  event.preventDefault();
-                  onDelete?.(event);
-                }}
-                aria-label="Delete conversation"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </Dialog.Trigger>
+            <button
+              className="flex h-7 w-7 items-center justify-center rounded-lg text-bolt-elements-textTertiary transition-all hover:bg-bolt-elements-button-danger-background/10 hover:text-bolt-elements-button-danger-text"
+              onClick={(event) => {
+                event.preventDefault();
+                onDelete?.(event);
+              }}
+              aria-label="Delete conversation"
+            >
+              <Trash2 className="h-3.5 w-3.5" />
+            </button>
           </motion.div>
         )}
       </a>

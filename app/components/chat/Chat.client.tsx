@@ -1,25 +1,20 @@
 import { useChat } from '@ai-sdk/react';
 import { useStore } from '@nanostores/react';
-import { DefaultChatTransport, type UIMessage } from 'ai';
+import type { UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import { X, Check, AlertTriangle } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
-import { cssTransition, toast, ToastContainer } from 'react-toastify';
+import { memo, useEffect, useRef, useState } from 'react';
+import { cssTransition, ToastContainer } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
-import { getDatabase, saveUsage, chatId, useChatHistory } from '~/lib/persistence';
+import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
-import { currentModel, setChatModel } from '~/lib/stores/model';
-import { settingsStore } from '~/lib/stores/settings';
-import { $sessionUsage, addUsage, resetSessionUsage } from '~/lib/stores/usage';
+import { currentModel } from '~/lib/stores/model';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
-import { createScopedLogger } from '~/utils/logger';
 import { renderLogger } from '~/utils/logger';
-
-const logger = createScopedLogger('Chat');
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -79,43 +74,15 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const { showChat } = useStore(chatStore);
   const modelSelection = useStore(currentModel);
-  const settings = useStore(settingsStore);
-  const activeChatId = useStore(chatId);
 
   const [animationScope, animate] = useAnimate();
 
-  const transport = useMemo(
-    () =>
-      new DefaultChatTransport<UIMessage>({
-        body: async () => ({
-          model: modelSelection.fullId,
-          temperature: settings.ai.temperature,
-          maxTokens: settings.ai.maxTokens,
-        }),
-      }),
-    [modelSelection.fullId, settings.ai.temperature, settings.ai.maxTokens],
-  );
-
   const { messages, status, stop, sendMessage } = useChat({
     messages: initialMessages,
-    transport,
-    onFinish: ({ message }) => {
-      const usage = (message.metadata as any)?.usage as
-        | { inputTokens?: number; outputTokens?: number; cost?: number | null; provider?: string; modelId?: string }
-        | undefined;
-
-      if (!usage) {
-        return;
-      }
-
-      const inputTokens = usage.inputTokens ?? 0;
-      const outputTokens = usage.outputTokens ?? 0;
-
-      if (inputTokens > 0 || outputTokens > 0) {
-        addUsage(usage);
-      }
-    },
-  });
+    body: {
+      model: modelSelection.fullId,
+    } as Record<string, unknown>,
+  } as any);
 
   const isLoading = status === 'streaming';
   const [input, setInput] = useState('');
@@ -132,70 +99,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     parseMessages(messages, isLoading);
+  }, [messages, isLoading]);
 
-    if (messages.length > initialMessages.length) {
-      storeMessageHistory(messages, modelSelection.fullId).catch((error) => {
-        logger.error('Failed to store message history:', error);
-
-        // Don't show toast for every database error to avoid spamming the user
-        if (error.message.includes('timed out')) {
-          toast.warning('Chat save is taking longer than expected. Your work is safe.');
-        } else if (!error.message.includes('Network') && !error.message.includes('connection')) {
-          toast.error('Failed to save chat history. Your work may not be preserved.');
-        }
-      });
-    }
-  }, [messages, isLoading, parseMessages, initialMessages.length, modelSelection.fullId, storeMessageHistory]);
-
+  // Store message history whenever messages change (after user sends or AI responds)
   useEffect(() => {
-    if (!activeChatId) {
-      return;
+    if (messages.length > 0) {
+      // Use a small delay to batch rapid updates during streaming
+      const timeoutId = setTimeout(() => {
+        storeMessageHistory(messages, modelSelection.fullId);
+      }, 500);
+
+      return () => clearTimeout(timeoutId);
     }
-
-    setChatModel(activeChatId, modelSelection.provider, modelSelection.modelId);
-  }, [activeChatId, modelSelection.provider, modelSelection.modelId]);
-
-  useEffect(() => {
-    if (!activeChatId || messages.length === 0) {
-      return;
-    }
-
-    storeMessageHistory(messages, modelSelection.fullId).catch((error) => {
-      console.warn('Failed to persist model preference', error);
-    });
-  }, [activeChatId, modelSelection.fullId, storeMessageHistory]);
-
-  useEffect(() => {
-    // When a new chat is loaded, reset the session usage counter.
-    resetSessionUsage();
-
-    return () => {
-      /*
-       * When the chat session changes (e.g., navigating to a new chat),
-       * save the accumulated usage data for the completed session to IndexedDB.
-       */
-      void (async () => {
-        const finalUsage = $sessionUsage.get();
-
-        if (finalUsage.tokens.input === 0 && finalUsage.tokens.output === 0) {
-          return;
-        }
-
-        try {
-          const db = await getDatabase();
-
-          if (!db) {
-            return;
-          }
-
-          await saveUsage(db, finalUsage);
-        } catch (err) {
-          console.error('Failed to save usage data', err);
-          toast.error('Could not save usage statistics.');
-        }
-      })();
-    };
-  }, [activeChatId]); // This effect re-runs whenever the chat ID changes.
+  }, [messages, modelSelection.fullId, storeMessageHistory]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;
@@ -274,13 +190,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     runAnimation();
 
+    let newMessage: any;
+
     if (fileModifications !== undefined) {
       const diff = fileModificationsToHTML(fileModifications);
-      await sendMessage({ role: 'user', parts: [{ type: 'text', text: `${diff}\n\n${_input}` }] } as any);
+      newMessage = { role: 'user', parts: [{ type: 'text', text: `${diff}\n\n${_input}` }] };
+      await sendMessage(newMessage as any);
       workbenchStore.resetAllFileModifications();
     } else {
-      await sendMessage({ role: 'user', parts: [{ type: 'text', text: _input }] } as any);
+      newMessage = { role: 'user', parts: [{ type: 'text', text: _input }] };
+      await sendMessage(newMessage as any);
     }
+
+    // Note: Message history is now automatically saved by useEffect whenever messages change
 
     setInput('');
     resetEnhancer();

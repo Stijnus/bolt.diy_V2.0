@@ -12,6 +12,25 @@ const logger = createScopedLogger('FilesStore');
 
 const utf8TextDecoder = new TextDecoder('utf8', { fatal: true });
 
+// Files and directories to exclude from chat history restoration
+const DEFAULT_HIDDEN_PATTERNS = [
+  /\/node_modules\//,
+  /\/\.next/,
+  /\/\.astro/,
+  /\/\.git/,
+  /\/\.vscode/,
+  /\/\.idea/,
+  /\/dist/,
+  /\/build/,
+  /\/\.cache/,
+  /\/coverage/,
+  /\/\.nyc_output/,
+  /\/\.env/,
+  /\/\.env\./,
+  /\/\.DS_Store/,
+  /\/Thumbs\.db/,
+];
+
 export interface File {
   type: 'file';
   content: string;
@@ -223,7 +242,14 @@ export class FilesStore {
   }
 
   /**
-   * Restores files to WebContainer from a FileMap
+   * Checks if a file should be hidden from chat history restoration
+   */
+  #shouldHideFile(filePath: string): boolean {
+    return DEFAULT_HIDDEN_PATTERNS.some((pattern) => pattern.test(filePath));
+  }
+
+  /**
+   * Restores files to WebContainer from a FileMap with enhanced error handling
    * Used when loading chat history to restore project state
    */
   async restoreFiles(fileMap: FileMap): Promise<void> {
@@ -235,41 +261,98 @@ export class FilesStore {
       return;
     }
 
-    logger.info(`Restoring ${filesToRestore.length} files to WebContainer`);
+    // Filter out unwanted files (node_modules, build artifacts, etc.)
+    const filteredFiles = filesToRestore.filter(([filePath]) => !this.#shouldHideFile(filePath));
+    const excludedCount = filesToRestore.length - filteredFiles.length;
+
+    if (excludedCount > 0) {
+      logger.info(`Excluding ${excludedCount} files from restoration (node_modules, build artifacts, etc.)`);
+    }
+
+    if (filteredFiles.length === 0) {
+      logger.debug('No valid files to restore after filtering');
+      return;
+    }
+
+    logger.info(`Restoring ${filteredFiles.length} files to WebContainer`);
 
     // Prevent file watcher from interfering during restoration
     this.#isRestoring = true;
 
     try {
-      // Write each file to WebContainer
-      const writePromises = filesToRestore.map(async ([filePath, file]) => {
-        if (!file || file.type !== 'file') {
-          return;
-        }
-
-        try {
-          const relativePath = nodePath.relative(webcontainer.workdir, filePath);
-
-          if (!relativePath) {
-            logger.error(`Invalid file path for restore: ${filePath}`);
-            return;
+      const results = await Promise.allSettled(
+        filteredFiles.map(async ([filePath, file]) => {
+          if (!file || file.type !== 'file') {
+            return { success: false, filePath, error: 'Invalid file data' };
           }
 
-          await webcontainer.fs.writeFile(relativePath, file.content);
-          logger.debug(`Restored file: ${relativePath}`);
-        } catch (error) {
-          logger.error(`Failed to restore file ${filePath}:`, error);
-          throw error;
-        }
-      });
+          try {
+            // Validate file path and content
+            if (!filePath || typeof filePath !== 'string' || filePath.trim() === '') {
+              throw new Error('Invalid file path');
+            }
 
-      await Promise.allSettled(writePromises);
+            if (typeof file.content !== 'string') {
+              throw new Error('Invalid file content');
+            }
 
-      // Update the store with the restored files
-      this.files.set(fileMap);
-      this.#size = filesToRestore.length;
+            const relativePath = nodePath.relative(webcontainer.workdir, filePath);
 
-      logger.info(`Successfully restored ${filesToRestore.length} files`);
+            if (!relativePath || relativePath.startsWith('..')) {
+              throw new Error(`Invalid relative path: ${relativePath}`);
+            }
+
+            // Ensure parent directories exist
+            const parentDir = nodePath.dirname(relativePath);
+
+            if (parentDir && parentDir !== '.') {
+              try {
+                await webcontainer.fs.mkdir(parentDir, { recursive: true });
+              } catch (mkdirError) {
+                // Directory might already exist, continue
+                logger.debug(`Directory creation skipped for ${parentDir}:`, mkdirError);
+              }
+            }
+
+            // Write the file
+            await webcontainer.fs.writeFile(relativePath, file.content);
+            logger.debug(`Restored file: ${relativePath}`);
+
+            return { success: true, filePath, relativePath };
+          } catch (error) {
+            logger.error(`Failed to restore file ${filePath}:`, error);
+            return { success: false, filePath, error };
+          }
+        }),
+      );
+
+      // Count successful and failed restorations
+      const successful = results.filter((result) => result.status === 'fulfilled' && result.value.success);
+      const failed = results.filter((result) => result.status === 'fulfilled' && !result.value.success);
+
+      if (successful.length > 0) {
+        logger.info(`Successfully restored ${successful.length} files, refreshing file tree...`);
+
+        // Instead of manually updating the store with only restored files,
+        // refresh ALL files from WebContainer to get the complete, accurate state
+        await this.#refreshAllFiles();
+
+        logger.info(`File tree refreshed after restoration`);
+      }
+
+      if (failed.length > 0) {
+        logger.warn(`Failed to restore ${failed.length} files`);
+        failed.forEach((result) => {
+          if (result.status === 'fulfilled') {
+            logger.debug(`Failed: ${result.value.filePath} - ${result.value.error}`);
+          }
+        });
+      }
+
+      // If all files failed to restore, throw an error
+      if (successful.length === 0 && failed.length > 0) {
+        throw new Error(`Failed to restore all ${failed.length} files`);
+      }
     } catch (error) {
       logger.error('Error restoring files:', error);
       throw error;

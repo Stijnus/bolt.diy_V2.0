@@ -1,7 +1,7 @@
 import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { File as FileIcon, ChevronRight } from 'lucide-react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useState } from 'react';
 import FileTree from './FileTree';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
@@ -41,31 +41,6 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
 
   const [activeIndex, setActiveIndex] = useState<number | null>(null);
 
-  const contextMenuRef = useRef<HTMLDivElement | null>(null);
-  const segmentRefs = useRef<(HTMLSpanElement | null)[]>([]);
-
-  const handleSegmentClick = (index: number) => {
-    setActiveIndex((prevIndex) => (prevIndex === index ? null : index));
-  };
-
-  useEffect(() => {
-    const handleOutsideClick = (event: MouseEvent) => {
-      if (
-        activeIndex !== null &&
-        !contextMenuRef.current?.contains(event.target as Node) &&
-        !segmentRefs.current.some((ref) => ref?.contains(event.target as Node))
-      ) {
-        setActiveIndex(null);
-      }
-    };
-
-    document.addEventListener('mousedown', handleOutsideClick);
-
-    return () => {
-      document.removeEventListener('mousedown', handleOutsideClick);
-    };
-  }, [activeIndex]);
-
   if (files === undefined || pathSegments.length === 0) {
     return null;
   }
@@ -85,18 +60,21 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
 
         return (
           <div key={index} className="relative flex items-center">
-            <DropdownMenu.Root open={isActive} modal={false}>
+            <DropdownMenu.Root
+              open={isActive}
+              modal={false}
+              onOpenChange={(open) => {
+                console.debug('FileBreadcrumb menu onOpenChange', { index, open });
+                setActiveIndex(open ? index : null);
+              }}
+            >
               <DropdownMenu.Trigger asChild>
                 <span
-                  ref={(ref) => {
-                    segmentRefs.current[index] = ref;
-                  }}
                   className={classNames('flex items-center gap-1.5 cursor-pointer shrink-0', {
                     'text-bolt-elements-textTertiary hover:text-bolt-elements-textPrimary': !isActive,
                     'text-bolt-elements-textPrimary underline': isActive,
                     'pr-4': isLast,
                   })}
-                  onClick={() => handleSegmentClick(index)}
                 >
                   {isLast && <FileIcon className="w-4 h-4" />}
                   {segment}
@@ -113,13 +91,7 @@ export const FileBreadcrumb = memo<FileBreadcrumbProps>(({ files, pathSegments =
                       side="bottom"
                       avoidCollisions={false}
                     >
-                      <motion.div
-                        ref={contextMenuRef}
-                        initial="close"
-                        animate="open"
-                        exit="close"
-                        variants={contextMenuVariants}
-                      >
+                      <motion.div initial="close" animate="open" exit="close" variants={contextMenuVariants}>
                         <div className="rounded-lg overflow-hidden">
                           <div className="max-h-[50vh] min-w-[300px] overflow-scroll bg-bolt-elements-background-depth-1 border border-bolt-elements-borderColor shadow-sm rounded-lg">
                             <FileTree

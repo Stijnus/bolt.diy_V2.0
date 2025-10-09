@@ -1,6 +1,6 @@
 import { useStore } from '@nanostores/react';
 import { FolderTree, Save, History, Terminal as TerminalIcon, Plus, ChevronDown } from 'lucide-react';
-import { memo, useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
@@ -65,6 +65,19 @@ export const EditorPanel = memo(
     const terminalPanelRef = useRef<ImperativePanelHandle>(null);
     const terminalToggledByShortcut = useRef(false);
 
+    // Memoized ref callbacks per index to avoid ref churn causing repeated updates
+    const terminalRefCallbacks = useRef<Array<((ref: TerminalRef | null) => void) | undefined>>([]);
+
+    const getTerminalRefCallback = useCallback((i: number) => {
+      if (!terminalRefCallbacks.current[i]) {
+        terminalRefCallbacks.current[i] = (ref: TerminalRef | null) => {
+          terminalRefs.current[i] = ref;
+        };
+      }
+
+      return terminalRefCallbacks.current[i]!;
+    }, []);
+
     const [activeTerminal, setActiveTerminal] = useState(0);
     const [terminalCount, setTerminalCount] = useState(1);
 
@@ -121,6 +134,17 @@ export const EditorPanel = memo(
         setActiveTerminal(terminalCount);
       }
     };
+
+    // Keep internal ref arrays bounded to the number of terminals
+    useEffect(() => {
+      if (terminalRefs.current.length > terminalCount) {
+        terminalRefs.current.length = terminalCount;
+      }
+
+      if (terminalRefCallbacks.current.length > terminalCount) {
+        terminalRefCallbacks.current.length = terminalCount;
+      }
+    }, [terminalCount]);
 
     return (
       <PanelGroup direction="vertical">
@@ -245,9 +269,7 @@ export const EditorPanel = memo(
                     className={classNames('h-full overflow-hidden', {
                       hidden: !isActive,
                     })}
-                    ref={(ref) => {
-                      terminalRefs.current.push(ref);
-                    }}
+                    ref={getTerminalRefCallback(index)}
                     onTerminalReady={(terminal) => workbenchStore.attachTerminal(terminal)}
                     onTerminalResize={(cols, rows) => workbenchStore.onTerminalResize(cols, rows)}
                     theme={theme}

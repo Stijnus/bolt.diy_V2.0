@@ -9,12 +9,21 @@ interface Logger {
   warn: LoggerFunction;
   error: LoggerFunction;
   setLevel: (level: DebugLevel) => void;
+  performance: {
+    start: (label: string) => void;
+    end: (label: string) => number;
+    measure: (label: string, fn: () => void | Promise<void>) => Promise<number>;
+  };
 }
 
-let currentLevel: DebugLevel = (import.meta.env.VITE_LOG_LEVEL ?? import.meta.env.DEV) ? 'debug' : 'info';
+// Default to 'warn' in production, 'debug' in development to reduce noise
+let currentLevel: DebugLevel =
+  (import.meta.env.VITE_LOG_LEVEL as DebugLevel) || (import.meta.env.PROD ? 'warn' : 'debug');
 
 const isWorker = 'HTMLRewriter' in globalThis;
 const supportsColor = !isWorker;
+const performanceMarks = new Map<string, number>();
+const levelOrder: DebugLevel[] = ['trace', 'debug', 'info', 'warn', 'error'];
 
 export const logger: Logger = {
   trace: (...messages: any[]) => log('trace', undefined, messages),
@@ -23,6 +32,39 @@ export const logger: Logger = {
   warn: (...messages: any[]) => log('warn', undefined, messages),
   error: (...messages: any[]) => log('error', undefined, messages),
   setLevel,
+  performance: {
+    start: (label: string) => {
+      if (levelOrder.indexOf('debug') < levelOrder.indexOf(currentLevel)) {
+        return;
+      }
+
+      performanceMarks.set(label, performance.now());
+    },
+    end: (label: string): number => {
+      if (levelOrder.indexOf('debug') < levelOrder.indexOf(currentLevel)) {
+        return 0;
+      }
+
+      const startTime = performanceMarks.get(label);
+
+      if (startTime === undefined) {
+        logger.warn(`Performance mark "${label}" not found`);
+        return 0;
+      }
+
+      const duration = performance.now() - startTime;
+      performanceMarks.delete(label);
+      logger.debug(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
+
+      return duration;
+    },
+    measure: async (label: string, fn: () => void | Promise<void>): Promise<number> => {
+      logger.performance.start(label);
+      await fn();
+
+      return logger.performance.end(label);
+    },
+  },
 };
 
 export function createScopedLogger(scope: string): Logger {
@@ -33,6 +75,40 @@ export function createScopedLogger(scope: string): Logger {
     warn: (...messages: any[]) => log('warn', scope, messages),
     error: (...messages: any[]) => log('error', scope, messages),
     setLevel,
+    performance: {
+      start: (label: string) => {
+        if (levelOrder.indexOf('debug') < levelOrder.indexOf(currentLevel)) {
+          return;
+        }
+
+        performanceMarks.set(`${scope}:${label}`, performance.now());
+      },
+      end: (label: string): number => {
+        if (levelOrder.indexOf('debug') < levelOrder.indexOf(currentLevel)) {
+          return 0;
+        }
+
+        const startTime = performanceMarks.get(`${scope}:${label}`);
+
+        if (startTime === undefined) {
+          logger.warn(`Performance mark "${scope}:${label}" not found`);
+          return 0;
+        }
+
+        const duration = performance.now() - startTime;
+        performanceMarks.delete(`${scope}:${label}`);
+        logger.debug(`⏱️ ${scope}:${label}: ${duration.toFixed(2)}ms`);
+
+        return duration;
+      },
+      measure: async (label: string, fn: () => void | Promise<void>): Promise<number> => {
+        const scopedLabel = `${scope}:${label}`;
+        logger.performance.start(scopedLabel);
+        await fn();
+
+        return logger.performance.end(scopedLabel);
+      },
+    },
   };
 }
 
@@ -77,8 +153,6 @@ function formatMessage(message: unknown): string {
 }
 
 function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
-  const levelOrder: DebugLevel[] = ['trace', 'debug', 'info', 'warn', 'error'];
-
   if (levelOrder.indexOf(level) < levelOrder.indexOf(currentLevel)) {
     return;
   }
