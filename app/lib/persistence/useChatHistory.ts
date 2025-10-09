@@ -10,7 +10,16 @@ import { currentModel, parseFullModelId, setChatModel, setCurrentModel } from '~
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createClient } from '~/lib/supabase/client';
 import type { FullModelId } from '~/types/model';
+import {
+  shouldExcludeFile,
+  getStringByteSize,
+  wouldExceedSizeLimit,
+  FILE_SIZE_LIMITS,
+  formatBytes,
+} from '~/utils/constants/file-patterns';
+import { handleErrorWithAction, ERROR_TEMPLATES } from '~/utils/error-messages';
 import { createScopedLogger } from '~/utils/logger';
+import { waitForFileOperations } from '~/utils/sync-helpers';
 
 const logger = createScopedLogger('ChatHistory');
 
@@ -241,6 +250,35 @@ export function useChatHistory() {
                 if (validFileCount > 0) {
                   logger.info(`Attempting to restore ${validFileCount} valid files to WebContainer...`);
 
+                  // Validate project structure before restoration
+                  const { validateProject, getValidationSummary, formatValidationIssues } = await import(
+                    '~/utils/project-validator'
+                  );
+                  const validation = validateProject(fileMap);
+
+                  logger.info(`Project validation: ${getValidationSummary(validation)}`);
+
+                  // Log validation issues if any
+                  if (validation.issues.length > 0) {
+                    validation.issues.forEach((issue) => {
+                      const logMethod = issue.severity === 'error' ? 'error' : issue.severity === 'warning' ? 'warn' : 'info';
+                      logger[logMethod](
+                        `[${issue.severity.toUpperCase()}] ${issue.message}${issue.filePath ? ` (${issue.filePath})` : ''}`,
+                      );
+                    });
+
+                    // Show validation summary to user if there are warnings or errors
+                    const hasWarningsOrErrors = validation.issues.some(
+                      (i) => i.severity === 'warning' || i.severity === 'error',
+                    );
+
+                    if (hasWarningsOrErrors) {
+                      toast.info(`📋 Project validation: ${formatValidationIssues(validation.issues)}`, {
+                        autoClose: 4000,
+                      });
+                    }
+                  }
+
                   try {
                     // Ensure workbench is visible before restoring files
                     workbenchStore.setShowWorkbench(true);
@@ -257,9 +295,17 @@ export function useChatHistory() {
                     const wcResult = await waitForWebContainer({ timeout: 30000, throwOnTimeout: false });
 
                     if (!wcResult.ready || !wcResult.container) {
-                      throw new Error(
+                      const error = new Error(
                         wcResult.error?.message || 'WebContainer failed to initialize within 30 seconds',
                       );
+                      handleErrorWithAction(
+                        {
+                          operation: ERROR_TEMPLATES.webcontainerInit(),
+                          error,
+                        },
+                        { showToast: true, toast },
+                      );
+                      throw error;
                     }
 
                     logger.info(`WebContainer ready after ${wcResult.timeWaited}ms, proceeding with file restoration`);
@@ -269,49 +315,100 @@ export function useChatHistory() {
                       isLoading: true,
                     });
 
-                    await workbenchStore.restoreFiles(fileMap);
+                    // Restore files with progress tracking
+                    const restorationResult = await workbenchStore.restoreFiles(fileMap, (current, total, fileName) => {
+                      const percentage = Math.round((current / total) * 100);
+                      toast.update(restorationToast, {
+                        render: `Restoring files... ${current}/${total} (${percentage}%)${fileName ? ` - ${fileName}` : ''}`,
+                        isLoading: true,
+                      });
+                    });
 
-                    // Success! Update the toast
+                    // Success! Update the toast with detailed summary
+                    const { successCount, failedCount, retriedCount } = restorationResult;
+                    let summary = `✅ Successfully restored ${successCount} file${successCount === 1 ? '' : 's'}`;
+
+                    if (retriedCount > 0) {
+                      summary += ` (${retriedCount} recovered after retry)`;
+                    }
+
+                    if (failedCount > 0) {
+                      summary += `, ${failedCount} failed`;
+                    }
+
                     toast.update(restorationToast, {
-                      render: `✅ Successfully restored ${validFileCount} files`,
-                      type: 'success',
+                      render: summary,
+                      type: failedCount > 0 ? 'warning' : 'success',
                       isLoading: false,
-                      autoClose: 3000,
+                      autoClose: failedCount > 0 ? 5000 : 3000,
                       closeOnClick: true,
                       draggable: true,
                     });
 
-                    logger.info(`Successfully restored ${validFileCount} files to WebContainer`);
+                    logger.info(
+                      `Restoration complete: ${successCount} succeeded, ${failedCount} failed, ${retriedCount} retried`,
+                    );
                   } catch (error) {
                     logger.error('Failed to restore files to WebContainer:', error);
 
-                    // Try partial restoration or fallback
-                    try {
-                      // Still set the files in the store as a fallback
-                      workbenchStore.files.set(fileMap);
-                      workbenchStore.setShowWorkbench(true);
+                    // Check if error has restoration result data (partial success)
+                    const errorWithResult = error as Error & {
+                      result?: { successCount: number; failedCount: number; retriedCount: number };
+                    };
 
+                    if (errorWithResult.result && errorWithResult.result.successCount > 0) {
+                      // Partial success - some files were restored
+                      const { successCount, failedCount, retriedCount } = errorWithResult.result;
                       toast.update(restorationToast, {
-                        render: `⚠️ Restored ${validFileCount} files to editor only (WebContainer unavailable)`,
+                        render: `⚠️ Partial restoration: ${successCount} succeeded, ${failedCount} failed${retriedCount > 0 ? ` (${retriedCount} retried)` : ''}`,
                         type: 'warning',
                         isLoading: false,
-                        autoClose: 5000,
+                        autoClose: 7000,
                         closeOnClick: true,
                         draggable: true,
                       });
+                      logger.warn(
+                        `Partial restoration: ${successCount} files restored, ${failedCount} failed after retries`,
+                      );
+                    } else {
+                      // Complete failure - use actionable error
+                      const actionableError = handleErrorWithAction(
+                        {
+                          operation: ERROR_TEMPLATES.fileRestoration(validFileCount),
+                          error,
+                          metadata: { fileCount: validFileCount },
+                        },
+                        { showToast: false, toast },
+                      );
 
-                      logger.info(`Fallback: Set ${validFileCount} files in store`);
-                    } catch (fallbackError) {
-                      logger.error('Failed to restore files even with fallback:', fallbackError);
+                      // Try fallback
+                      try {
+                        // Still set the files in the store as a fallback
+                        workbenchStore.files.set(fileMap);
+                        workbenchStore.setShowWorkbench(true);
 
-                      toast.update(restorationToast, {
-                        render: `❌ Failed to restore project files. You may need to recreate them.`,
-                        type: 'error',
-                        isLoading: false,
-                        autoClose: false,
-                        closeOnClick: true,
-                        draggable: true,
-                      });
+                        toast.update(restorationToast, {
+                          render: `⚠️ Restored ${validFileCount} files to editor only (WebContainer unavailable)\n\n💡 Try reloading the page`,
+                          type: 'warning',
+                          isLoading: false,
+                          autoClose: 5000,
+                          closeOnClick: true,
+                          draggable: true,
+                        });
+
+                        logger.info(`Fallback: Set ${validFileCount} files in store`);
+                      } catch (fallbackError) {
+                        logger.error('Failed to restore files even with fallback:', fallbackError);
+
+                        toast.update(restorationToast, {
+                          render: `❌ ${actionableError.title}: ${actionableError.message}\n\n💡 Try reloading the page or recreating the files`,
+                          type: 'error',
+                          isLoading: false,
+                          autoClose: false,
+                          closeOnClick: true,
+                          draggable: true,
+                        });
+                      }
                     }
                   }
                 } else {
@@ -385,11 +482,26 @@ export function useChatHistory() {
               try {
                 // Restore selected file
                 if (storedMessages.editorState.selectedFile) {
-                  // Wait a moment for files to be loaded before selecting
-                  setTimeout(() => {
-                    workbenchStore.setSelectedFile(storedMessages.editorState!.selectedFile);
-                    logger.info(`Selected file restored: ${storedMessages.editorState!.selectedFile}`);
-                  }, 500);
+                  // Wait for files to be available in the store before selecting
+                  // Using event-based approach instead of arbitrary timeout
+                  const selectedFile = storedMessages.editorState.selectedFile;
+                  const { waitForCondition } = await import('~/utils/sync-helpers');
+
+                  try {
+                    await waitForCondition(
+                      () => {
+                        const files = workbenchStore.files.get();
+                        return !!files[selectedFile];
+                      },
+                      { timeout: 2000, interval: 50 },
+                    );
+                    workbenchStore.setSelectedFile(selectedFile);
+                    logger.info(`Selected file restored: ${selectedFile}`);
+                  } catch (timeoutError) {
+                    // File not found, select it anyway (might appear later)
+                    workbenchStore.setSelectedFile(selectedFile);
+                    logger.warn(`Selected file ${selectedFile} not found yet, setting anyway`);
+                  }
                 }
 
                 // Note: Scroll positions are stored but restoration requires deeper integration
@@ -488,7 +600,13 @@ export function useChatHistory() {
     const selection = modelFullId ?? currentModel.get().fullId;
 
     // Wait for any ongoing file operations to complete before capturing state
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // Using event-based waiting instead of arbitrary timeout
+    try {
+      await waitForFileOperations(workbenchStore, { timeout: 2000, stabilityDelay: 100 });
+      logger.debug('File operations settled, capturing state');
+    } catch (error) {
+      logger.warn('File operations did not settle within timeout, capturing state anyway');
+    }
 
     // Capture terminal state
     const terminalState: TerminalState = {
@@ -513,65 +631,91 @@ export function useChatHistory() {
 
     let fileState: Record<string, { content: string; isBinary: boolean; encoding?: 'plain' | 'base64' }> | undefined;
 
+    // Track file size statistics for logging
+    let totalCapturedSize = 0;
+    let skippedFileCount = 0;
+    let skippedBySize = 0;
+    let skippedByPattern = 0;
+
     if (currentFiles) {
       // Import encoding utilities
       const { encodeFileContent } = await import('~/utils/file-encoding');
 
-      fileState = Object.fromEntries(
-        Object.entries(currentFiles)
-          .map(([path, file]) => {
-            if (file && file.type === 'file' && file.content !== undefined) {
-              const isBinary = file.isBinary || false;
+      const processedEntries: Array<[string, { content: string; isBinary: boolean; encoding: 'plain' | 'base64' }]> =
+        [];
 
-              // Encode binary files as base64 for storage
-              const { content: encodedContent, encoding } = encodeFileContent(file.content, isBinary);
+      for (const [path, file] of Object.entries(currentFiles)) {
+        // Skip non-file entries
+        if (!file || file.type !== 'file' || file.content === undefined) {
+          continue;
+        }
 
-              return [
-                path,
-                {
-                  content: encodedContent,
-                  isBinary,
-                  encoding,
-                },
-              ];
-            }
+        // Skip files matching exclusion patterns
+        if (shouldExcludeFile(path)) {
+          skippedFileCount++;
+          skippedByPattern++;
+          continue;
+        }
 
-            return undefined;
-          })
-          .filter(
-            (entry): entry is [string, { content: string; isBinary: boolean; encoding: 'plain' | 'base64' }] =>
-              entry !== undefined,
-          ),
-      );
+        const isBinary = file.isBinary || false;
 
-      // Apply the same filtering logic as FilesStore to exclude unwanted files
-      if (fileState) {
-        const hiddenPatterns = [
-          /\/node_modules\//,
-          /\/\.next/,
-          /\/\.astro/,
-          /\/\.git/,
-          /\/\.vscode/,
-          /\/\.idea/,
-          /\/dist/,
-          /\/build/,
-          /\/\.cache/,
-          /\/coverage/,
-          /\/\.nyc_output/,
-          /\/\.env/,
-          /\/\.env\./,
-          /\/\.DS_Store/,
-          /\/Thumbs\.db/,
-        ];
+        // Encode binary files as base64 for storage
+        const { content: encodedContent, encoding } = encodeFileContent(file.content, isBinary);
 
-        const filteredEntries = Object.entries(fileState).filter(
-          ([path]) => !hiddenPatterns.some((pattern) => pattern.test(path)),
+        // Check file size before adding
+        const fileSize = getStringByteSize(encodedContent);
+        const sizeCheck = wouldExceedSizeLimit(totalCapturedSize, fileSize);
+
+        if (sizeCheck.exceeded) {
+          logger.warn(`Skipping file ${path}: ${sizeCheck.reason}`);
+          skippedFileCount++;
+          skippedBySize++;
+          continue;
+        }
+
+        // Add to processed entries and update size tracker
+        processedEntries.push([
+          path,
+          {
+            content: encodedContent,
+            isBinary,
+            encoding,
+          },
+        ]);
+        totalCapturedSize += fileSize;
+      }
+
+      fileState = Object.fromEntries(processedEntries);
+
+      // Log capture statistics
+      if (processedEntries.length > 0) {
+        logger.info(
+          `Captured ${processedEntries.length} files (${formatBytes(totalCapturedSize)}) for chat history`,
         );
 
-        if (filteredEntries.length !== Object.keys(fileState).length) {
-          const excludedCount = Object.keys(fileState).length - filteredEntries.length;
-          logger.info(`Excluding ${excludedCount} files from chat history (node_modules, build artifacts, etc.)`);
-          fileState = Object.fromEntries(filteredEntries);
+        if (skippedFileCount > 0) {
+          logger.info(
+            `Skipped ${skippedFileCount} files: ${skippedByPattern} by pattern, ${skippedBySize} by size limit`,
+          );
+        }
+
+        // Show user notifications about file size issues
+        if (skippedBySize > 0) {
+          toast.warning(
+            `⚠️ Skipped ${skippedBySize} large ${skippedBySize === 1 ? 'file' : 'files'} (max ${formatBytes(FILE_SIZE_LIMITS.MAX_FILE_SIZE)} per file, ${formatBytes(FILE_SIZE_LIMITS.MAX_TOTAL_SIZE)} total)`,
+            {
+              autoClose: 5000,
+            },
+          );
+        } else if (totalCapturedSize >= FILE_SIZE_LIMITS.WARNING_THRESHOLD) {
+          // Warn if approaching the limit
+          const percentUsed = Math.round((totalCapturedSize / FILE_SIZE_LIMITS.MAX_TOTAL_SIZE) * 100);
+          toast.info(
+            `ℹ️ Project size: ${formatBytes(totalCapturedSize)} (${percentUsed}% of ${formatBytes(FILE_SIZE_LIMITS.MAX_TOTAL_SIZE)} limit)`,
+            {
+              autoClose: 4000,
+            },
+          );
         }
       }
     }

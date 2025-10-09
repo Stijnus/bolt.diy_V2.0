@@ -1,6 +1,6 @@
 import { atom, map, type MapStore, type ReadableAtom, type WritableAtom } from 'nanostores';
 import { EditorStore } from './editor';
-import { FilesStore, type FileMap } from './files';
+import { FilesStore, type FileMap, type FileRestorationResult } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
@@ -105,9 +105,16 @@ export class WorkbenchStore {
   /**
    * Restores files to WebContainer from a FileMap
    * Used when loading chat history to restore project state
+   *
+   * @param fileMap - Map of files to restore
+   * @param onProgress - Optional callback for progress updates (current, total, fileName)
+   * @returns Detailed restoration result summary
    */
-  async restoreFiles(fileMap: FileMap): Promise<void> {
-    await this.#filesStore.restoreFiles(fileMap);
+  async restoreFiles(
+    fileMap: FileMap,
+    onProgress?: (current: number, total: number, fileName?: string) => void,
+  ): Promise<FileRestorationResult> {
+    return await this.#filesStore.restoreFiles(fileMap, onProgress);
   }
 
   setShowWorkbench(show: boolean) {
