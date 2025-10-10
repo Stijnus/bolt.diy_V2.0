@@ -156,15 +156,16 @@ export const EditorPanel = memo(
                   <FolderTree className="w-4 h-4 shrink-0" />
                   Files
                 </PanelHeader>
-                <FileTree
-                  className="h-full"
-                  files={files}
-                  hideRoot
-                  unsavedFiles={unsavedFiles}
-                  rootFolder={WORK_DIR}
-                  selectedFile={selectedFile}
-                  onFileSelect={onFileSelect}
-                />
+                <div className="flex-1 overflow-hidden">
+                  <FileTree
+                    files={files}
+                    hideRoot
+                    unsavedFiles={unsavedFiles}
+                    rootFolder={WORK_DIR}
+                    selectedFile={selectedFile}
+                    onFileSelect={onFileSelect}
+                  />
+                </div>
               </div>
             </Panel>
             <PanelResizeHandle />

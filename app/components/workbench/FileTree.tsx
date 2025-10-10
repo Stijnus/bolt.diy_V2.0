@@ -122,7 +122,7 @@ export const FileTree = memo(
     };
 
     return (
-      <div className={classNames('text-sm', className)}>
+      <div className={classNames('text-sm h-full overflow-y-auto overflow-x-hidden', className)}>
         {filteredFileList.map((fileOrFolder) => {
           switch (fileOrFolder.kind) {
             case 'file': {

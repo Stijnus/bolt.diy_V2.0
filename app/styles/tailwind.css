@@ -839,4 +839,36 @@
   .xterm {
     padding: 1rem;
   }
+
+  /* Custom Scrollbar Styling */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: var(--bolt-elements-bg-depth-2);
+    border-radius: 5px;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: var(--bolt-elements-textTertiary);
+    border-radius: 5px;
+    border: 2px solid var(--bolt-elements-bg-depth-2);
+    transition: background 0.2s ease;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: var(--bolt-elements-borderColorActive);
+  }
+
+  ::-webkit-scrollbar-thumb:active {
+    background: var(--primary);
+  }
+
+  /* Firefox Scrollbar */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bolt-elements-textTertiary) var(--bolt-elements-bg-depth-2);
+  }
 }

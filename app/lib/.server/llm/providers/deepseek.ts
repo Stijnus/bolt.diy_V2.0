@@ -44,6 +44,7 @@ export const deepseekConfig: ProviderConfig = {
         output: 2.19,
         cachedInput: 0.14,
       },
+      isReasoningModel: true,
     },
   ],
 };

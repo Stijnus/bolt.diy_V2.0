@@ -69,6 +69,16 @@ export interface ModelInfo {
 
   /** Is this the default model for the provider? */
   isDefault?: boolean;
+
+  /**
+   * Is this a reasoning model that performs internal chain-of-thought?
+   * Reasoning models (o1, o3, DeepSeek R1) require different prompting strategies:
+   * - Minimal, concise prompts
+   * - No explicit "think step by step" instructions
+   * - Fewer or no examples
+   * - They perform reasoning internally in <think> tags
+   */
+  isReasoningModel?: boolean;
 }
 
 /**

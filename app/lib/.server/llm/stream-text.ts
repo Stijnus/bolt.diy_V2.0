@@ -2,7 +2,7 @@ import { streamText as _streamText, type LanguageModelUsage, type ModelMessage }
 import { MAX_TOKENS } from './constants';
 import { calculateCost } from './cost-calculator';
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER, getDefaultModel, getModel as getModelInfo } from './model-config';
-import { getSystemPrompt } from './prompts';
+import { getBoltSystemPrompt } from './get-system-prompt';
 import { createModel } from './provider-factory';
 import type { AIProvider } from './providers/types';
 
@@ -79,11 +79,24 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
   // use user-specified max tokens, model-specific max tokens, or default
   const finalMaxTokens = maxTokens ?? modelInfo?.maxTokens ?? MAX_TOKENS;
 
+  // construct full model ID for prompt builder
+  const fullModelIdForPrompt = fullModelId ?? `${resolvedProvider}:${resolvedModelId}`;
+
+  // optimize temperature based on provider to reduce hallucinations
+  // research shows lower temperature (0.3-0.5) reduces package hallucinations for open source models
+  const finalTemperature =
+    temperature ??
+    (resolvedProvider === 'deepseek'
+      ? 0.4 // lower temp for DeepSeek reduces 21.7% hallucination rate
+      : modelInfo?.isReasoningModel
+        ? 0.6 // reasoning models benefit from slightly lower temperature
+        : undefined); // use model default for others
+
   const result = _streamText({
     model,
-    system: getSystemPrompt(),
+    system: getBoltSystemPrompt(fullModelIdForPrompt),
     maxOutputTokens: finalMaxTokens,
-    temperature,
+    temperature: finalTemperature,
     headers,
     messages,
     ...streamOptions,

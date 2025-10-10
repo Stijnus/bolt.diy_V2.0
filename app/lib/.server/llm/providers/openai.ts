@@ -59,6 +59,7 @@ export const openaiConfig: ProviderConfig = {
         input: 10,
         output: 40,
       },
+      isReasoningModel: true,
     },
     {
       id: 'o4-mini',
@@ -77,6 +78,7 @@ export const openaiConfig: ProviderConfig = {
         input: 1.1,
         output: 4.4,
       },
+      isReasoningModel: true,
     },
     {
       id: 'gpt-4o',
