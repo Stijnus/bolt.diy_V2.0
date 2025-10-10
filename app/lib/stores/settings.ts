@@ -27,6 +27,7 @@ export interface EditorSettings {
 
 export interface AISettings {
   model: string;
+  defaultModel: string; // New: default model for new chats
   temperature: number;
   maxTokens: number;
   streamResponse: boolean;
@@ -66,6 +67,7 @@ const defaultEditorSettings: EditorSettings = {
 
 const defaultAISettings: AISettings = {
   model: 'deepseek:deepseek-chat',
+  defaultModel: 'anthropic:claude-sonnet-4-5-20250929', // Default for new chats
   temperature: 0.7,
   maxTokens: 8192,
   streamResponse: true,

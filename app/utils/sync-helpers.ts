@@ -59,6 +59,7 @@ export async function waitForFileOperations(
 
   return new Promise((resolve) => {
     const startTime = Date.now();
+
     let lastChangeTime = Date.now();
     let previousFileCount = Object.keys(workbenchStore.files.get()).length;
 
@@ -84,6 +85,7 @@ export async function waitForFileOperations(
           `[${elapsed}ms] File operations wait TIMED OUT after ${timeout}ms with ${currentFileCount} files, proceeding anyway`,
         );
         resolve();
+
         return;
       }
 
@@ -93,6 +95,7 @@ export async function waitForFileOperations(
           `[${elapsed}ms] File operations STABLE after ${timeSinceLastChange}ms of no changes (${currentFileCount} files captured)`,
         );
         resolve();
+
         return;
       }
 
@@ -114,10 +117,7 @@ export async function waitForFileOperations(
 /**
  * Debounce function execution
  */
-export function debounce<T extends (...args: any[]) => any>(
-  func: T,
-  delay: number,
-): (...args: Parameters<T>) => void {
+export function debounce<T extends (...args: any[]) => any>(func: T, delay: number): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
 
   return function (this: any, ...args: Parameters<T>) {

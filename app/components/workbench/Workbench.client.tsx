@@ -6,6 +6,7 @@ import { memo, useCallback, useEffect } from 'react';
 import type React from 'react';
 import { toast } from 'react-toastify';
 import { EditorPanel } from './EditorPanel';
+import { ErrorNotification } from './ErrorNotification';
 import { Preview } from './Preview';
 import {
   type OnChangeCallback as OnEditorChange,
@@ -197,6 +198,7 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
               </div>
             </div>
           </div>
+          <ErrorNotification />
         </div>
       </motion.div>
     )

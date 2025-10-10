@@ -333,8 +333,10 @@ export class FilesStore {
       if (successful.length > 0) {
         logger.info(`Successfully restored ${successful.length} files, refreshing file tree...`);
 
-        // Instead of manually updating the store with only restored files,
-        // refresh ALL files from WebContainer to get the complete, accurate state
+        /*
+         * Instead of manually updating the store with only restored files,
+         * refresh ALL files from WebContainer to get the complete, accurate state
+         */
         await this.#refreshAllFiles();
 
         logger.info(`File tree refreshed after restoration`);

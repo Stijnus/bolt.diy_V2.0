@@ -10,6 +10,7 @@ import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from
 import { useChatHistory } from '~/lib/persistence';
 import { chatStore } from '~/lib/stores/chat';
 import { currentModel } from '~/lib/stores/model';
+import { settingsStore } from '~/lib/stores/settings';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
@@ -72,8 +73,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
 
-  const { showChat } = useStore(chatStore);
+  const { showChat, pendingInput } = useStore(chatStore);
   const modelSelection = useStore(currentModel);
+  const settings = useStore(settingsStore);
 
   const [animationScope, animate] = useAnimate();
 
@@ -81,6 +83,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     messages: initialMessages,
     body: {
       model: modelSelection.fullId,
+      temperature: settings.ai.temperature,
+      maxTokens: settings.ai.maxTokens,
     } as Record<string, unknown>,
   } as any);
 
@@ -100,26 +104,45 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     chatStore.setKey('started', initialMessages.length > 0);
   }, []);
 
+  // Handle pendingInput from error notifications
+  useEffect(() => {
+    if (pendingInput) {
+      setInput(pendingInput);
+      chatStore.setKey('pendingInput', undefined);
+
+      // Focus the textarea
+      setTimeout(() => {
+        textareaRef.current?.focus();
+      }, 100);
+    }
+  }, [pendingInput]);
+
   useEffect(() => {
     parseMessages(messages, isLoading);
   }, [messages, isLoading]);
 
   // Save when streaming completes - single save point with proper timing
   useEffect(() => {
-    // Only trigger save when:
-    // 1. Streaming just finished (isLoading changed from true to false)
-    // 2. We have new messages beyond what was initially loaded
-    // 3. We haven't saved this many messages yet
+    /*
+     * Only trigger save when:
+     * 1. Streaming just finished (isLoading changed from true to false)
+     * 2. We have new messages beyond what was initially loaded
+     * 3. We haven't saved this many messages yet
+     */
     if (!isLoading && messages.length > initialMessages.length && messages.length > lastSavedCountRef.current) {
-      console.log(`[Chat] Streaming complete, scheduling save for ${messages.length} messages (last saved: ${lastSavedCountRef.current})`);
+      console.log(
+        `[Chat] Streaming complete, scheduling save for ${messages.length} messages (last saved: ${lastSavedCountRef.current})`,
+      );
 
-      // Wait 2 seconds to ensure:
-      // - Actions are parsed from AI response
-      // - Actions are queued in ActionRunner
-      // - Actions start executing in WebContainer
-      // - Files are written to WebContainer
-      // - FilesStore watcher detects changes
-      // Then waitForFileOperations will wait for files to stabilize
+      /*
+       * Wait 2 seconds to ensure:
+       * - Actions are parsed from AI response
+       * - Actions are queued in ActionRunner
+       * - Actions start executing in WebContainer
+       * - Files are written to WebContainer
+       * - FilesStore watcher detects changes
+       * Then waitForFileOperations will wait for files to stabilize
+       */
       const saveTimeoutId = setTimeout(() => {
         console.log(`[Chat] Starting save of ${messages.length} messages...`);
         storeMessageHistory(messages, modelSelection.fullId)
@@ -137,6 +160,8 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
         clearTimeout(saveTimeoutId);
       };
     }
+
+    return undefined;
   }, [isLoading, messages, modelSelection.fullId, initialMessages.length]);
 
   const scrollTextArea = () => {

@@ -112,6 +112,14 @@
     --bolt-elements-cta-background: var(--accent);
     --bolt-elements-cta-text: var(--accent-foreground);
 
+    /* Warning/info states */
+    --bolt-elements-warning-background: hsl(38 92% 50% / 0.12);
+    --bolt-elements-warning-text: hsl(38 92% 50%);
+    --bolt-elements-warning-border: hsl(38 92% 50% / 0.20);
+    --bolt-elements-info-background: var(--bolt-elements-cta-background);
+    --bolt-elements-info-text: var(--bolt-elements-cta-text);
+    --bolt-elements-info-border: var(--bolt-elements-borderColorActive);
+
     --bolt-terminal-background: var(--bolt-elements-terminals-background);
     --bolt-terminal-foreground: var(--foreground);
     --bolt-terminal-selection-background: oklch(0.8866 0.0404 89.6994 / 0.45);
@@ -437,6 +445,14 @@
     --bolt-elements-cta-background: var(--accent);
     --bolt-elements-cta-text: var(--accent-foreground);
 
+    /* Warning/info states */
+    --bolt-elements-warning-background: hsl(38 92% 50% / 0.20);
+    --bolt-elements-warning-text: hsl(38 92% 60%);
+    --bolt-elements-warning-border: hsl(38 92% 50% / 0.30);
+    --bolt-elements-info-background: var(--bolt-elements-cta-background);
+    --bolt-elements-info-text: var(--bolt-elements-cta-text);
+    --bolt-elements-info-border: var(--bolt-elements-borderColorActive);
+
     --bolt-terminal-background: var(--bolt-elements-terminals-background);
     --bolt-terminal-foreground: var(--foreground);
     --bolt-terminal-selection-background: oklch(0.3741 0.0087 67.5582 / 0.45);
@@ -555,6 +571,11 @@
 /* stylelint-enable at-rule-no-unknown */
 
 @layer components {
+  /* Badge success using design tokens */
+  .badge-success {
+    background-color: color-mix(in oklab, var(--bolt-elements-icon-success) 15%, transparent);
+    color: var(--bolt-elements-icon-success);
+  }
   /* Modern Gradient Backgrounds */
   .gradient-primary {
     background: linear-gradient(135deg, hsl(203.8863 88.2845% 53.1373%) 0%, hsl(211.5789 51.3514% 92.7451%) 100%);

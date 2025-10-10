@@ -13,8 +13,8 @@ const badgeVariants = cva(
           'border-transparent bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text shadow-sm',
         secondary:
           'border-transparent bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text',
-        success: 'border-transparent bg-green-500/15 text-green-600 dark:text-green-400',
-        warning: 'border-transparent bg-orange-500/15 text-orange-600 dark:text-orange-400',
+        success: 'border-transparent badge-success',
+        warning: 'border-transparent bg-[var(--bolt-elements-warning-background)] text-[var(--bolt-elements-warning-text)]',
         danger: 'border-transparent bg-bolt-elements-button-danger-background/15 text-bolt-elements-button-danger-text',
         outline: 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary',
       },

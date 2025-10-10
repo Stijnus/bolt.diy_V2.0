@@ -5,22 +5,22 @@ import * as React from 'react';
 import { cn } from '~/lib/utils';
 
 const buttonVariants = cva(
-  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
+  'inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-theme focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]',
   {
     variants: {
       variant: {
         primary:
-          'bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 focus-visible:ring-blue-500 shadow-md hover:shadow-lg',
+          'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover focus-visible:ring-bolt-elements-borderColorActive shadow-sm hover:shadow-md',
         secondary:
-          'bg-gray-100 text-gray-900 hover:bg-gray-200 focus-visible:ring-gray-500 shadow-sm hover:shadow-md dark:bg-gray-800 dark:text-gray-100 dark:hover:bg-gray-700',
+          'bg-bolt-elements-button-secondary-background text-bolt-elements-textPrimary hover:bg-bolt-elements-button-secondary-backgroundHover focus-visible:ring-bolt-elements-borderColorActive shadow-sm',
         outline:
-          'border-2 border-gray-300 bg-transparent text-gray-700 hover:bg-gray-50 focus-visible:ring-gray-500 hover:border-gray-400 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 dark:hover:border-gray-500',
+          'border-2 border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-2 focus-visible:ring-bolt-elements-borderColorActive hover:border-bolt-elements-borderColorActive',
         ghost:
-          'bg-transparent text-gray-600 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:hover:text-gray-100 dark:hover:bg-gray-800',
+          'bg-transparent text-bolt-elements-textSecondary hover:text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2',
         subtle:
-          'bg-gray-50 text-gray-700 hover:bg-gray-100 border border-gray-200 focus-visible:ring-gray-500 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:border-gray-700',
+          'bg-bolt-elements-background-depth-2 text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor focus-visible:ring-bolt-elements-borderColorActive',
         danger:
-          'bg-gradient-to-r from-red-600 to-red-700 text-white hover:from-red-700 hover:to-red-800 focus-visible:ring-red-500 shadow-md hover:shadow-lg',
+          'bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover focus-visible:ring-bolt-elements-button-danger-text shadow-sm hover:shadow-md',
       },
       size: {
         sm: 'h-9 px-4 text-sm',

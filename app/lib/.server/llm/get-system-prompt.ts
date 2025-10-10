@@ -1,6 +1,6 @@
+import { getModelByFullId } from './model-config';
 import { getSystemPrompt } from './prompts';
 import { getReasoningSystemPrompt } from './prompts-reasoning';
-import { getModelByFullId } from './model-config';
 import { WORK_DIR } from '~/utils/constants';
 
 /**

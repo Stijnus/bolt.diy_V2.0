@@ -12,7 +12,7 @@ interface SettingItemProps {
 
 export function SettingItem({ label, description, tooltip, children }: SettingItemProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3">
+    <div className="flex items-center justify-between rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-4 py-3 transition-theme hover:border-bolt-elements-borderColorActive">
       <div className="flex-1">
         <div className="flex items-center gap-2">
           <label className="block text-sm font-medium text-bolt-elements-textPrimary">{label}</label>

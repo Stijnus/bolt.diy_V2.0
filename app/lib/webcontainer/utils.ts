@@ -66,9 +66,7 @@ export async function waitForWebContainer(
     try {
       const container = await Promise.race([
         webcontainer,
-        new Promise<never>((_, reject) =>
-          setTimeout(() => reject(new Error('WebContainer promise timeout')), 5000),
-        ),
+        new Promise<never>((_, reject) => setTimeout(() => reject(new Error('WebContainer promise timeout')), 5000)),
       ]);
 
       logger.debug('WebContainer already loaded and ready');

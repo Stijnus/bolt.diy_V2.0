@@ -4,6 +4,13 @@ import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
 
+// Load error testing utilities in development
+if (import.meta.env.DEV) {
+  import('~/lib/debug/error-testing.client').catch(() => {
+    // Silently fail if module doesn't load
+  });
+}
+
 export const meta: MetaFunction = () => {
   return [
     { title: 'BoltDIY V2.0 - AI-Powered Development Platform' },

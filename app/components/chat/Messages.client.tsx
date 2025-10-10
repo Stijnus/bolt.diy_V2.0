@@ -2,6 +2,7 @@ import type { UIMessage } from 'ai';
 import { User } from 'lucide-react';
 import React from 'react';
 import { AssistantMessage } from './AssistantMessage';
+import { LoadingAnimation } from './LoadingAnimation';
 import { UserMessage } from './UserMessage';
 import { classNames } from '~/utils/classNames';
 
@@ -55,19 +56,10 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
           })
         : null}
       {isStreaming && (
-        <div className="text-center w-full text-bolt-elements-textSecondary mt-4">
-          <div className="inline-block">
-            <svg width="40" height="40" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
-              <circle cx="4" cy="12" r="3" opacity=".4">
-                <animate attributeName="opacity" dur="1s" values=".4;1;.4" repeatCount="indefinite" begin="0" />
-              </circle>
-              <circle cx="12" cy="12" r="3" opacity=".4">
-                <animate attributeName="opacity" dur="1s" values=".4;1;.4" repeatCount="indefinite" begin=".33s" />
-              </circle>
-              <circle cx="20" cy="12" r="3" opacity=".4">
-                <animate attributeName="opacity" dur="1s" values=".4;1;.4" repeatCount="indefinite" begin=".66s" />
-              </circle>
-            </svg>
+        <div className="flex justify-center w-full mt-6 mb-2">
+          <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-bolt-elements-messages-background border border-bolt-elements-borderColor/50">
+            <LoadingAnimation variant="wave" />
+            <span className="text-sm text-bolt-elements-textSecondary">AI is thinking...</span>
           </div>
         </div>
       )}

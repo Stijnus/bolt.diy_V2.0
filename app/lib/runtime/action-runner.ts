@@ -2,6 +2,8 @@ import * as nodePath from 'node:path';
 import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
 import type { ActionCallbackData } from './message-parser';
+import { errorStore } from '~/lib/stores/errors';
+import { containsError, extractStackTrace, parseError } from '~/lib/webcontainer/error-patterns';
 import type { BoltAction } from '~/types/actions';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
@@ -200,57 +202,100 @@ export class ActionRunner {
     // Check if this is a dev server command that should complete on startup
     const isDevServerCommand = this.#isDevServerCommand(action.content);
 
-    let completedEarly = false;
-
     if (isDevServerCommand) {
-      // Monitor output for successful startup patterns
+      // For dev servers: monitor continuously for errors, but resolve action when server starts
+      let serverStarted = false;
+
       const outputBuffer: string[] = [];
-      const hasDevServerStarted = this.#hasDevServerStarted.bind(this);
 
-      // Create a promise that resolves when server starts or times out
-      const startupPromise: Promise<void> = new Promise<void>((resolve) => {
-        const timeoutId = setTimeout(() => {
-          if (!completedEarly) {
-            completedEarly = true;
-            logger.debug(`Dev server startup timeout for command: ${action.content}`);
-            resolve();
-          }
-        }, 30000); // 30 second timeout
-
-        process.output.pipeTo(
-          new WritableStream({
-            write(data) {
-              logger.debug(String(data));
-              outputBuffer.push(data);
-
-              // Check for dev server success patterns
-              if (!completedEarly && hasDevServerStarted(outputBuffer.join(''))) {
-                completedEarly = true;
-                clearTimeout(timeoutId);
-                logger.debug(`Dev server successfully started for command: ${action.content}`);
-
-                // IMPORTANT: Don't kill the process - let the dev server continue running
-                resolve();
-              }
-            },
-          }),
-        );
-      });
-
-      // Wait for startup completion but don't kill the process
-      await startupPromise;
-    } else {
-      // Regular command - wait for completion
+      // Continuous monitoring stream (keeps running)
       process.output.pipeTo(
         new WritableStream({
-          write(data) {
-            logger.debug(String(data));
+          write: (data) => {
+            const output = String(data);
+            logger.debug(output);
+            outputBuffer.push(data);
+
+            // CONTINUOUS error monitoring (runs forever)
+            this.#monitorForErrors(output);
+
+            // Check for server startup (only once)
+            if (!serverStarted && this.#hasDevServerStarted(outputBuffer.join(''))) {
+              serverStarted = true;
+              logger.debug(`✅ Dev server successfully started for command: ${action.content}`);
+            }
+          },
+        }),
+      );
+
+      /*
+       * Wait a bit for server to start, then mark action complete
+       * But keep the stream monitoring in the background!
+       */
+      await new Promise<void>((resolve) => {
+        const checkInterval = setInterval(() => {
+          if (serverStarted) {
+            clearInterval(checkInterval);
+            clearTimeout(timeoutId);
+            resolve();
+          }
+        }, 100);
+
+        const timeoutId = setTimeout(() => {
+          clearInterval(checkInterval);
+          logger.debug(`⏱️  Dev server startup timeout (will keep monitoring for errors)`);
+          resolve();
+        }, 30000); // 30 second timeout
+      });
+    } else {
+      // Regular command - monitor for errors and wait for completion
+      process.output.pipeTo(
+        new WritableStream({
+          write: (data) => {
+            const output = String(data);
+            logger.debug(output);
+
+            // Monitor errors for ALL commands
+            this.#monitorForErrors(output);
           },
         }),
       );
 
       const exitCode = await process.exit;
       logger.debug(`Process terminated with code ${exitCode}`);
+    }
+  }
+
+  /**
+   * Monitor output for errors and add them to error store
+   * Extracted to a separate method for reuse across command types
+   */
+  #monitorForErrors(output: string) {
+    if (!errorStore.monitoringEnabled.get()) {
+      return;
+    }
+
+    if (!containsError(output)) {
+      return;
+    }
+
+    const parsedError = parseError(output);
+
+    if (parsedError && parsedError.message) {
+      const stack = extractStackTrace(output);
+
+      logger.info(`🔴 Error detected: ${parsedError.message}`);
+
+      errorStore.addError({
+        type: parsedError.type || 'unknown',
+        severity: parsedError.severity || 'error',
+        message: parsedError.message,
+        file: parsedError.file,
+        line: parsedError.line,
+        column: parsedError.column,
+        source: parsedError.source || 'unknown',
+        stack,
+      });
     }
   }
 

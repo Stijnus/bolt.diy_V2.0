@@ -17,6 +17,7 @@ const logger = createScopedLogger('ChatHistory');
 
 export interface TerminalState {
   isVisible: boolean;
+
   // Future: Add command history, CWD, etc.
 }
 
@@ -151,18 +152,22 @@ export function useChatHistory() {
                     (data as { file_state?: Record<string, { content: string; isBinary: boolean }> | null })
                       .file_state ?? undefined;
 
-                  const remoteTerminalState = (data as { terminal_state?: { isVisible: boolean } | null })
-                    .terminal_state ?? undefined;
+                  const remoteTerminalState =
+                    (data as { terminal_state?: { isVisible: boolean } | null }).terminal_state ?? undefined;
 
-                  const remoteWorkbenchState = (
-                    data as { workbench_state?: { currentView: 'code' | 'preview'; showWorkbench: boolean } | null }
-                  ).workbench_state ?? undefined;
+                  const remoteWorkbenchState =
+                    (data as { workbench_state?: { currentView: 'code' | 'preview'; showWorkbench: boolean } | null })
+                      .workbench_state ?? undefined;
 
-                  const remoteEditorState = (
-                    data as {
-                      editor_state?: { selectedFile?: string; scrollPositions?: Record<string, { top: number; left: number }> } | null;
-                    }
-                  ).editor_state ?? undefined;
+                  const remoteEditorState =
+                    (
+                      data as {
+                        editor_state?: {
+                          selectedFile?: string;
+                          scrollPositions?: Record<string, { top: number; left: number }>;
+                        } | null;
+                      }
+                    ).editor_state ?? undefined;
 
                   await setMessages(
                     database,
@@ -258,9 +263,7 @@ export function useChatHistory() {
                     const wcResult = await waitForWebContainer({ timeout: 30000, throwOnTimeout: false });
 
                     if (!wcResult.ready || !wcResult.container) {
-                      throw new Error(
-                        wcResult.error?.message || 'WebContainer failed to initialize within 30 seconds',
-                      );
+                      throw new Error(wcResult.error?.message || 'WebContainer failed to initialize within 30 seconds');
                     }
 
                     logger.info(`WebContainer ready after ${wcResult.timeWaited}ms, proceeding with file restoration`);
@@ -353,6 +356,7 @@ export function useChatHistory() {
                 }
               } catch (error) {
                 logger.error('Failed to restore terminal state:', error);
+
                 // Non-critical, continue
               }
             }
@@ -375,6 +379,7 @@ export function useChatHistory() {
                 );
               } catch (error) {
                 logger.error('Failed to restore workbench state:', error);
+
                 // Non-critical, continue
               }
             }
@@ -393,10 +398,13 @@ export function useChatHistory() {
                   }, 500);
                 }
 
-                // Note: Scroll positions are stored but restoration requires deeper integration
-                // with the editor store. This could be added in a future enhancement.
+                /*
+                 * Note: Scroll positions are stored but restoration requires deeper integration
+                 * with the editor store. This could be added in a future enhancement.
+                 */
               } catch (error) {
                 logger.error('Failed to restore editor state:', error);
+
                 // Non-critical, continue
               }
             }
@@ -488,14 +496,16 @@ export function useChatHistory() {
 
     const selection = modelFullId ?? currentModel.get().fullId;
 
-    // Wait for any ongoing file operations to complete before capturing state
-    // This ensures WebContainer file writes are done and the store has refreshed
-    // Increased timeout to account for:
-    // - Action parsing and queueing (0-200ms)
-    // - Action execution in WebContainer (200-2000ms)
-    // - File watcher debounce (100ms)
-    // - FilesStore refresh from WebContainer (100-500ms)
-    // Total: ~3000ms worst case
+    /*
+     * Wait for any ongoing file operations to complete before capturing state
+     * This ensures WebContainer file writes are done and the store has refreshed
+     * Increased timeout to account for:
+     * - Action parsing and queueing (0-200ms)
+     * - Action execution in WebContainer (200-2000ms)
+     * - File watcher debounce (100ms)
+     * - FilesStore refresh from WebContainer (100-500ms)
+     * Total: ~3000ms worst case
+     */
     try {
       logger.debug('Waiting for file operations to complete before capturing state...');
       await waitForFileOperations(workbenchStore, { timeout: 5000, stabilityDelay: 300 });
@@ -518,8 +528,11 @@ export function useChatHistory() {
     // Capture editor state (selected file)
     const editorState: EditorState = {
       selectedFile: workbenchStore.selectedFile.get(),
-      // Note: Scroll positions are tracked per file in editor documents
-      // but are not easily accessible from here. Could be added in the future.
+
+      /*
+       * Note: Scroll positions are tracked per file in editor documents
+       * but are not easily accessible from here. Could be added in the future.
+       */
     };
 
     // Get current file state from workbench store
