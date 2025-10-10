@@ -39,6 +39,7 @@ export function decodeFromBase64(base64Content: string): string {
  */
 export function uint8ArrayToBase64(uint8Array: Uint8Array): string {
   let binary = '';
+
   const len = uint8Array.byteLength;
 
   for (let i = 0; i < len; i++) {
@@ -86,6 +87,7 @@ export function encodeFileContent(
     return { content: encoded, encoding: 'base64' };
   } catch (error) {
     console.error('Failed to encode binary file:', error);
+
     // Fallback to plain if encoding fails
     return { content: '', encoding: 'plain' };
   }

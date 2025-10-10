@@ -93,6 +93,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
+  // Track the last saved message count to avoid re-saving and to ensure we capture all new messages
+  const lastSavedCountRef = useRef(initialMessages.length);
+
   useEffect(() => {
     chatStore.setKey('started', initialMessages.length > 0);
   }, []);
@@ -101,17 +104,40 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     parseMessages(messages, isLoading);
   }, [messages, isLoading]);
 
-  // Store message history whenever messages change (after user sends or AI responds)
+  // Save when streaming completes - single save point with proper timing
   useEffect(() => {
-    if (messages.length > 0) {
-      // Use a small delay to batch rapid updates during streaming
-      const timeoutId = setTimeout(() => {
-        storeMessageHistory(messages, modelSelection.fullId);
-      }, 500);
+    // Only trigger save when:
+    // 1. Streaming just finished (isLoading changed from true to false)
+    // 2. We have new messages beyond what was initially loaded
+    // 3. We haven't saved this many messages yet
+    if (!isLoading && messages.length > initialMessages.length && messages.length > lastSavedCountRef.current) {
+      console.log(`[Chat] Streaming complete, scheduling save for ${messages.length} messages (last saved: ${lastSavedCountRef.current})`);
 
-      return () => clearTimeout(timeoutId);
+      // Wait 2 seconds to ensure:
+      // - Actions are parsed from AI response
+      // - Actions are queued in ActionRunner
+      // - Actions start executing in WebContainer
+      // - Files are written to WebContainer
+      // - FilesStore watcher detects changes
+      // Then waitForFileOperations will wait for files to stabilize
+      const saveTimeoutId = setTimeout(() => {
+        console.log(`[Chat] Starting save of ${messages.length} messages...`);
+        storeMessageHistory(messages, modelSelection.fullId)
+          .then(() => {
+            lastSavedCountRef.current = messages.length;
+            console.log(`[Chat] Successfully saved ${messages.length} messages`);
+          })
+          .catch((error) => {
+            console.error('[Chat] Failed to store message history:', error);
+          });
+      }, 2000);
+
+      return () => {
+        console.log('[Chat] Cleaning up save timeout');
+        clearTimeout(saveTimeoutId);
+      };
     }
-  }, [messages, modelSelection.fullId, storeMessageHistory]);
+  }, [isLoading, messages, modelSelection.fullId, initialMessages.length]);
 
   const scrollTextArea = () => {
     const textarea = textareaRef.current;

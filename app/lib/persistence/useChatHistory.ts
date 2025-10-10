@@ -11,6 +11,7 @@ import { workbenchStore } from '~/lib/stores/workbench';
 import { createClient } from '~/lib/supabase/client';
 import type { FullModelId } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
+import { waitForFileOperations } from '~/utils/sync-helpers';
 
 const logger = createScopedLogger('ChatHistory');
 
@@ -488,7 +489,20 @@ export function useChatHistory() {
     const selection = modelFullId ?? currentModel.get().fullId;
 
     // Wait for any ongoing file operations to complete before capturing state
-    await new Promise((resolve) => setTimeout(resolve, 100));
+    // This ensures WebContainer file writes are done and the store has refreshed
+    // Increased timeout to account for:
+    // - Action parsing and queueing (0-200ms)
+    // - Action execution in WebContainer (200-2000ms)
+    // - File watcher debounce (100ms)
+    // - FilesStore refresh from WebContainer (100-500ms)
+    // Total: ~3000ms worst case
+    try {
+      logger.debug('Waiting for file operations to complete before capturing state...');
+      await waitForFileOperations(workbenchStore, { timeout: 5000, stabilityDelay: 300 });
+      logger.debug('File operations complete, capturing state now');
+    } catch (error) {
+      logger.warn('File operations wait timed out, capturing state anyway:', error);
+    }
 
     // Capture terminal state
     const terminalState: TerminalState = {

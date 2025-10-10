@@ -16,6 +16,9 @@ export type BaseActionState = BoltAction & {
   abort: () => void;
   executed: boolean;
   abortSignal: AbortSignal;
+  normalizedCommand?: string | null;
+  duplicateOf?: string | null;
+  globalActionKey?: string | null;
 };
 
 export type FailedActionState = BoltAction &
@@ -26,7 +29,12 @@ export type FailedActionState = BoltAction &
 
 export type ActionState = BaseActionState | FailedActionState;
 
-type BaseActionUpdate = Partial<Pick<BaseActionState, 'status' | 'abort' | 'executed'>>;
+type BaseActionUpdate = Partial<
+  Pick<
+    BaseActionState,
+    'status' | 'abort' | 'executed' | 'content' | 'normalizedCommand' | 'duplicateOf' | 'globalActionKey'
+  >
+>;
 
 export type ActionStateUpdate =
   | BaseActionUpdate
@@ -35,25 +43,66 @@ export type ActionStateUpdate =
 type ActionsMap = MapStore<Record<string, ActionState>>;
 
 export class ActionRunner {
+  static #instanceCounter = 0;
+  static #globalShellCommands = new Map<string, { actionId: string; runnerId: number }>();
+
+  static resetGlobalStateForTesting() {
+    ActionRunner.#globalShellCommands.clear();
+    ActionRunner.#instanceCounter = 0;
+  }
+
   #webcontainer: Promise<WebContainer>;
   #currentExecutionPromise: Promise<void> = Promise.resolve();
   #completionCallbacks: Map<string, () => void> = new Map();
+  #instanceId: number;
 
   actions: ActionsMap = map({});
 
   constructor(webcontainerPromise: Promise<WebContainer>) {
     this.#webcontainer = webcontainerPromise;
+    this.#instanceId = ActionRunner.#instanceCounter++;
   }
 
   addAction(data: ActionCallbackData) {
     const { actionId } = data;
 
     const actions = this.actions.get();
-    const action = actions[actionId];
+    const existingAction = actions[actionId];
 
-    if (action) {
+    if (existingAction) {
       // action already added
       return;
+    }
+
+    const normalizedCommand = data.action.type === 'shell' ? this.#normalizeShellCommand(data.action.content) : null;
+
+    // Check for duplicate actions to prevent multiple identical commands/servers
+    const duplicateActionId = this.#findDuplicateAction(data.action, actions, normalizedCommand);
+
+    if (duplicateActionId) {
+      if (data.action.type === 'file') {
+        // For file actions, update the existing action with new content (last write wins)
+        logger.debug(`Updating duplicate file action ${duplicateActionId} with new content from ${actionId}`);
+        this.#updateAction(duplicateActionId, { content: data.action.content });
+      } else {
+        // For shell actions, skip entirely
+        logger.debug(`Skipping duplicate shell action ${actionId}, already exists as ${duplicateActionId}`);
+      }
+
+      return;
+    }
+
+    if (normalizedCommand) {
+      const existingGlobalShellAction = ActionRunner.#globalShellCommands.get(normalizedCommand);
+
+      if (existingGlobalShellAction) {
+        logger.debug(
+          `Skipping global duplicate shell action ${actionId}, already registered by runner ${existingGlobalShellAction.runnerId}`,
+        );
+        return;
+      }
+
+      ActionRunner.#globalShellCommands.set(normalizedCommand, { actionId, runnerId: this.#instanceId });
     }
 
     const abortController = new AbortController();
@@ -65,8 +114,11 @@ export class ActionRunner {
       abort: () => {
         abortController.abort();
         this.#updateAction(actionId, { status: 'aborted' });
+        logger.debug(`Action ${actionId} aborted`);
       },
       abortSignal: abortController.signal,
+      normalizedCommand,
+      globalActionKey: normalizedCommand,
     });
 
     this.#currentExecutionPromise.then(() => {
@@ -168,7 +220,7 @@ export class ActionRunner {
         process.output.pipeTo(
           new WritableStream({
             write(data) {
-              console.log(data);
+              logger.debug(String(data));
               outputBuffer.push(data);
 
               // Check for dev server success patterns
@@ -192,7 +244,7 @@ export class ActionRunner {
       process.output.pipeTo(
         new WritableStream({
           write(data) {
-            console.log(data);
+            logger.debug(String(data));
           },
         }),
       );
@@ -271,14 +323,26 @@ export class ActionRunner {
 
   #updateAction(id: string, newState: ActionStateUpdate) {
     const actions = this.actions.get();
-    const updatedAction = { ...actions[id], ...newState };
+    const previousAction = actions[id];
+    const updatedAction = { ...previousAction, ...newState };
+
+    if (
+      previousAction?.globalActionKey &&
+      (updatedAction.status === 'failed' || updatedAction.status === 'aborted' || updatedAction.status === 'complete')
+    ) {
+      this.#releaseGlobalShellAction(id, previousAction.globalActionKey);
+      updatedAction.globalActionKey = null;
+    }
 
     this.actions.setKey(id, updatedAction);
 
     // Check if action completed and call completion callback
     const completionCallback = this.#completionCallbacks.get(id);
 
-    if (completionCallback && (updatedAction.status === 'complete' || updatedAction.status === 'failed')) {
+    if (
+      completionCallback &&
+      (updatedAction.status === 'complete' || updatedAction.status === 'failed' || updatedAction.status === 'aborted')
+    ) {
       completionCallback();
       this.#completionCallbacks.delete(id);
     }
@@ -360,5 +424,61 @@ export class ActionRunner {
 
     // Check if any success pattern matches
     return successPatterns.some((pattern) => pattern.test(output));
+  }
+
+  /**
+   * Normalize a shell command for comparison/deduplication
+   */
+  #normalizeShellCommand(command: string): string {
+    return command.trim().replace(/\s+/g, ' ');
+  }
+
+  #releaseGlobalShellAction(actionId: string, globalActionKey: string | null | undefined) {
+    if (!globalActionKey) {
+      return;
+    }
+
+    const currentEntry = ActionRunner.#globalShellCommands.get(globalActionKey);
+
+    if (currentEntry && currentEntry.actionId === actionId && currentEntry.runnerId === this.#instanceId) {
+      ActionRunner.#globalShellCommands.delete(globalActionKey);
+    }
+  }
+
+  /**
+   * Find if an action with the same content already exists
+   */
+  #findDuplicateAction(
+    newAction: BoltAction,
+    existingActions: Record<string, ActionState>,
+    normalizedShellCommand: string | null,
+  ): string | null {
+    const isShellAction = newAction.type === 'shell';
+
+    const shellCommand = isShellAction
+      ? (normalizedShellCommand ?? this.#normalizeShellCommand(newAction.content))
+      : null;
+
+    for (const [existingId, existingAction] of Object.entries(existingActions)) {
+      if (existingAction.status === 'aborted' || existingAction.status === 'failed') {
+        continue;
+      }
+
+      if (isShellAction && existingAction.type === 'shell') {
+        const existingNormalized =
+          existingAction.normalizedCommand ?? this.#normalizeShellCommand(existingAction.content);
+
+        if (existingNormalized === shellCommand) {
+          return existingId;
+        }
+      } else if (newAction.type === 'file' && existingAction.type === 'file') {
+        // For file actions, deduplicate by file path (last write wins)
+        if (newAction.filePath === existingAction.filePath) {
+          return existingId;
+        }
+      }
+    }
+
+    return null;
   }
 }
