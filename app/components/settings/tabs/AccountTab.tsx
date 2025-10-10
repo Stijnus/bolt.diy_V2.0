@@ -31,11 +31,11 @@ export function AccountTab({
   return (
     <SettingsSection title="Account" description="Manage your account" status="implemented">
       {/* Password Change */}
-      <SettingCard title="Change Password" className="mb-6">
+<SettingCard title="Change Password" size="sm" className="mb-6">
         <div className="space-y-4 max-w-sm">
           <div>
             <label className="block text-sm font-medium text-bolt-elements-textSecondary mb-2">New Password</label>
-            <Input
+<Input uiSize="sm"
               type="password"
               placeholder="Enter new password"
               value={newPassword}
@@ -47,7 +47,7 @@ export function AccountTab({
             <label className="block text-sm font-medium text-bolt-elements-textSecondary mb-2">
               Confirm New Password
             </label>
-            <Input
+<Input uiSize="sm"
               type="password"
               placeholder="Confirm new password"
               value={confirmPassword}
@@ -55,10 +55,11 @@ export function AccountTab({
               className="w-full rounded-[calc(var(--radius))] transition-theme"
             />
           </div>
-          <Button 
+<Button 
             onClick={onChangePassword} 
             disabled={isChangingPassword || !newPassword || !confirmPassword}
-            className="rounded-[calc(var(--radius))] transition-theme animate-scaleIn"
+            size="sm"
+            className="rounded-[calc(var(--radius))] transition-theme"
           >
             {isChangingPassword ? 'Changing...' : 'Change Password'}
           </Button>
