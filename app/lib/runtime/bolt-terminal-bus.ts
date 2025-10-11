@@ -1,17 +1,23 @@
 import { atom } from 'nanostores';
 
-// A very small pub-sub buffer for the dedicated Bolt Terminal
-// Accumulates recent output and broadcasts chunks to subscribers
+/*
+ * A very small pub-sub buffer for the dedicated Bolt Terminal
+ * Accumulates recent output and broadcasts chunks to subscribers
+ */
 
 const MAX_BUFFER_LENGTH = 200_000; // ~200 KB of text
 
 const bufferAtom = atom<string>('');
 
 type Listener = (chunk: string) => void;
+
 const listeners = new Set<Listener>();
 
 export function writeToBoltTerminal(chunk: string) {
-  if (!chunk) return;
+  if (!chunk) {
+    return;
+  }
+
   try {
     const current = bufferAtom.get();
     const next = (current + chunk).slice(-MAX_BUFFER_LENGTH);
@@ -35,8 +41,8 @@ export function getBoltTerminalBuffer(): string {
 
 export function subscribeBoltTerminal(listener: Listener): () => void {
   listeners.add(listener);
+
   return () => {
     listeners.delete(listener);
   };
 }
-

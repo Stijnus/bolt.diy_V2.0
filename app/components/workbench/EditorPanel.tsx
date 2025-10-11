@@ -14,9 +14,6 @@ import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
-import { getBoltTerminalBuffer, subscribeBoltTerminal, clearBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
-import { killDevServer, restartDevServer } from '~/lib/runtime/ui-runner';
-import { workbenchStore } from '~/lib/stores/workbench';
 import {
   CodeMirrorEditor,
   type EditorDocument,
@@ -28,9 +25,12 @@ import { IconButton } from '~/components/ui/IconButton';
 import { PanelHeader } from '~/components/ui/PanelHeader';
 import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { shortcutEventEmitter } from '~/lib/hooks';
+import { getBoltTerminalBuffer, subscribeBoltTerminal, clearBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
+import { killDevServer, restartDevServer } from '~/lib/runtime/ui-runner';
 import type { FileMap } from '~/lib/stores/files';
 import { settingsStore } from '~/lib/stores/settings';
 import { themeStore } from '~/lib/stores/theme';
+import { workbenchStore } from '~/lib/stores/workbench';
 
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
@@ -338,15 +338,19 @@ export const EditorPanel = memo(
                 className={classNames('h-full overflow-hidden', {
                   hidden: activeTerminal !== 0,
                 })}
+
                 // do not attach to shell; readonly and fed via bus
                 readonly
                 onTerminalReady={(xterm) => {
                   boltXtermRef.current = xterm as any;
+
                   // write initial buffer
                   const buf = getBoltTerminalBuffer();
+
                   if (buf) {
                     xterm.write(buf);
                   }
+
                   // subscribe to new chunks
                   boltUnsubRef.current?.();
                   boltUnsubRef.current = subscribeBoltTerminal((chunk) => {

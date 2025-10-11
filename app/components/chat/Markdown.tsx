@@ -5,11 +5,11 @@ import { Artifact } from './Artifact';
 import { CodeBlock } from './CodeBlock';
 
 import styles from './Markdown.module.scss';
-import { createScopedLogger } from '~/utils/logger';
-import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 import { chatStore } from '~/lib/stores/chat';
 import { errorStore } from '~/lib/stores/errors';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { createScopedLogger } from '~/utils/logger';
+import { rehypePlugins, remarkPlugins, allowedHTMLElements } from '~/utils/markdown';
 
 const logger = createScopedLogger('MarkdownComponent');
 
@@ -26,11 +26,14 @@ export const Markdown = memo(({ children, html = false, limitedMarkdown = false 
     return {
       a: ({ href, children, node, ...props }) => {
         const onClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
-          if (!href) return;
+          if (!href) {
+            return;
+          }
 
           // Open file in workbench editor
           if (href.startsWith('bolt-file://')) {
             e.preventDefault();
+
             try {
               const rawPath = decodeURIComponent(href.replace('bolt-file://', ''));
               workbenchStore.setShowWorkbench(true);
@@ -38,12 +41,14 @@ export const Markdown = memo(({ children, html = false, limitedMarkdown = false 
             } catch (err) {
               console.error('Failed to open file from link', href, err);
             }
+
             return;
           }
 
           // Prepare an error-fix prompt in chat input
           if (href.startsWith('bolt-fix://')) {
             e.preventDefault();
+
             try {
               const id = decodeURIComponent(href.replace('bolt-fix://', ''));
               const error = errorStore.errors.get()[id];
@@ -65,12 +70,20 @@ export const Markdown = memo(({ children, html = false, limitedMarkdown = false 
 
                 if (error.file) {
                   parts.push('', `File: \`${error.file}\``);
-                  if (error.line) parts.push(`Line: ${error.line}`);
-                  if (error.column) parts.push(`Column: ${error.column}`);
+
+                  if (error.line) {
+                    parts.push(`Line: ${error.line}`);
+                  }
+
+                  if (error.column) {
+                    parts.push(`Column: ${error.column}`);
+                  }
 
                   const fileEntry = workbenchStore.files.get()[error.file];
+
                   if (fileEntry && fileEntry.type === 'file') {
                     const lines = fileEntry.content.split('\n');
+
                     if (error.line) {
                       const start = Math.max(0, error.line - 6);
                       const end = Math.min(lines.length, error.line + 5);
@@ -102,11 +115,14 @@ export const Markdown = memo(({ children, html = false, limitedMarkdown = false 
             } catch (err) {
               console.error('Failed to prepare fix prompt from link', href, err);
             }
+
             return;
           }
         };
+
         // Avoid leaking non-DOM props like `node` onto the anchor element
         const { node: _ignored, ...cleanProps } = props as any;
+
         return (
           <a href={href} onClick={onClick} {...cleanProps}>
             {children}

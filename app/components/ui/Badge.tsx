@@ -14,7 +14,8 @@ const badgeVariants = cva(
         secondary:
           'border-transparent bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text',
         success: 'border-transparent badge-success',
-        warning: 'border-transparent bg-[var(--bolt-elements-warning-background)] text-[var(--bolt-elements-warning-text)]',
+        warning:
+          'border-transparent bg-[var(--bolt-elements-warning-background)] text-[var(--bolt-elements-warning-text)]',
         danger: 'border-transparent bg-bolt-elements-button-danger-background/15 text-bolt-elements-button-danger-text',
         outline: 'border-bolt-elements-borderColor bg-transparent text-bolt-elements-textSecondary',
       },

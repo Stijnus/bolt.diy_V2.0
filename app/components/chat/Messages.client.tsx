@@ -1,9 +1,10 @@
+import { useStore } from '@nanostores/react';
 import type { UIMessage } from 'ai';
 import { User } from 'lucide-react';
 import React from 'react';
-import { useStore } from '@nanostores/react';
 import { AssistantMessage } from './AssistantMessage';
 import { LoadingAnimation } from './LoadingAnimation';
+import { MessageActionMenu } from './MessageActionMenu';
 import { UserMessage } from './UserMessage';
 import { errorStore } from '~/lib/stores/errors';
 import { classNames } from '~/utils/classNames';
@@ -14,10 +15,11 @@ interface MessagesProps {
   className?: string;
   isStreaming?: boolean;
   messages?: UIMessage[];
+  onRevertMessage?: (index: number) => void;
 }
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: MessagesProps, ref) => {
-  const { id, isStreaming = false, messages = [] } = props;
+  const { id, isStreaming = false, messages = [], onRevertMessage } = props;
 
   const errorsMap = useStore(errorStore.errors);
   const activeErrors = Object.values(errorsMap).filter((e) => !e.dismissed && e.severity === 'error');
@@ -44,7 +46,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
             return (
               <div
                 key={index}
-                className={classNames('flex gap-4 p-6 w-full rounded-[calc(0.75rem-1px)]', {
+                className={classNames('group flex gap-4 p-6 w-full rounded-[calc(0.75rem-1px)] relative', {
                   'bg-bolt-elements-messages-background': isUserMessage || !isStreaming || (isStreaming && !isLast),
                   'bg-gradient-to-b from-bolt-elements-messages-background from-30% to-transparent':
                     isStreaming && isLast,
@@ -59,6 +61,11 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
                 <div className="grid grid-col-1 w-full">
                   {isUserMessage ? <UserMessage content={content} /> : <AssistantMessage content={content} />}
                 </div>
+                {!isLast && !isStreaming && onRevertMessage && (
+                  <div className="absolute top-2 right-2">
+                    <MessageActionMenu messageIndex={index} onRevert={() => onRevertMessage(index)} />
+                  </div>
+                )}
               </div>
             );
           })
@@ -71,6 +78,7 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
         const fixLink = `<a href="bolt-fix://${encodeURIComponent(error.id)}">Ask AI to fix</a>`;
         const stack = error.stack ? `\n\nStack:\n\n\`\`\`\n${error.stack}\n\`\`\`` : '';
         const md = `<details><summary>${summary}</summary>\n\n${openLink}${openLink ? ' • ' : ''}${fixLink}${stack}\n</details>`;
+
         return (
           <div
             key={`error-${error.id}-${idx}`}

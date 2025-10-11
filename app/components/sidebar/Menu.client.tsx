@@ -1,5 +1,6 @@
+import { useNavigate } from '@remix-run/react';
 import { motion, type Variants } from 'framer-motion';
-import { MessageSquarePlus, FolderKanban } from 'lucide-react';
+import { MessageSquarePlus, FolderKanban, Upload } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -22,6 +23,7 @@ import {
   setMessages,
   cleanupInvalidChatEntries,
 } from '~/lib/persistence';
+import { importChatFromJSON } from '~/lib/persistence/chat-actions';
 import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { createClient } from '~/lib/supabase/client';
 import { cubicEasingFn } from '~/utils/easings';
@@ -52,12 +54,14 @@ type DialogContent = { type: 'delete'; item: ChatHistoryItem } | null;
 
 export function Menu() {
   const menuRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
   const { user } = useAuth();
   const [database, setDatabase] = useState<IDBDatabase | undefined>(undefined);
+  const navigate = useNavigate();
 
   const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
 
@@ -266,6 +270,36 @@ export function Menu() {
     setDialogContent(null);
   };
 
+  const handleImportClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      const jsonContent = await file.text();
+      const result = await importChatFromJSON(jsonContent, user?.id);
+
+      if (result.success && result.chatId) {
+        await loadEntries();
+        navigate(`/chat/${result.chatId}`);
+      }
+    } catch (error) {
+      logger.error('Failed to read import file:', error);
+      toast.error('Failed to read import file');
+    } finally {
+      // Reset file input
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   useEffect(() => {
     if (open) {
       void loadEntries();
@@ -341,6 +375,18 @@ export function Menu() {
               </a>
             </Button>
 
+            {/* Import Chat Button */}
+            <Button
+              variant="outline"
+              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
+              size="lg"
+              onClick={handleImportClick}
+            >
+              <Upload className="h-5 w-5" />
+              <span className="text-sm font-semibold">Import Chat</span>
+            </Button>
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" />
+
             {/* My Projects Button */}
             {user ? (
               <Button
@@ -395,6 +441,7 @@ export function Menu() {
                       key={item.id}
                       item={item}
                       onDelete={() => setDialogContent({ type: 'delete', item })}
+                      onUpdate={loadEntries}
                     />
                   ))}
                 </div>

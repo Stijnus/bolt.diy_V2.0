@@ -31,6 +31,7 @@ interface BaseChatProps {
   sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
+  onRevertMessage?: (index: number) => void;
 }
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -52,6 +53,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       handleInputChange,
       enhancePrompt,
       handleStop,
+      onRevertMessage,
     },
     ref,
   ) => {
@@ -147,6 +149,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       className="flex flex-col w-full flex-1 max-w-chat px-4 pb-6 mx-auto z-[1]"
                       messages={messages}
                       isStreaming={isStreaming}
+                      onRevertMessage={onRevertMessage}
                     />
                   ) : null;
                 }}

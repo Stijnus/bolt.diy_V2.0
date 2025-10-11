@@ -1,7 +1,7 @@
-import { webcontainer } from '~/lib/webcontainer';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { webcontainer } from '~/lib/webcontainer';
 
 let runner: ActionRunner | null = null;
 
@@ -9,6 +9,7 @@ function getRunner() {
   if (!runner) {
     runner = new ActionRunner(webcontainer);
   }
+
   return runner;
 }
 
@@ -27,6 +28,7 @@ export async function startDevServer(command?: string) {
   const r = getRunner();
   const baseId = `ui_${Date.now()}`;
   const devId = `${baseId}_dev`;
+
   const action: ActionCallbackData = {
     messageId: baseId,
     artifactId: baseId,
@@ -41,6 +43,7 @@ export async function startDevServer(command?: string) {
 
 export async function restartDevServer(command?: string) {
   killDevServer();
+
   // tiny delay to allow process cleanup
   await new Promise((r) => setTimeout(r, 150));
   await startDevServer(command);

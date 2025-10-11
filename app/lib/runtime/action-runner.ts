@@ -2,13 +2,13 @@ import * as nodePath from 'node:path';
 import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
 import type { ActionCallbackData } from './message-parser';
+import { writeToBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
 import { errorStore } from '~/lib/stores/errors';
 import { containsError, extractStackTrace, parseError, parseAllErrors } from '~/lib/webcontainer/error-patterns';
 import type { BoltAction } from '~/types/actions';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
-import { writeToBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -214,6 +214,7 @@ export class ActionRunner {
 
     // If this is a dev server command, store process for external control
     const isDevServerCommand = this.#isDevServerCommand(action.content);
+
     if (isDevServerCommand) {
       ActionRunner.#devServerProcess = process;
     }
@@ -222,6 +223,7 @@ export class ActionRunner {
       try {
         process.kill();
       } catch {}
+
       if (isDevServerCommand) {
         ActionRunner.#devServerProcess = null;
       }
@@ -234,6 +236,7 @@ export class ActionRunner {
       let serverStarted = false;
 
       const outputBuffer: string[] = [];
+
       // Rolling buffer to avoid missing errors due to chunk boundaries
       let rollingBuffer = '';
 
@@ -309,17 +312,17 @@ export class ActionRunner {
       return;
     }
 
-    if (!containsError(output)) {
-      return;
-    }
-
+    // Always parse for errors (containsError heuristic can miss some formats)
     const parsedErrors = parseAllErrors(output);
 
     if (parsedErrors.length > 0) {
       const stack = extractStackTrace(output);
 
       for (const err of parsedErrors) {
-        if (!err || !err.message) continue;
+        if (!err || !err.message) {
+          continue;
+        }
+
         logger.info(`🔴 Error detected: ${err.message}`);
         errorStore.addError({
           type: err.type || 'unknown',

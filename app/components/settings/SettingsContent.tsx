@@ -426,9 +426,7 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
                 </svg>
               </div>
               <div className="flex-1">
-                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">
-                  Settings Implementation Status
-                </h3>
+                <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">Settings Implementation Status</h3>
                 <p className="mt-1 text-sm text-bolt-elements-textSecondary">
                   The settings UI is complete and functional. Settings marked as "Coming Soon" are saved to your session
                   but not yet connected to the application features. Settings marked as "Partial" have limited

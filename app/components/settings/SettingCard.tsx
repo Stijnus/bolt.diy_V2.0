@@ -14,7 +14,14 @@ interface SettingCardProps {
  * SettingCard is a reusable container component for grouping related settings.
  * It provides consistent styling and optional title/description.
  */
-export function SettingCard({ title, description, children, variant = 'default', size = 'md', className }: SettingCardProps) {
+export function SettingCard({
+  title,
+  description,
+  children,
+  variant = 'default',
+  size = 'md',
+  className,
+}: SettingCardProps) {
   return (
     <div
       className={classNames(

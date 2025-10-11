@@ -35,8 +35,10 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     }),
   },
   {
-    // PostCSS error format that Vite often prints inside "Internal server error: [postcss] ..."
-    // Example: "[postcss] /home/project/src/index.css:1:1: The `border-border` class does not exist."
+    /*
+     * PostCSS error format that Vite often prints inside "Internal server error: [postcss] ..."
+     * Example: "[postcss] /home/project/src/index.css:1:1: The `border-border` class does not exist."
+     */
     pattern: /\[postcss\]\s+([^\n:]+):(\d+):(\d+):\s*(.+)/i,
     type: 'build',
     source: 'vite',
@@ -86,7 +88,61 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     }),
   },
 
-  // React/JSX errors
+  // JSX/Babel parser errors (vite:react-babel)
+  {
+    // e.g. "/home/project/src/App.jsx: Unexpected token (87:46)"
+    pattern: /([^\n:]+\.(?:jsx|tsx|js|ts)):\s*Unexpected token\s*\((\d+):(\d+)\)/,
+    type: 'syntax',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      file: match[1],
+      line: parseInt(match[2], 10),
+      column: parseInt(match[3], 10),
+      message: 'Unexpected token',
+    }),
+  },
+  {
+    // e.g. "Plugin: vite:react-babel" followed by "File: /home/project/src/App.jsx:87:46"
+    pattern: /File:\s+([^\n:]+):(\d+):(\d+)/,
+    type: 'syntax',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      file: match[1],
+      line: parseInt(match[2], 10),
+      column: parseInt(match[3], 10),
+      message: 'Babel parse error',
+    }),
+  },
+
+  // esbuild-style errors
+  {
+    // e.g. "✘ [ERROR] Expected ">" but found "<"" with following location line
+    pattern: /✘ \[ERROR\]\s+(.+?)\s+[\r\n]+\s*([^\n:]+):(\d+):(\d+)/m,
+    type: 'build',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      message: match[1],
+      file: match[2],
+      line: parseInt(match[3], 10),
+      column: parseInt(match[4], 10),
+    }),
+  },
+  {
+    // e.g. "Error:   Failed to scan for dependencies from entries:\n  /home/project/index.html"
+    pattern: /Failed to scan for dependencies[\s\S]*?\n\s*([^\n]+index\.html)/i,
+    type: 'build',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      message: 'Failed to scan for dependencies',
+      file: match[1],
+    }),
+  },
+
+  // React/JSX runtime errors
   {
     pattern: /Error:\s*(.+?)\s+at\s+(.+?):(\d+):(\d+)/,
     type: 'runtime',
@@ -225,6 +281,7 @@ export function parseAllErrors(output: string): Array<Partial<import('~/types/er
     const globalRe = new RegExp(errorPattern.pattern.source, flags);
 
     let match: RegExpExecArray | null;
+
     while ((match = globalRe.exec(cleanOutput)) !== null) {
       results.push({
         type: errorPattern.type,

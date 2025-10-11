@@ -5,18 +5,18 @@ import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
 import { useAuth } from '~/lib/contexts/AuthContext';
+import { ActionRunner } from '~/lib/runtime/action-runner';
+import { clearBoltTerminal, writeToBoltTerminal, getBoltTerminalBuffer } from '~/lib/runtime/bolt-terminal-bus';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
 import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { currentModel, parseFullModelId, setChatModel, setCurrentModel } from '~/lib/stores/model';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createClient } from '~/lib/supabase/client';
+import { webcontainer } from '~/lib/webcontainer';
 import type { FullModelId } from '~/types/model';
+import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { waitForFileOperations } from '~/utils/sync-helpers';
-import { ActionRunner } from '~/lib/runtime/action-runner';
-import { clearBoltTerminal, writeToBoltTerminal, getBoltTerminalBuffer } from '~/lib/runtime/bolt-terminal-bus';
-import type { ActionCallbackData } from '~/lib/runtime/message-parser';
-import { webcontainer } from '~/lib/webcontainer';
-import { WORK_DIR } from '~/utils/constants';
 
 const logger = createScopedLogger('ChatHistory');
 
@@ -398,24 +398,39 @@ export function useChatHistory() {
                         );
 
                         toast.info(content, { autoClose: 8000, closeOnClick: false });
+
                         // Also add a chat assistant message with clickable links
                         try {
                           const toRel = (p: string) => p.replace(WORK_DIR + '/', '').replace(/^\//, '');
-                          // Important: Markdown inside HTML blocks (like <details>) is not parsed by CommonMark.
-                          // So we render real <a> anchors instead of [text](url) markdown inside the details.
+
+                          /*
+                           * Important: Markdown inside HTML blocks (like <details>) is not parsed by CommonMark.
+                           * So we render real <a> anchors instead of [text](url) markdown inside the details.
+                           */
                           const makeLink = (p: string) =>
                             `- <a href="bolt-file://${encodeURIComponent(p)}">${toRel(p)}</a>`;
+
                           const summary = `Imported project: ${validFileCount} files restored — Created: ${created.length}, Changed: ${changed.length}`;
+
                           let md = `<details><summary>${summary}</summary>`;
                           md += `\n\nClick a file to open it in the editor.`;
+
                           if (created.length > 0) {
                             md += `\n\nCreated:\n${created.slice(0, 20).map(makeLink).join('\n')}`;
-                            if (created.length > 20) md += `\n... +${created.length - 20} more`;
+
+                            if (created.length > 20) {
+                              md += `\n... +${created.length - 20} more`;
+                            }
                           }
+
                           if (changed.length > 0) {
                             md += `\n\nChanged:\n${changed.slice(0, 20).map(makeLink).join('\n')}`;
-                            if (changed.length > 20) md += `\n... +${changed.length - 20} more`;
+
+                            if (changed.length > 20) {
+                              md += `\n... +${changed.length - 20} more`;
+                            }
                           }
+
                           md += `\n</details>`;
                           postRestoreMd = md;
 
@@ -423,6 +438,7 @@ export function useChatHistory() {
                             role: 'assistant',
                             parts: [{ type: 'text', text: md }],
                           } as any;
+
                           if ((storedMessages?.messages?.length ?? 0) > 0) {
                             setInitialMessages([...storedMessages!.messages, assistantMsg]);
                           } else {
@@ -454,6 +470,7 @@ export function useChatHistory() {
                           const baseId = `import_${Date.now()}`;
 
                           const installId = `${baseId}_install`;
+
                           const installAction: ActionCallbackData = {
                             messageId: baseId,
                             artifactId: baseId,
@@ -462,6 +479,7 @@ export function useChatHistory() {
                           };
 
                           const devId = `${baseId}_dev`;
+
                           const devAction: ActionCallbackData = {
                             messageId: baseId,
                             artifactId: baseId,
@@ -501,9 +519,11 @@ export function useChatHistory() {
 
                     logger.info(`Successfully restored ${validFileCount} files to WebContainer`);
 
-                    // If this chat has no prior messages but we restored files,
-                    // seed a synthetic user message so the chat appears started
-                    // and the intro suggestions are hidden.
+                    /*
+                     * If this chat has no prior messages but we restored files,
+                     * seed a synthetic user message so the chat appears started
+                     * and the intro suggestions are hidden.
+                     */
                     if ((storedMessages?.messages?.length ?? 0) === 0) {
                       const intro: UIMessage = {
                         role: 'user',
@@ -588,10 +608,12 @@ export function useChatHistory() {
                   workbenchStore.toggleTerminal(true);
                   logger.info('Terminal visibility restored');
                 }
+
                 // Restore Bolt Terminal buffer
                 if (storedMessages.terminalState.boltBuffer) {
                   writeToBoltTerminal(storedMessages.terminalState.boltBuffer);
                 }
+
                 // Restore restart command preference
                 if (storedMessages.terminalState.restartCommand) {
                   workbenchStore.setRestartCommand(storedMessages.terminalState.restartCommand);

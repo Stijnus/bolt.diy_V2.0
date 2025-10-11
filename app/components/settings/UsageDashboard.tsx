@@ -213,8 +213,9 @@ export function UsageDashboard() {
           <div className="space-y-1">
             <h4 className="text-sm font-medium text-bolt-elements-textPrimary">Note</h4>
             <p className="text-sm text-bolt-elements-textSecondary">
-              Usage data is stored locally in your browser {usageData.length > 0 && `(${usageData.length} total records)`}{' '}
-              and may not be perfectly accurate. This is for estimation purposes only.
+              Usage data is stored locally in your browser{' '}
+              {usageData.length > 0 && `(${usageData.length} total records)`} and may not be perfectly accurate. This is
+              for estimation purposes only.
             </p>
           </div>
         </div>

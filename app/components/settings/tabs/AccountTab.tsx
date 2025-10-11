@@ -31,11 +31,12 @@ export function AccountTab({
   return (
     <SettingsSection title="Account" description="Manage your account" status="implemented">
       {/* Password Change */}
-<SettingCard title="Change Password" size="sm" className="mb-6">
+      <SettingCard title="Change Password" size="sm" className="mb-6">
         <div className="space-y-4 max-w-sm">
           <div>
             <label className="block text-sm font-medium text-bolt-elements-textSecondary mb-2">New Password</label>
-<Input uiSize="sm"
+            <Input
+              uiSize="sm"
               type="password"
               placeholder="Enter new password"
               value={newPassword}
@@ -47,7 +48,8 @@ export function AccountTab({
             <label className="block text-sm font-medium text-bolt-elements-textSecondary mb-2">
               Confirm New Password
             </label>
-<Input uiSize="sm"
+            <Input
+              uiSize="sm"
               type="password"
               placeholder="Confirm new password"
               value={confirmPassword}
@@ -55,8 +57,8 @@ export function AccountTab({
               className="w-full rounded-[calc(var(--radius))] transition-theme"
             />
           </div>
-<Button 
-            onClick={onChangePassword} 
+          <Button
+            onClick={onChangePassword}
             disabled={isChangingPassword || !newPassword || !confirmPassword}
             size="sm"
             className="rounded-[calc(var(--radius))] transition-theme"
@@ -74,9 +76,9 @@ export function AccountTab({
         variant="danger"
       >
         {!showDeleteConfirm ? (
-          <Button 
-            variant="danger" 
-            size="sm" 
+          <Button
+            variant="danger"
+            size="sm"
             onClick={() => onShowDeleteConfirm(true)}
             className="rounded-[calc(var(--radius))] transition-theme animate-scaleIn"
           >
@@ -88,19 +90,19 @@ export function AccountTab({
               Are you sure you want to delete your account? This action cannot be undone.
             </p>
             <div className="flex gap-2">
-              <Button 
-                variant="danger" 
-                size="sm" 
-                onClick={onDeleteAccount} 
+              <Button
+                variant="danger"
+                size="sm"
+                onClick={onDeleteAccount}
                 disabled={isDeleting}
                 className="rounded-[calc(var(--radius))] transition-theme animate-scaleIn"
               >
                 {isDeleting ? 'Deleting...' : 'Yes, Delete Account'}
               </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => onShowDeleteConfirm(false)} 
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => onShowDeleteConfirm(false)}
                 disabled={isDeleting}
                 className="rounded-[calc(var(--radius))] transition-theme animate-scaleIn"
               >

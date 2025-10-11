@@ -6,8 +6,10 @@ import { X, Check, AlertTriangle } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
 import { cssTransition, ToastContainer } from 'react-toastify';
 import { BaseChat } from './BaseChat';
+import { useAuth } from '~/lib/contexts/AuthContext';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
-import { useChatHistory } from '~/lib/persistence';
+import { useChatHistory, chatId } from '~/lib/persistence';
+import { revertMessagesToIndex } from '~/lib/persistence/chat-actions';
 import { chatStore } from '~/lib/stores/chat';
 import { currentModel } from '~/lib/stores/model';
 import { settingsStore } from '~/lib/stores/settings';
@@ -70,6 +72,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   useShortcuts();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { user } = useAuth();
 
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
 
@@ -117,6 +120,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       // Focus the textarea and optionally auto-send
       setTimeout(() => {
         textareaRef.current?.focus();
+
         if (shouldAutoSend && messageToSend) {
           // Auto-send the prepared message
           sendMessageHandler({} as any, messageToSend);
@@ -272,6 +276,21 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [messageRef, scrollRef] = useSnapScroll();
 
+  const handleRevertMessage = async (index: number) => {
+    const currentChatId = chatId.get();
+
+    if (!currentChatId) {
+      return;
+    }
+
+    const success = await revertMessagesToIndex(currentChatId, index, user?.id);
+
+    if (success) {
+      // Reload the page to refresh messages from database
+      window.location.reload();
+    }
+  };
+
   return (
     <BaseChat
       ref={animationScope}
@@ -287,6 +306,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       scrollRef={scrollRef}
       handleInputChange={handleInputChange}
       handleStop={abort}
+      onRevertMessage={handleRevertMessage}
       messages={messages.map((message, i) => {
         if (message.role === 'user') {
           return message as UIMessage;
