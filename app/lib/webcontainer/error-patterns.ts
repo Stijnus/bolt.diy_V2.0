@@ -22,6 +22,33 @@ export const ERROR_PATTERNS: ErrorPattern[] = [
     }),
   },
   {
+    // e.g. "[plugin:vite:css] /home/project/src/index.css:1:1: The 'border-border' class does not exist"
+    pattern: /\[plugin:vite:[^\]]+\]\s+([^\n:]+):(\d+):(\d+):\s*(.+)/i,
+    type: 'build',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      file: match[1],
+      line: parseInt(match[2], 10),
+      column: parseInt(match[3], 10),
+      message: match[4],
+    }),
+  },
+  {
+    // PostCSS error format that Vite often prints inside "Internal server error: [postcss] ..."
+    // Example: "[postcss] /home/project/src/index.css:1:1: The `border-border` class does not exist."
+    pattern: /\[postcss\]\s+([^\n:]+):(\d+):(\d+):\s*(.+)/i,
+    type: 'build',
+    source: 'vite',
+    severity: 'error',
+    parser: (match) => ({
+      file: match[1],
+      line: parseInt(match[2], 10),
+      column: parseInt(match[3], 10),
+      message: match[4],
+    }),
+  },
+  {
     pattern: /\[vite\]\s*(.+?)\s*\((\d+):(\d+)\)/,
     type: 'build',
     source: 'vite',
@@ -186,6 +213,37 @@ export function parseError(output: string): Partial<import('~/types/errors').Dev
 }
 
 /**
+ * Parse all errors from output text (not just the first match)
+ */
+export function parseAllErrors(output: string): Array<Partial<import('~/types/errors').DevServerError>> {
+  const results: Array<Partial<import('~/types/errors').DevServerError>> = [];
+  const cleanOutput = stripAnsiCodes(output);
+
+  for (const errorPattern of ERROR_PATTERNS) {
+    // Recreate regex with global flag preserved alongside original flags
+    const flags = `${errorPattern.pattern.flags.includes('i') ? 'i' : ''}${errorPattern.pattern.flags.includes('m') ? 'm' : ''}g`;
+    const globalRe = new RegExp(errorPattern.pattern.source, flags);
+
+    let match: RegExpExecArray | null;
+    while ((match = globalRe.exec(cleanOutput)) !== null) {
+      results.push({
+        type: errorPattern.type,
+        source: errorPattern.source,
+        severity: errorPattern.severity,
+        ...errorPattern.parser(match as unknown as RegExpMatchArray),
+      });
+
+      // Safety to avoid infinite loops on zero-width matches
+      if (match.index === globalRe.lastIndex) {
+        globalRe.lastIndex++;
+      }
+    }
+  }
+
+  return results;
+}
+
+/**
  * Check if output contains error indicators
  */
 export function containsError(output: string): boolean {
@@ -206,6 +264,8 @@ export function containsError(output: string): boolean {
     'failed to compile',
     '✘ [error]',
     'x [error]',
+    '[plugin:vite:',
+    'postcss',
   ];
 
   return errorKeywords.some((keyword) => cleanOutput.includes(keyword));

@@ -36,6 +36,8 @@ export class WorkbenchStore {
   showWorkbench: WritableAtom<boolean> = import.meta.hot?.data.showWorkbench ?? atom(false);
   currentView: WritableAtom<WorkbenchViewType> = import.meta.hot?.data.currentView ?? atom('code');
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
+  devServerRunning: WritableAtom<boolean> = import.meta.hot?.data.devServerRunning ?? atom(false);
+  restartCommand: WritableAtom<string> = import.meta.hot?.data.restartCommand ?? atom('npm run dev');
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
 
@@ -45,6 +47,8 @@ export class WorkbenchStore {
       import.meta.hot.data.unsavedFiles = this.unsavedFiles;
       import.meta.hot.data.showWorkbench = this.showWorkbench;
       import.meta.hot.data.currentView = this.currentView;
+      import.meta.hot.data.devServerRunning = this.devServerRunning;
+      import.meta.hot.data.restartCommand = this.restartCommand;
     }
   }
 
@@ -70,6 +74,22 @@ export class WorkbenchStore {
 
   get filesCount(): number {
     return this.#filesStore.filesCount;
+  }
+
+  getDevServerRunning(): boolean {
+    return this.devServerRunning.get();
+  }
+
+  setDevServerRunning(value: boolean) {
+    this.devServerRunning.set(value);
+  }
+
+  getRestartCommand(): string {
+    return this.restartCommand.get();
+  }
+
+  setRestartCommand(cmd: string) {
+    this.restartCommand.set(cmd);
   }
 
   get showTerminal() {

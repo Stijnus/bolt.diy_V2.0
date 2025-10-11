@@ -3,11 +3,12 @@ import { WebContainer } from '@webcontainer/api';
 import { map, type MapStore } from 'nanostores';
 import type { ActionCallbackData } from './message-parser';
 import { errorStore } from '~/lib/stores/errors';
-import { containsError, extractStackTrace, parseError } from '~/lib/webcontainer/error-patterns';
+import { containsError, extractStackTrace, parseError, parseAllErrors } from '~/lib/webcontainer/error-patterns';
 import type { BoltAction } from '~/types/actions';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';
 import { unreachable } from '~/utils/unreachable';
+import { writeToBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
 
 const logger = createScopedLogger('ActionRunner');
 
@@ -45,6 +46,22 @@ export type ActionStateUpdate =
 type ActionsMap = MapStore<Record<string, ActionState>>;
 
 export class ActionRunner {
+  // Track the active dev server process for stop/restart controls
+  static #devServerProcess: import('@webcontainer/api').WebContainerProcess | null = null;
+
+  static isDevServerRunning() {
+    return ActionRunner.#devServerProcess != null;
+  }
+
+  static killDevServer() {
+    if (ActionRunner.#devServerProcess) {
+      try {
+        ActionRunner.#devServerProcess.kill();
+      } catch {}
+      ActionRunner.#devServerProcess = null;
+    }
+  }
+
   static #instanceCounter = 0;
   static #globalShellCommands = new Map<string, { actionId: string; runnerId: number }>();
 
@@ -195,18 +212,30 @@ export class ActionRunner {
       env: { npm_config_yes: true },
     });
 
+    // If this is a dev server command, store process for external control
+    const isDevServerCommand = this.#isDevServerCommand(action.content);
+    if (isDevServerCommand) {
+      ActionRunner.#devServerProcess = process;
+    }
+
     action.abortSignal.addEventListener('abort', () => {
-      process.kill();
+      try {
+        process.kill();
+      } catch {}
+      if (isDevServerCommand) {
+        ActionRunner.#devServerProcess = null;
+      }
     });
 
     // Check if this is a dev server command that should complete on startup
-    const isDevServerCommand = this.#isDevServerCommand(action.content);
 
     if (isDevServerCommand) {
       // For dev servers: monitor continuously for errors, but resolve action when server starts
       let serverStarted = false;
 
       const outputBuffer: string[] = [];
+      // Rolling buffer to avoid missing errors due to chunk boundaries
+      let rollingBuffer = '';
 
       // Continuous monitoring stream (keeps running)
       process.output.pipeTo(
@@ -214,10 +243,14 @@ export class ActionRunner {
           write: (data) => {
             const output = String(data);
             logger.debug(output);
-            outputBuffer.push(data);
+            writeToBoltTerminal(output);
+            outputBuffer.push(output);
+
+            // Maintain a rolling buffer of recent output to match multi-line/chunked errors
+            rollingBuffer = (rollingBuffer + output).slice(-20000);
 
             // CONTINUOUS error monitoring (runs forever)
-            this.#monitorForErrors(output);
+            this.#monitorForErrors(rollingBuffer);
 
             // Check for server startup (only once)
             if (!serverStarted && this.#hasDevServerStarted(outputBuffer.join(''))) {
@@ -254,6 +287,7 @@ export class ActionRunner {
           write: (data) => {
             const output = String(data);
             logger.debug(output);
+            writeToBoltTerminal(output);
 
             // Monitor errors for ALL commands
             this.#monitorForErrors(output);
@@ -279,23 +313,25 @@ export class ActionRunner {
       return;
     }
 
-    const parsedError = parseError(output);
+    const parsedErrors = parseAllErrors(output);
 
-    if (parsedError && parsedError.message) {
+    if (parsedErrors.length > 0) {
       const stack = extractStackTrace(output);
 
-      logger.info(`🔴 Error detected: ${parsedError.message}`);
-
-      errorStore.addError({
-        type: parsedError.type || 'unknown',
-        severity: parsedError.severity || 'error',
-        message: parsedError.message,
-        file: parsedError.file,
-        line: parsedError.line,
-        column: parsedError.column,
-        source: parsedError.source || 'unknown',
-        stack,
-      });
+      for (const err of parsedErrors) {
+        if (!err || !err.message) continue;
+        logger.info(`🔴 Error detected: ${err.message}`);
+        errorStore.addError({
+          type: err.type || 'unknown',
+          severity: err.severity || 'error',
+          message: err.message,
+          file: err.file,
+          line: err.line,
+          column: err.column,
+          source: err.source || 'unknown',
+          stack,
+        });
+      }
     }
   }
 

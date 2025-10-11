@@ -104,16 +104,24 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     chatStore.setKey('started', initialMessages.length > 0);
   }, []);
 
-  // Handle pendingInput from error notifications
+  // Handle pendingInput from error notifications (optionally auto-send)
   useEffect(() => {
     if (pendingInput) {
-      setInput(pendingInput);
-      chatStore.setKey('pendingInput', undefined);
+      const messageToSend = pendingInput;
+      const shouldAutoSend = (chatStore.get() as any).autoSendPending === true;
 
-      // Focus the textarea
+      setInput(messageToSend);
+      chatStore.setKey('pendingInput', undefined);
+      chatStore.setKey('autoSendPending', false);
+
+      // Focus the textarea and optionally auto-send
       setTimeout(() => {
         textareaRef.current?.focus();
-      }, 100);
+        if (shouldAutoSend && messageToSend) {
+          // Auto-send the prepared message
+          sendMessageHandler({} as any, messageToSend);
+        }
+      }, 120);
     }
   }, [pendingInput]);
 
@@ -226,6 +234,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
+    // Clear input immediately to provide instant feedback
+    setInput('');
+
     /**
      * @note (delm) Usually saving files shouldn't take long but it may take longer if there
      * many unsaved files. In that case we need to block user input and show an indicator
@@ -255,7 +266,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     // Note: Message history is now automatically saved by useEffect whenever messages change
 
-    setInput('');
     resetEnhancer();
     textareaRef.current?.blur();
   };

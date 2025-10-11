@@ -1,10 +1,22 @@
 import { useStore } from '@nanostores/react';
-import { FolderTree, Save, History, Terminal as TerminalIcon, Plus, ChevronDown } from 'lucide-react';
+import {
+  FolderTree,
+  Save,
+  History,
+  Terminal as TerminalIcon,
+  Plus,
+  ChevronDown,
+  Power,
+  RefreshCcw,
+} from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
 import { FileBreadcrumb } from './FileBreadcrumb';
 import { FileTree } from './FileTree';
 import { Terminal, type TerminalRef } from './terminal/Terminal';
+import { getBoltTerminalBuffer, subscribeBoltTerminal, clearBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
+import { killDevServer, restartDevServer } from '~/lib/runtime/ui-runner';
+import { workbenchStore } from '~/lib/stores/workbench';
 import {
   CodeMirrorEditor,
   type EditorDocument,
@@ -19,7 +31,7 @@ import { shortcutEventEmitter } from '~/lib/hooks';
 import type { FileMap } from '~/lib/stores/files';
 import { settingsStore } from '~/lib/stores/settings';
 import { themeStore } from '~/lib/stores/theme';
-import { workbenchStore } from '~/lib/stores/workbench';
+
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';
 import { renderLogger } from '~/utils/logger';
@@ -78,8 +90,13 @@ export const EditorPanel = memo(
       return terminalRefCallbacks.current[i]!;
     }, []);
 
+    // 0 = Bolt Terminal (readonly); 1..N = interactive terminals
     const [activeTerminal, setActiveTerminal] = useState(0);
     const [terminalCount, setTerminalCount] = useState(1);
+
+    // Bolt Terminal wiring
+    const boltXtermRef = useRef<import('@xterm/xterm').Terminal | null>(null);
+    const boltUnsubRef = useRef<(() => void) | null>(null);
 
     const activeFileSegments = useMemo(() => {
       if (!editorDocument) {
@@ -231,12 +248,12 @@ export const EditorPanel = memo(
           <div className="h-full">
             <div className="bg-bolt-elements-terminals-background h-full flex flex-col">
               <div className="flex items-center bg-bolt-elements-background-depth-2 border-y border-bolt-elements-borderColor gap-1.5 min-h-[34px] p-2">
-                {Array.from({ length: terminalCount }, (_, index) => {
-                  const isActive = activeTerminal === index;
-
+                {/* Bolt Terminal tab */}
+                {(() => {
+                  const isActive = activeTerminal === 0;
                   return (
                     <button
-                      key={index}
+                      key="bolt"
                       className={classNames(
                         'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
                         {
@@ -245,28 +262,107 @@ export const EditorPanel = memo(
                             !isActive,
                         },
                       )}
-                      onClick={() => setActiveTerminal(index)}
+                      onClick={() => setActiveTerminal(0)}
                     >
                       <TerminalIcon className="w-4 h-4" />
-                      Terminal {terminalCount > 1 && index + 1}
+                      Bolt Terminal
+                    </button>
+                  );
+                })()}
+                {/* Interactive terminals */}
+                {Array.from({ length: terminalCount }, (_, index) => {
+                  const tabIndex = index + 1;
+                  const isActive = activeTerminal === tabIndex;
+
+                  return (
+                    <button
+                      key={tabIndex}
+                      className={classNames(
+                        'flex items-center text-sm cursor-pointer gap-1.5 px-3 py-2 h-full whitespace-nowrap rounded-full',
+                        {
+                          'bg-bolt-elements-terminals-buttonBackground text-bolt-elements-textPrimary': isActive,
+                          'bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary hover:bg-bolt-elements-terminals-buttonBackground':
+                            !isActive,
+                        },
+                      )}
+                      onClick={() => setActiveTerminal(tabIndex)}
+                    >
+                      <TerminalIcon className="w-4 h-4" />
+                      Terminal {terminalCount > 1 && tabIndex}
                     </button>
                   );
                 })}
-                {terminalCount < MAX_TERMINALS && <IconButton icon={Plus} size="md" onClick={addTerminal} />}
-                <IconButton
-                  className="ml-auto"
-                  icon={ChevronDown}
-                  title="Close"
-                  size="md"
-                  onClick={() => workbenchStore.toggleTerminal(false)}
-                />
+                {/* Controls */}
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Restart command selector */}
+                  <select
+                    className="text-sm bg-bolt-elements-background-depth-2 px-2 py-1 rounded-md border border-border"
+                    value={workbenchStore.getRestartCommand()}
+                    onChange={(e) => workbenchStore.setRestartCommand(e.target.value)}
+                    title="Command used for Restart"
+                  >
+                    <option value="npm run dev">npm run dev</option>
+                    <option value="pnpm dev">pnpm dev</option>
+                    <option value="yarn dev">yarn dev</option>
+                    <option value="vite">vite</option>
+                  </select>
+
+                  <PanelHeaderButton
+                    onClick={() => {
+                      clearBoltTerminal();
+                      boltXtermRef.current?.clear?.();
+                    }}
+                  >
+                    Clear
+                  </PanelHeaderButton>
+
+                  <PanelHeaderButton onClick={() => restartDevServer()}>
+                    <RefreshCcw className="w-4 h-4" /> Restart Dev
+                  </PanelHeaderButton>
+
+                  <PanelHeaderButton onClick={() => killDevServer()}>
+                    <Power className="w-4 h-4" /> Stop Dev
+                  </PanelHeaderButton>
+
+                  <IconButton
+                    icon={ChevronDown}
+                    title="Close"
+                    size="md"
+                    onClick={() => workbenchStore.toggleTerminal(false)}
+                  />
+                </div>
               </div>
+              {/* Bolt Terminal (readonly) */}
+              <Terminal
+                key="bolt-term"
+                className={classNames('h-full overflow-hidden', {
+                  hidden: activeTerminal !== 0,
+                })}
+                // do not attach to shell; readonly and fed via bus
+                readonly
+                onTerminalReady={(xterm) => {
+                  boltXtermRef.current = xterm as any;
+                  // write initial buffer
+                  const buf = getBoltTerminalBuffer();
+                  if (buf) {
+                    xterm.write(buf);
+                  }
+                  // subscribe to new chunks
+                  boltUnsubRef.current?.();
+                  boltUnsubRef.current = subscribeBoltTerminal((chunk) => {
+                    boltXtermRef.current?.write(chunk);
+                  });
+                }}
+                theme={theme}
+              />
+              {/* Interactive terminals */}
               {Array.from({ length: terminalCount }, (_, index) => {
-                const isActive = activeTerminal === index;
+                const tabIndex = index + 1;
+                const isActive = activeTerminal === tabIndex;
 
                 return (
                   <Terminal
-                    key={index}
+                    key={tabIndex}
                     className={classNames('h-full overflow-hidden', {
                       hidden: !isActive,
                     })}

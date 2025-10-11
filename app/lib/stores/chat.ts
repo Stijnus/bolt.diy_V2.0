@@ -5,4 +5,5 @@ export const chatStore = map({
   aborted: false,
   showChat: true,
   pendingInput: undefined as string | undefined,
+  autoSendPending: false as boolean,
 });

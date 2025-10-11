@@ -1,10 +1,13 @@
 import type { UIMessage } from 'ai';
 import { User } from 'lucide-react';
 import React from 'react';
+import { useStore } from '@nanostores/react';
 import { AssistantMessage } from './AssistantMessage';
 import { LoadingAnimation } from './LoadingAnimation';
 import { UserMessage } from './UserMessage';
+import { errorStore } from '~/lib/stores/errors';
 import { classNames } from '~/utils/classNames';
+import { WORK_DIR } from '~/utils/constants';
 
 interface MessagesProps {
   id?: string;
@@ -15,6 +18,11 @@ interface MessagesProps {
 
 export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: MessagesProps, ref) => {
   const { id, isStreaming = false, messages = [] } = props;
+
+  const errorsMap = useStore(errorStore.errors);
+  const activeErrors = Object.values(errorsMap).filter((e) => !e.dismissed && e.severity === 'error');
+
+  const toRel = (p?: string) => (p ? p.replace(WORK_DIR + '/', '').replace(/^\//, '') : '');
 
   return (
     <div id={id} ref={ref} className={props.className}>
@@ -55,6 +63,37 @@ export const Messages = React.forwardRef<HTMLDivElement, MessagesProps>((props: 
             );
           })
         : null}
+
+      {/* Render active dev server errors inline in chat as collapsible assistant messages */}
+      {activeErrors.slice(0, 2).map((error, idx) => {
+        const summary = `Dev server error: ${error.message}${error.file ? ` — ${toRel(error.file)}${error.line ? `:${error.line}` : ''}` : ''}`;
+        const openLink = error.file ? `<a href="bolt-file://${encodeURIComponent(error.file)}">Open file</a>` : '';
+        const fixLink = `<a href="bolt-fix://${encodeURIComponent(error.id)}">Ask AI to fix</a>`;
+        const stack = error.stack ? `\n\nStack:\n\n\`\`\`\n${error.stack}\n\`\`\`` : '';
+        const md = `<details><summary>${summary}</summary>\n\n${openLink}${openLink ? ' • ' : ''}${fixLink}${stack}\n</details>`;
+        return (
+          <div
+            key={`error-${error.id}-${idx}`}
+            className={classNames(
+              'flex gap-4 p-6 w-full rounded-[calc(0.75rem-1px)] mt-4',
+              'bg-bolt-elements-messages-background',
+            )}
+          >
+            <div className="grid grid-col-1 w-full">
+              <div className="flex justify-end mb-1">
+                <button
+                  className="text-xs text-bolt-elements-textSecondary hover:underline"
+                  onClick={() => errorStore.dismissError(error.id)}
+                >
+                  Dismiss
+                </button>
+              </div>
+              <AssistantMessage content={md} />
+            </div>
+          </div>
+        );
+      })}
+
       {isStreaming && (
         <div className="flex justify-center w-full mt-6 mb-2">
           <div className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-bolt-elements-messages-background border border-bolt-elements-borderColor/50">

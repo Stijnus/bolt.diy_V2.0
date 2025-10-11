@@ -61,6 +61,13 @@ const rehypeSanitizeOptions: RehypeSanitizeOptions = {
   tagNames: allowedHTMLElements,
   attributes: {
     ...defaultSchema.attributes,
+    a: {
+      // Preserve existing anchor attribute rules and extend href protocols
+      ...(defaultSchema.attributes?.a as any),
+      href: { allowedProtocols: ['http', 'https', 'mailto', 'tel', 'bolt-file', 'bolt-fix'] },
+      target: true,
+      rel: true,
+    } as any,
     div: [...(defaultSchema.attributes?.div ?? []), 'data*', ['className', '__boltArtifact__']],
   },
   strip: [],

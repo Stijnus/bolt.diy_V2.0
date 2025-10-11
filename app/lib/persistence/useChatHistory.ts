@@ -1,7 +1,7 @@
 import { useLoaderData, useNavigate } from '@remix-run/react';
 import type { UIMessage } from 'ai';
 import { atom } from 'nanostores';
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 import { getMessages, getNextId, getUrlId, openDatabase, setMessages } from './db';
 import { useAuth } from '~/lib/contexts/AuthContext';
@@ -12,11 +12,18 @@ import { createClient } from '~/lib/supabase/client';
 import type { FullModelId } from '~/types/model';
 import { createScopedLogger } from '~/utils/logger';
 import { waitForFileOperations } from '~/utils/sync-helpers';
+import { ActionRunner } from '~/lib/runtime/action-runner';
+import { clearBoltTerminal, writeToBoltTerminal, getBoltTerminalBuffer } from '~/lib/runtime/bolt-terminal-bus';
+import type { ActionCallbackData } from '~/lib/runtime/message-parser';
+import { webcontainer } from '~/lib/webcontainer';
+import { WORK_DIR } from '~/utils/constants';
 
 const logger = createScopedLogger('ChatHistory');
 
 export interface TerminalState {
   isVisible: boolean;
+  boltBuffer?: string;
+  restartCommand?: string;
 
   // Future: Add command history, CWD, etc.
 }
@@ -153,7 +160,11 @@ export function useChatHistory() {
                       .file_state ?? undefined;
 
                   const remoteTerminalState =
-                    (data as { terminal_state?: { isVisible: boolean } | null }).terminal_state ?? undefined;
+                    (
+                      data as {
+                        terminal_state?: { isVisible: boolean; boltBuffer?: string; restartCommand?: string } | null;
+                      }
+                    ).terminal_state ?? undefined;
 
                   const remoteWorkbenchState =
                     (data as { workbench_state?: { currentView: 'code' | 'preview'; showWorkbench: boolean } | null })
@@ -242,6 +253,9 @@ export function useChatHistory() {
                   }
                 });
 
+                // Capture files before restoration to compute created/changed after
+                const filesBefore = { ...workbenchStore.files.get() };
+
                 const validFileCount = Object.keys(fileMap).length;
 
                 if (validFileCount > 0) {
@@ -259,6 +273,9 @@ export function useChatHistory() {
                       render: `Initializing WebContainer...`,
                       isLoading: true,
                     });
+
+                    let postRestoreMessagePushed = false;
+                    let postRestoreMd: string | null = null;
 
                     const wcResult = await waitForWebContainer({ timeout: 30000, throwOnTimeout: false });
 
@@ -281,11 +298,228 @@ export function useChatHistory() {
                       type: 'success',
                       isLoading: false,
                       autoClose: 3000,
+
                       closeOnClick: true,
                       draggable: true,
                     });
 
+                    try {
+                      // Ensure file store is refreshed before diffing
+                      await waitForFileOperations(workbenchStore, { timeout: 2000 });
+
+                      const filesAfter = { ...workbenchStore.files.get() } as Record<string, any>;
+                      const restoredPaths = Object.keys(fileMap).filter((p) => fileMap[p]?.type === 'file');
+
+                      const toRel = (p: string) => p.replace(WORK_DIR + '/', '').replace(/^\//, '');
+
+                      const created: string[] = [];
+                      const changed: string[] = [];
+
+                      for (const absPath of restoredPaths) {
+                        const before = filesBefore[absPath];
+                        const after = filesAfter[absPath];
+
+                        if (!before && after) {
+                          created.push(absPath);
+                        } else if (before && after && before.type === 'file' && after.type === 'file') {
+                          if (before.content !== after.content) {
+                            changed.push(absPath);
+                          }
+                        }
+                      }
+
+                      // Show a clickable toast with created/changed files
+                      if (created.length > 0 || changed.length > 0) {
+                        const makeItem = (path: string) =>
+                          React.createElement(
+                            'li',
+                            { key: path, className: 'py-0.5' },
+                            React.createElement(
+                              'button',
+                              {
+                                className:
+                                  'text-bolt-elements-textAccent hover:underline text-sm text-left truncate max-w-[36rem]',
+                                onClick: () => {
+                                  workbenchStore.setShowWorkbench(true);
+                                  workbenchStore.setSelectedFile(path);
+                                },
+                                title: toRel(path),
+                              },
+                              toRel(path),
+                            ),
+                          );
+
+                        const content = React.createElement(
+                          'div',
+                          { className: 'text-sm' },
+                          React.createElement(
+                            'div',
+                            { className: 'font-medium mb-1' },
+                            `Imported project: ${validFileCount} files restored`,
+                          ),
+                          created.length > 0
+                            ? React.createElement(
+                                'div',
+                                { className: 'mb-1' },
+                                React.createElement('div', { className: 'font-medium' }, 'Created'),
+                                React.createElement(
+                                  'ul',
+                                  { className: 'list-disc pl-5 mt-0.5' },
+                                  ...created.slice(0, 8).map(makeItem),
+                                ),
+                                created.length > 8
+                                  ? React.createElement(
+                                      'div',
+                                      { className: 'text-xs text-bolt-elements-textSecondary mt-1' },
+                                      `+${created.length - 8} more`,
+                                    )
+                                  : null,
+                              )
+                            : null,
+                          changed.length > 0
+                            ? React.createElement(
+                                'div',
+                                null,
+                                React.createElement('div', { className: 'font-medium' }, 'Changed'),
+                                React.createElement(
+                                  'ul',
+                                  { className: 'list-disc pl-5 mt-0.5' },
+                                  ...changed.slice(0, 8).map(makeItem),
+                                ),
+                                changed.length > 8
+                                  ? React.createElement(
+                                      'div',
+                                      { className: 'text-xs text-bolt-elements-textSecondary mt-1' },
+                                      `+${changed.length - 8} more`,
+                                    )
+                                  : null,
+                              )
+                            : null,
+                        );
+
+                        toast.info(content, { autoClose: 8000, closeOnClick: false });
+                        // Also add a chat assistant message with clickable links
+                        try {
+                          const toRel = (p: string) => p.replace(WORK_DIR + '/', '').replace(/^\//, '');
+                          // Important: Markdown inside HTML blocks (like <details>) is not parsed by CommonMark.
+                          // So we render real <a> anchors instead of [text](url) markdown inside the details.
+                          const makeLink = (p: string) =>
+                            `- <a href="bolt-file://${encodeURIComponent(p)}">${toRel(p)}</a>`;
+                          const summary = `Imported project: ${validFileCount} files restored — Created: ${created.length}, Changed: ${changed.length}`;
+                          let md = `<details><summary>${summary}</summary>`;
+                          md += `\n\nClick a file to open it in the editor.`;
+                          if (created.length > 0) {
+                            md += `\n\nCreated:\n${created.slice(0, 20).map(makeLink).join('\n')}`;
+                            if (created.length > 20) md += `\n... +${created.length - 20} more`;
+                          }
+                          if (changed.length > 0) {
+                            md += `\n\nChanged:\n${changed.slice(0, 20).map(makeLink).join('\n')}`;
+                            if (changed.length > 20) md += `\n... +${changed.length - 20} more`;
+                          }
+                          md += `\n</details>`;
+                          postRestoreMd = md;
+
+                          const assistantMsg: UIMessage = {
+                            role: 'assistant',
+                            parts: [{ type: 'text', text: md }],
+                          } as any;
+                          if ((storedMessages?.messages?.length ?? 0) > 0) {
+                            setInitialMessages([...storedMessages!.messages, assistantMsg]);
+                          } else {
+                            // no prior messages; add later together with intro below
+                            postRestoreMessagePushed = true;
+                            setInitialMessages([assistantMsg]);
+                          }
+                        } catch (e) {
+                          logger.warn('Failed to append assistant file list message', e);
+                        }
+                      }
+
+                      // Auto-install and start dev server if package.json is present
+                      const hasPkg = restoredPaths.some(
+                        (p) => p.endsWith('/package.json') || p === '/package.json' || p === 'package.json',
+                      );
+
+                      if (hasPkg) {
+                        if (workbenchStore.getDevServerRunning()) {
+                          // Avoid multiple dev servers
+                          toast.info('Dev server already running. Skipping auto-start.');
+                        } else {
+                          workbenchStore.setShowWorkbench(true);
+                          workbenchStore.toggleTerminal(true);
+                          clearBoltTerminal();
+                          writeToBoltTerminal('\n\x1b[1m=== Import started: installing dependencies ===\x1b[0m\n');
+
+                          const runner = new ActionRunner(webcontainer);
+                          const baseId = `import_${Date.now()}`;
+
+                          const installId = `${baseId}_install`;
+                          const installAction: ActionCallbackData = {
+                            messageId: baseId,
+                            artifactId: baseId,
+                            actionId: installId,
+                            action: { type: 'shell', content: 'npm install' },
+                          };
+
+                          const devId = `${baseId}_dev`;
+                          const devAction: ActionCallbackData = {
+                            messageId: baseId,
+                            artifactId: baseId,
+                            actionId: devId,
+                            action: { type: 'shell', content: 'npm run dev' },
+                          };
+
+                          // Announce install and dev steps in chat instead of toasts
+                          setInitialMessages((prev) => [
+                            ...prev,
+                            {
+                              role: 'assistant',
+                              parts: [{ type: 'text', text: 'Installing dependencies... See Bolt Terminal for logs.' }],
+                            } as any,
+                          ]);
+
+                          runner.addAction(installAction);
+                          await runner.runAction(installAction);
+
+                          runner.onActionComplete(installId, () => {
+                            setInitialMessages((prev) => [
+                              ...prev,
+                              {
+                                role: 'assistant',
+                                parts: [{ type: 'text', text: 'Starting dev server (monitoring in Bolt Terminal)...' }],
+                              } as any,
+                            ]);
+                            runner.addAction(devAction);
+                            runner.runAction(devAction);
+                            workbenchStore.setDevServerRunning(true);
+                          });
+                        }
+                      }
+                    } catch (e) {
+                      logger.warn('Post-restore steps failed (diff/auto-run)', e);
+                    }
+
                     logger.info(`Successfully restored ${validFileCount} files to WebContainer`);
+
+                    // If this chat has no prior messages but we restored files,
+                    // seed a synthetic user message so the chat appears started
+                    // and the intro suggestions are hidden.
+                    if ((storedMessages?.messages?.length ?? 0) === 0) {
+                      const intro: UIMessage = {
+                        role: 'user',
+                        parts: [{ type: 'text', text: `Imported project with ${validFileCount} files.` }],
+                      } as any;
+
+                      if (postRestoreMessagePushed && postRestoreMd) {
+                        const assistantMsg: UIMessage = {
+                          role: 'assistant',
+                          parts: [{ type: 'text', text: postRestoreMd }],
+                        } as any;
+                        setInitialMessages([intro, assistantMsg]);
+                      } else {
+                        setInitialMessages([intro]);
+                      }
+                    }
                   } catch (error) {
                     logger.error('Failed to restore files to WebContainer:', error);
 
@@ -353,6 +587,14 @@ export function useChatHistory() {
                 if (storedMessages.terminalState.isVisible) {
                   workbenchStore.toggleTerminal(true);
                   logger.info('Terminal visibility restored');
+                }
+                // Restore Bolt Terminal buffer
+                if (storedMessages.terminalState.boltBuffer) {
+                  writeToBoltTerminal(storedMessages.terminalState.boltBuffer);
+                }
+                // Restore restart command preference
+                if (storedMessages.terminalState.restartCommand) {
+                  workbenchStore.setRestartCommand(storedMessages.terminalState.restartCommand);
                 }
               } catch (error) {
                 logger.error('Failed to restore terminal state:', error);
@@ -517,6 +759,8 @@ export function useChatHistory() {
     // Capture terminal state
     const terminalState: TerminalState = {
       isVisible: workbenchStore.showTerminal.get(),
+      boltBuffer: getBoltTerminalBuffer(),
+      restartCommand: workbenchStore.getRestartCommand(),
     };
 
     // Capture workbench state (view mode and visibility)
