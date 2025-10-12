@@ -1,5 +1,5 @@
-import { Info, Download, Calendar } from 'lucide-react';
-import { useEffect, useMemo, useState } from 'react';
+import { Info, Download, Calendar, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '~/components/ui/Button';
 import { getModel } from '~/lib/models.client';
@@ -10,14 +10,14 @@ import { formatNumber } from '~/utils/format';
 
 type DateFilter = 'today' | '7days' | '30days' | 'all';
 
-function UsageRow({ usage }: { usage: SessionUsageWithTimestamp }) {
+function UsageRow({ usage, dateTimeFormatter }: { usage: SessionUsageWithTimestamp; dateTimeFormatter: Intl.DateTimeFormat }) {
   const { timestamp, tokens, cost, provider, modelId } = usage;
   const modelInfo = provider && modelId ? getModel(provider as AIProvider, modelId) : undefined;
   const modelName = modelInfo?.name ?? modelId;
 
   return (
     <tr className="border-b border-bolt-elements-borderColor/50 hover:bg-bolt-elements-background-depth-1">
-      <td className="p-3 text-sm text-bolt-elements-textSecondary">{new Date(timestamp).toLocaleString()}</td>
+      <td className="p-3 text-sm text-bolt-elements-textSecondary">{dateTimeFormatter.format(new Date(timestamp))}</td>
       <td className="p-3 text-sm">{provider}</td>
       <td className="p-3 text-sm">{modelName}</td>
       <td className="p-3 text-sm text-right">{formatNumber(tokens.input)}</td>
@@ -32,6 +32,8 @@ export function UsageDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [dateFilter, setDateFilter] = useState<DateFilter>('all');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
 
   const filterButtonClasses = (active: boolean) =>
     classNames(
@@ -117,28 +119,33 @@ export function UsageDashboard() {
     toast.success('Usage data exported successfully');
   };
 
-  useEffect(() => {
-    const loadUsage = async () => {
-      try {
-        const db = await getDatabase();
+  const fetchUsage = useCallback(async () => {
+    setError(null);
+    setIsRefreshing(true);
 
-        if (!db) {
-          throw new Error('Database not available.');
-        }
+    try {
+      const db = await getDatabase();
 
-        const data = await getAllUsage(db);
-
-        setUsageData(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
-      } catch (err) {
-        setError('Failed to load usage data from the database.');
-        console.error(err);
-      } finally {
-        setLoading(false);
+      if (!db) {
+        throw new Error('Database not available. Usage metrics require browser storage access.');
       }
-    };
 
-    void loadUsage();
+      const data = await getAllUsage(db);
+
+      setUsageData(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Failed to load usage data from the database.';
+      setError(message);
+      console.error('UsageDashboard: failed to load usage data', err);
+    } finally {
+      setLoading(false);
+      setIsRefreshing(false);
+    }
   }, []);
+
+  useEffect(() => {
+    void fetchUsage();
+  }, [fetchUsage]);
 
   const totals = filteredData.reduce(
     (acc, session) => {
@@ -188,23 +195,172 @@ export function UsageDashboard() {
       .slice(-14); // Last 14 days max
   }, [filteredData]);
 
+  const dateTimeFormatter = useMemo(
+    () => new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }),
+    [],
+  );
+
+  const handleRefresh = useCallback(() => {
+    if (!isRefreshing) {
+      setLoading(false);
+      void fetchUsage();
+    }
+  }, [fetchUsage, isRefreshing]);
+
+  const handleExportToCSV = useCallback(() => {
+    if (filteredData.length === 0) {
+      toast.error('No usage data to export');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      const headers = ['Date', 'Provider', 'Model', 'Input Tokens', 'Output Tokens', 'Cost (USD)'];
+
+      const rows = filteredData.map((usage) => {
+        const modelInfo =
+          usage.provider && usage.modelId ? getModel(usage.provider as AIProvider, usage.modelId) : undefined;
+
+        const modelName = modelInfo?.name ?? usage.modelId;
+
+        return [
+          dateTimeFormatter.format(new Date(usage.timestamp)),
+          usage.provider || 'N/A',
+          modelName || 'N/A',
+          usage.tokens.input,
+          usage.tokens.output,
+          usage.cost.toFixed(4),
+        ];
+      });
+
+      const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
+
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `boltdiy-usage-${new Date().toISOString().split('T')[0]}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('Usage data exported successfully');
+    } catch (err) {
+      toast.error('Failed to export usage data');
+      console.error('UsageDashboard: failed to export CSV', err);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [filteredData, dateTimeFormatter]);
+
+  const emptyStateMessage = dateFilter === 'all' ? 'No usage data recorded yet.' : 'No usage data for the selected time period.';
+  const hasUsageData = filteredData.length > 0;
+
   if (loading) {
-    return <p>Loading usage data...</p>;
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="h-7 w-40 rounded bg-bolt-elements-background-depth-2 animate-pulse" />
+          <div className="h-9 w-24 rounded bg-bolt-elements-background-depth-2 animate-pulse" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[0, 1, 2].map((key) => (
+            <div
+              key={key}
+              className="h-24 rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 animate-pulse"
+            />
+          ))}
+        </div>
+        <div className="h-64 rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 animate-pulse" />
+      </div>
+    );
   }
 
-  if (error) {
-    return <p className="text-red-500">{error}</p>;
+  if (!loading && error && usageData.length === 0) {
+    return (
+      <div className="space-y-4">
+        <div className="rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 text-sm text-bolt-elements-textSecondary flex flex-col gap-4">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-bolt-elements-button-danger-text" />
+            <div className="space-y-2">
+              <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">Unable to load usage data</h2>
+              <p>{error}</p>
+            </div>
+          </div>
+          <div>
+            <Button onClick={handleRefresh} size="sm" variant="secondary" disabled={isRefreshing}>
+              {isRefreshing ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  Retrying…
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Retry
+                </>
+              )}
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
   }
+
+  const showFilterRecordCount = dateFilter !== 'all' && hasUsageData;
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
         <h2 className="text-2xl font-bold">Usage History</h2>
-        <Button onClick={exportToCSV} size="sm" variant="secondary" disabled={loading || filteredData.length === 0}>
-          <Download className="w-4 h-4 mr-2" />
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleRefresh}
+            disabled={isRefreshing}
+            aria-label="Refresh usage data"
+          >
+            <RefreshCw className={classNames('h-4 w-4', isRefreshing ? 'animate-spin' : '')} />
+          </Button>
+          <Button
+            onClick={handleExportToCSV}
+            size="sm"
+            variant="secondary"
+            disabled={isExporting || filteredData.length === 0}
+          >
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Exporting…
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4 mr-2" />
+                Export CSV
+              </>
+            )}
+          </Button>
+        </div>
       </div>
+
+      {error && usageData.length > 0 && (
+        <div className="flex items-start gap-3 rounded-[calc(var(--radius))] border border-bolt-elements-warning-border bg-bolt-elements-warning-background/30 p-4 text-sm text-bolt-elements-warning-text">
+          <AlertCircle className="h-4 w-4 flex-shrink-0" />
+          <div className="flex-1">
+            <p>{error}</p>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-medium underline"
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? 'Refreshing…' : 'Retry now'}
+            </button>
+          </div>
+        </div>
+      )}
 
       <div className="rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 transition-theme animate-scaleIn hover:border-bolt-elements-borderColorActive">
         <div className="flex gap-3">
@@ -241,13 +397,13 @@ export function UsageDashboard() {
               </button>
             ))}
           </div>
-          {dateFilter !== 'all' && (
+          {showFilterRecordCount && (
             <span className="text-sm text-bolt-elements-textTertiary">({filteredData.length} records)</span>
           )}
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4" role="status" aria-live="polite">
         <div className="p-4 bg-bolt-elements-background-depth-2 rounded-[calc(var(--radius))] border border-bolt-elements-borderColor transition-theme hover:border-bolt-elements-borderColorActive animate-scaleIn">
           <h3 className="text-sm font-medium text-bolt-elements-textSecondary">Total Input Tokens</h3>
           <p className="text-2xl font-bold text-bolt-elements-textPrimary">{formatNumber(totals.inputTokens)}</p>
@@ -263,7 +419,7 @@ export function UsageDashboard() {
       </div>
 
       {/* Charts */}
-      {filteredData.length > 0 && (
+      {hasUsageData && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Usage by Provider */}
           <div className="rounded-[calc(var(--radius))] border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6 transition-theme hover:border-bolt-elements-borderColorActive animate-scaleIn">
@@ -359,11 +515,13 @@ export function UsageDashboard() {
           </thead>
           <tbody className="bg-bolt-elements-background divide-y divide-bolt-elements-borderColor/50">
             {filteredData.length > 0 ? (
-              filteredData.map((usage, index) => <UsageRow key={index} usage={usage} />)
+              filteredData.map((usage, index) => (
+                <UsageRow key={index} usage={usage} dateTimeFormatter={dateTimeFormatter} />
+              ))
             ) : (
               <tr>
                 <td colSpan={6} className="p-4 text-center text-bolt-elements-textSecondary">
-                  {dateFilter === 'all' ? 'No usage data recorded yet.' : 'No usage data for the selected time period.'}
+                  {emptyStateMessage}
                 </td>
               </tr>
             )}

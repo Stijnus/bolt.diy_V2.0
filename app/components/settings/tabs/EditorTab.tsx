@@ -8,48 +8,68 @@ interface EditorTabProps {
   settings: EditorSettings;
   onSettingChange: (key: keyof EditorSettings, value: any) => void;
   onReset: () => void;
+  onRevert?: () => void;
+  dirty?: boolean;
+  errors?: Partial<Record<keyof EditorSettings, string>>;
 }
 
-export function EditorTab({ settings, onSettingChange, onReset }: EditorTabProps) {
+export function EditorTab({ settings, onSettingChange, onReset, onRevert, dirty = false, errors }: EditorTabProps) {
   return (
     <SettingsSection
       title="Editor"
       description="Customize your code editor preferences"
       status="implemented"
       onReset={onReset}
+      onRevert={onRevert}
+      dirty={dirty}
     >
       <SettingItem
         label="Tab Size"
         description="Number of spaces per tab"
         tooltip="Controls how many spaces are inserted when you press the Tab key. Common values are 2 or 4 spaces."
+        error={errors?.tabSize}
       >
         <Input
           type="number"
           min={2}
           max={8}
           value={settings.tabSize}
-          onChange={(e) => onSettingChange('tabSize', parseInt(e.target.value, 10))}
+          onChange={(e) => {
+            const value = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(value)) {
+              onSettingChange('tabSize', value);
+            }
+          }}
           className="w-20"
+          aria-invalid={Boolean(errors?.tabSize)}
         />
       </SettingItem>
       <SettingItem
         label="Font Size"
         description="Editor font size in pixels"
         tooltip="Adjusts the size of text in the code editor. Larger values make text easier to read, smaller values fit more code on screen."
+        error={errors?.fontSize}
       >
         <Input
           type="number"
           min={10}
           max={24}
           value={settings.fontSize}
-          onChange={(e) => onSettingChange('fontSize', parseInt(e.target.value, 10))}
+          onChange={(e) => {
+            const value = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(value)) {
+              onSettingChange('fontSize', value);
+            }
+          }}
           className="w-20"
+          aria-invalid={Boolean(errors?.fontSize)}
         />
       </SettingItem>
       <SettingItem
         label="Line Height"
         description="Line height multiplier"
         tooltip="Controls the vertical spacing between lines of code. Higher values (1.5-2.0) improve readability, lower values (1.0-1.3) fit more code on screen."
+        error={errors?.lineHeight}
       >
         <Input
           type="number"
@@ -57,8 +77,14 @@ export function EditorTab({ settings, onSettingChange, onReset }: EditorTabProps
           max={2}
           step={0.1}
           value={settings.lineHeight}
-          onChange={(e) => onSettingChange('lineHeight', parseFloat(e.target.value))}
+          onChange={(e) => {
+            const value = Number.parseFloat(e.target.value);
+            if (!Number.isNaN(value)) {
+              onSettingChange('lineHeight', value);
+            }
+          }}
           className="w-20"
+          aria-invalid={Boolean(errors?.lineHeight)}
         />
       </SettingItem>
       <SettingItem

@@ -14,6 +14,7 @@ interface AccountTabProps {
   onChangePassword: () => void;
   onDeleteAccount: () => void;
   onShowDeleteConfirm: (show: boolean) => void;
+  passwordError?: string | null;
 }
 
 export function AccountTab({
@@ -27,6 +28,7 @@ export function AccountTab({
   onChangePassword,
   onDeleteAccount,
   onShowDeleteConfirm,
+  passwordError,
 }: AccountTabProps) {
   return (
     <SettingsSection title="Account" description="Manage your account" status="implemented">
@@ -42,6 +44,7 @@ export function AccountTab({
               value={newPassword}
               onChange={(e) => onNewPasswordChange(e.target.value)}
               className="w-full rounded-[calc(var(--radius))] transition-theme"
+              aria-invalid={Boolean(passwordError)}
             />
           </div>
           <div>
@@ -55,17 +58,26 @@ export function AccountTab({
               value={confirmPassword}
               onChange={(e) => onConfirmPasswordChange(e.target.value)}
               className="w-full rounded-[calc(var(--radius))] transition-theme"
+              aria-invalid={Boolean(passwordError)}
             />
           </div>
           <Button
             onClick={onChangePassword}
-            disabled={isChangingPassword || !newPassword || !confirmPassword}
+            disabled={
+              isChangingPassword || !newPassword || !confirmPassword || (passwordError ? true : false)
+            }
             size="sm"
             className="rounded-[calc(var(--radius))] transition-theme"
           >
             {isChangingPassword ? 'Changing...' : 'Change Password'}
           </Button>
-          <p className="text-xs text-bolt-elements-textSecondary italic">Password must be at least 8 characters long</p>
+          {passwordError ? (
+            <p className="text-xs font-medium text-bolt-elements-button-danger-text">{passwordError}</p>
+          ) : (
+            <p className="text-xs text-bolt-elements-textSecondary italic">
+              Password must be at least 8 characters long and include a mix of letters, numbers, and symbols.
+            </p>
+          )}
         </div>
       </SettingCard>
 

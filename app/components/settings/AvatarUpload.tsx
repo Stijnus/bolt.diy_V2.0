@@ -97,15 +97,23 @@ export const AvatarUpload = ({ currentAvatarUrl, userId, onAvatarUpdate }: Avata
     setPreviewUrl(null);
   };
 
+  const avatarSrc = previewUrl || currentAvatarUrl || null;
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-4">
         <div className="relative">
-          <img
-            src={previewUrl || currentAvatarUrl}
-            alt="Avatar"
-            className="h-20 w-20 rounded-full object-cover ring-2 ring-bolt-elements-borderColor"
-          />
+          {avatarSrc ? (
+            <img
+              src={avatarSrc}
+              alt="Avatar"
+              className="h-20 w-20 rounded-full object-cover ring-2 ring-bolt-elements-borderColor"
+            />
+          ) : (
+            <div className="h-20 w-20 rounded-full bg-bolt-elements-background-depth-3 ring-2 ring-bolt-elements-borderColor flex items-center justify-center">
+              <Upload className="h-8 w-8 text-bolt-elements-textSecondary" />
+            </div>
+          )}
           {previewUrl && (
             <button
               onClick={handleRemovePreview}

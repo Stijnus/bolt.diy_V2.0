@@ -57,7 +57,7 @@ export const shortcutsStore = map<Shortcuts>({
   },
 });
 
-const defaultEditorSettings: EditorSettings = {
+export const defaultEditorSettings: EditorSettings = {
   tabSize: 2,
   fontSize: 14,
   fontFamily: "'JetBrains Mono', 'Fira Code', monospace",
@@ -67,7 +67,7 @@ const defaultEditorSettings: EditorSettings = {
   lineNumbers: true,
 };
 
-const defaultAISettings: AISettings = {
+export const defaultAISettings: AISettings = {
   model: 'deepseek:deepseek-chat',
   defaultModel: 'anthropic:claude-sonnet-4-5-20250929', // Default for new chats
   planModel: 'anthropic:claude-sonnet-4-5-20250929', // Use a strong planner by default
@@ -76,7 +76,7 @@ const defaultAISettings: AISettings = {
   streamResponse: true,
 };
 
-const defaultUserPreferences: UserPreferences = {
+export const defaultUserPreferences: UserPreferences = {
   language: 'en',
   notifications: true,
   autoSave: true,
@@ -159,5 +159,15 @@ export function updateUserPreferences(updates: Partial<UserPreferences>) {
   settingsStore.set({
     ...currentSettings,
     preferences: { ...currentSettings.preferences, ...updates },
+  });
+}
+
+export function setSettingsSections(sections: Pick<Settings, 'editor' | 'ai' | 'preferences'>) {
+  const currentSettings = settingsStore.get();
+  settingsStore.set({
+    ...currentSettings,
+    editor: { ...sections.editor },
+    ai: { ...sections.ai },
+    preferences: { ...sections.preferences },
   });
 }

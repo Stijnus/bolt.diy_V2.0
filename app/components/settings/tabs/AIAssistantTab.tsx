@@ -11,9 +11,12 @@ interface AiAssistantTabProps {
   settings: AISettings;
   onSettingChange: (key: keyof AISettings, value: any) => void;
   onReset: () => void;
+  onRevert?: () => void;
+  dirty?: boolean;
+  errors?: Partial<Record<keyof AISettings, string>>;
 }
 
-export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssistantTabProps) {
+export function AiAssistantTab({ settings, onSettingChange, onReset, onRevert, dirty = false, errors }: AiAssistantTabProps) {
   // Fetch configured providers to filter models shown in selectors
   const [enabledProviders, setEnabledProviders] = useState<Set<string> | null>(null);
 
@@ -66,11 +69,14 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
       description="Configure AI model and behavior"
       status="implemented"
       onReset={onReset}
+      onRevert={onRevert}
+      dirty={dirty}
     >
       <SettingItem
         label="Temperature"
         description="Controls randomness (0-1)"
         tooltip="Lower values (0.0-0.3) make responses more focused and deterministic. Higher values (0.7-1.0) make responses more creative and varied."
+        error={errors?.temperature}
       >
         <Input
           type="number"
@@ -78,14 +84,21 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
           max={1}
           step={0.1}
           value={settings.temperature}
-          onChange={(e) => onSettingChange('temperature', parseFloat(e.target.value))}
+          onChange={(e) => {
+            const value = Number.parseFloat(e.target.value);
+            if (!Number.isNaN(value)) {
+              onSettingChange('temperature', value);
+            }
+          }}
           className="w-20"
+          aria-invalid={Boolean(errors?.temperature)}
         />
       </SettingItem>
       <SettingItem
         label="Max Tokens"
         description="Maximum response length"
         tooltip="Limits the length of AI responses. Higher values allow longer responses but use more resources. 1 token ≈ 4 characters."
+        error={errors?.maxTokens}
       >
         <Input
           type="number"
@@ -93,8 +106,14 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
           max={32768}
           step={1024}
           value={settings.maxTokens}
-          onChange={(e) => onSettingChange('maxTokens', parseInt(e.target.value, 10))}
+          onChange={(e) => {
+            const value = Number.parseInt(e.target.value, 10);
+            if (!Number.isNaN(value)) {
+              onSettingChange('maxTokens', value);
+            }
+          }}
           className="w-24"
+          aria-invalid={Boolean(errors?.maxTokens)}
         />
       </SettingItem>
       <SettingItem
@@ -108,11 +127,13 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
         label="Default Model"
         description="Model to use for new chats"
         tooltip="Select which AI model to use by default when starting a new chat. You can always change the model for individual chats."
+        error={errors?.defaultModel}
       >
         <select
           className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
           value={settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
           onChange={(e) => onSettingChange('defaultModel', e.target.value)}
+          aria-invalid={Boolean(errors?.defaultModel)}
         >
           {/* Show current value even if provider is not configured */}
           {currentDefaultIfHidden && (
@@ -135,11 +156,13 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
         label="Plan Agent (Plan Mode Model)"
         description="Model used when Plan mode is enabled"
         tooltip="Choose the model used to generate structured plans. A strong planner like Claude Sonnet 4.5 is ideal."
+        error={errors?.planModel}
       >
         <select
           className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
           value={settings.planModel || settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
           onChange={(e) => onSettingChange('planModel', e.target.value)}
+          aria-invalid={Boolean(errors?.planModel)}
         >
           {/* Show current value even if provider is not configured */}
           {currentPlanIfHidden && (

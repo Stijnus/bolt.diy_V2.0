@@ -6,6 +6,7 @@ export type ChatMode = 'normal' | 'plan' | 'discussion';
 export interface PendingPlan {
   messageId: string;
   content: string;
+  receivedAt: number;
 }
 
 export interface ChatModeState {
@@ -40,8 +41,8 @@ export function setMode(mode: ChatMode) {
 /**
  * Set a pending plan for approval
  */
-export function setPendingPlan(messageId: string, content: string) {
-  chatModeStore.setKey('pendingPlan', { messageId, content });
+export function setPendingPlan(messageId: string, content: string, receivedAt: number = Date.now()) {
+  chatModeStore.setKey('pendingPlan', { messageId, content, receivedAt });
 }
 
 /**

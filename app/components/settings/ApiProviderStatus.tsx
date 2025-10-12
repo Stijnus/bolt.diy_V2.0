@@ -1,14 +1,7 @@
 import { CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { z } from 'zod';
 import { classNames } from '~/utils/classNames';
-
-interface ProviderStatus {
-  providers: Record<string, boolean>;
-}
-
-interface ModelCounts {
-  counts: Record<string, number>;
-}
 
 const PROVIDER_CARDS: Array<{ id: string; name: string }> = [
   { id: 'anthropic', name: 'Anthropic' },
@@ -21,45 +14,94 @@ const PROVIDER_CARDS: Array<{ id: string; name: string }> = [
   { id: 'groq', name: 'Groq' },
 ];
 
+const providersResponseSchema = z.object({
+  providers: z.record(z.string(), z.boolean()),
+  lastChecked: z.string().optional(),
+});
+
+const modelsResponseSchema = z.object({
+  counts: z.record(z.string(), z.number().int().nonnegative()).optional(),
+});
+
 export const ApiProviderStatus = () => {
-  const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null);
+  const [providerStatus, setProviderStatus] = useState<Record<string, boolean>>({});
   const [modelCounts, setModelCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
-  const fetchStatus = async () => {
-    setLoading(true);
+  const fetchStatus = useCallback(async () => {
     setError(null);
+    setIsRefreshing(true);
+    const controller = new AbortController();
+    setLoading((prev) => (prev ? prev : false));
 
     try {
-      const [providersRes, modelsRes] = await Promise.all([fetch('/api/providers'), fetch('/api/models')]);
+      const [providersRes, modelsRes] = await Promise.all([
+        fetch('/api/providers', { signal: controller.signal }),
+        fetch('/api/models', { signal: controller.signal }),
+      ]);
 
       if (!providersRes.ok) {
-        throw new Error('Failed to fetch provider status');
+        throw new Error(`Failed to fetch provider status (${providersRes.status})`);
       }
 
       if (!modelsRes.ok) {
-        throw new Error('Failed to fetch model counts');
+        throw new Error(`Failed to fetch model counts (${modelsRes.status})`);
       }
 
-      const providersData = (await providersRes.json()) as ProviderStatus;
-      const modelsData = (await modelsRes.json()) as ModelCounts;
+      const providersJson = await providersRes.json();
+      const modelsJson = await modelsRes.json();
 
-      setProviderStatus(providersData);
-      setModelCounts(modelsData.counts || {});
+      const parsedProviders = providersResponseSchema.safeParse(providersJson);
+      if (!parsedProviders.success) {
+        throw new Error('Provider status response was not in the expected format');
+      }
+
+      const parsedModels = modelsResponseSchema.safeParse(modelsJson);
+      if (!parsedModels.success) {
+        throw new Error('Model counts response was not in the expected format');
+      }
+
+      setProviderStatus(parsedProviders.data.providers);
+      setModelCounts(parsedModels.data.counts ?? {});
+      setLastUpdated(new Date().toISOString());
     } catch (err) {
-      setError('Failed to load provider status');
+      if ((err as Error).name === 'AbortError') {
+        return;
+      }
+      setError((err as Error).message || 'Failed to load provider status');
       console.error(err);
     } finally {
       setLoading(false);
+      setIsRefreshing(false);
     }
-  };
+
+    return () => controller.abort();
+  }, []);
 
   useEffect(() => {
     void fetchStatus();
-  }, []);
+  }, [fetchStatus]);
 
-  if (loading) {
+  const configuredCount = useMemo(
+    () => Object.values(providerStatus).filter(Boolean).length,
+    [providerStatus],
+  );
+
+  const totalProviders = PROVIDER_CARDS.length;
+
+  const lastUpdatedLabel = useMemo(() => {
+    if (!lastUpdated) return null;
+    try {
+      return new Date(lastUpdated).toLocaleString();
+    } catch {
+      return lastUpdated;
+    }
+  }, [lastUpdated]);
+
+  if (loading && !isRefreshing && !lastUpdated) {
     return (
       <div className="flex items-center gap-2 text-sm text-bolt-elements-textSecondary">
         <RefreshCw className="w-4 h-4 animate-spin" />
@@ -68,34 +110,54 @@ export const ApiProviderStatus = () => {
     );
   }
 
-  if (error || !providerStatus) {
+  if (error && configuredCount === 0) {
     return (
       <div className="flex items-center gap-2 text-sm text-red-500">
         <XCircle className="w-4 h-4" />
         <span>{error || 'Failed to load provider status'}</span>
+        <button
+          type="button"
+          className="rounded-lg border border-red-500/40 px-2 py-1 text-xs font-medium text-red-500 transition hover:bg-red-500/10"
+          onClick={() => void fetchStatus()}
+        >
+          Retry
+        </button>
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-bolt-elements-textSecondary">
-          API keys are configured in your environment variables. Below is the status of each provider.
-        </p>
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <div className="space-y-1">
+          <p className="text-sm text-bolt-elements-textSecondary">
+            API keys are configured in your environment variables. Below is the status of each provider.
+          </p>
+          <p className="text-xs text-bolt-elements-textTertiary">
+            {configuredCount}/{totalProviders} providers configured
+            {lastUpdatedLabel && ` • Last checked ${lastUpdatedLabel}`}
+          </p>
+        </div>
         <button
-          onClick={fetchStatus}
-          className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+          type="button"
+          onClick={() => void fetchStatus()}
+          className={classNames(
+            'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
+            isRefreshing
+              ? 'text-bolt-elements-textSecondary cursor-wait'
+              : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+          )}
           title="Refresh status"
+          disabled={isRefreshing}
         >
-          <RefreshCw className="h-4 w-4" />
-          Refresh
+          <RefreshCw className={classNames('h-4 w-4', isRefreshing ? 'animate-spin' : '')} />
+          {isRefreshing ? 'Refreshing…' : 'Refresh'}
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
         {PROVIDER_CARDS.map((provider) => {
-          const isConfigured = !!providerStatus.providers[provider.id];
+          const isConfigured = !!providerStatus[provider.id];
           const count = modelCounts[provider.id];
 
           return (
@@ -167,7 +229,7 @@ export const ApiProviderStatus = () => {
             <p className="mt-1 text-xs text-blue-600/80 dark:text-blue-500/80">
               Set your API keys as environment variables in your <code>.env.local</code> file. For example:{' '}
               <code>ANTHROPIC_API_KEY=sk-ant-api03-xxxxx</code>. After adding new keys, restart the development server
-              for changes to take effect.
+              for changes to take effect. Missing providers can result in limited model availability above.
             </p>
           </div>
         </div>

@@ -10,21 +10,21 @@ function getModeInstructions(mode?: 'normal' | 'plan' | 'discussion'): string {
 
         Produce a clear strategy BEFORE any execution. Your output MUST:
         - Contain EXACTLY ONE <plan_document>…</plan_document>
-        - Contain NO other XML tags (especially NO <boltArtifact> or <boltAction>)
-        - Use Markdown INSIDE the plan with H2 headings named exactly (and in this order):
+        - Avoid any XML tags other than <plan_document> (especially NO <boltArtifact> or <boltAction>)
+        - Use Markdown INSIDE the plan (headings, lists, tables are allowed) with H2 headings named exactly (and in this order):
           Overview, Architecture, Files to Create/Modify, Dependencies, Commands,
           Implementation Steps, Risks & Assumptions, Acceptance Criteria (optional: Milestones, Out of Scope)
         - Be human-readable, precise, and unambiguous (only tiny illustrative code snippets if essential)
 
         SECTION REQUIREMENTS:
         - Overview: 1–3 sentences describing the user goal and scope
-        - Architecture: runtime, key components, data flow, dev server choice, state management
-        - Files to Create/Modify: each as: path — purpose (New/Modify), grouped logically
-        - Dependencies: npm packages with pinned versions (if known) + rationale; avoid native deps
+        - Architecture: runtime, key components, data flow, dev server choice, state management; reference existing project structure when relevant
+        - Files to Create/Modify: each as: path — purpose (New/Modify), grouped logically; omit sections if no changes
+        - Dependencies: npm packages with pinned versions (if known) + rationale; state “None” if not needed; avoid native deps
         - Commands: ordered shell commands (put in a fenced \`\`\`bash block with one per line)
-        - Implementation Steps: numbered, granular steps that a tool can follow deterministically
+        - Implementation Steps: numbered, granular steps that a tool can follow deterministically; surface preconditions or required clarifications
         - Risks & Assumptions: constraints, edge cases, external requirements
-        - Acceptance Criteria: verifiable, testable outcomes users can check
+        - Acceptance Criteria: verifiable, testable outcomes users can check (state “TBD” if awaiting input)
         - Optional Milestones: phases if project is large
         - Optional Out of Scope: explicitly list exclusions to avoid scope creep
 
@@ -64,6 +64,7 @@ function getModeInstructions(mode?: 'normal' | 'plan' | 'discussion'): string {
 
         IMPORTANT:
         - Provide a concrete, ordered plan that a tool could execute later
+        - Ask the user for clarifications instead of guessing when requirements or constraints are ambiguous
         - Do NOT include <boltArtifact> or <boltAction> in PLAN MODE
         - Wait for explicit approval before any execution
       </mode_instructions>
@@ -83,20 +84,19 @@ function getModeInstructions(mode?: 'normal' | 'plan' | 'discussion'): string {
         4. DO NOT execute any actions or use <boltArtifact> tags
 
         You should:
-        - Be conversational and helpful
-        - Explain technical concepts clearly
-        - Compare different approaches with pros/cons
-        - Suggest improvements and optimizations
-        - Help users make informed decisions
-        - Reference existing code when relevant
+        - Be conversational and helpful while grounding replies in project context (cite relevant file paths like \`app/routes/index.tsx\`)
+        - Explain technical concepts clearly and flag assumptions
+        - Compare different approaches with pros/cons and recommend a path
+        - Suggest improvements and optimizations along with lightweight snippets if illustrative
+        - Ask clarifying questions when requirements are incomplete or contradictory
+        - Help users plan next steps (including when to switch back to Plan or Normal mode)
 
         CRITICAL RULES:
         - NO <boltArtifact> tags in discussion mode
         - NO <boltAction> tags in discussion mode
         - NO code execution
-        - Focus on ADVISING, not DOING
-        - Be thorough in explanations
-        - Provide examples in your explanations (but not as artifacts)
+        - Keep examples inline; do not present anything as an executable artifact
+        - If the user demands execution, remind them to approve a plan or switch modes first
 
         This is a consultation mode - help the user think through their problem.
       </mode_instructions>

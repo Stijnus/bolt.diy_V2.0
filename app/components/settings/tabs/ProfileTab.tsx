@@ -11,6 +11,9 @@ interface ProfileTabProps {
   userId: string;
   onDisplayNameChange: (value: string) => void;
   onAvatarUpdate: (url: string) => void;
+  onRevert?: () => void;
+  dirty?: boolean;
+  displayNameError?: string | null;
 }
 
 export function ProfileTab({
@@ -20,9 +23,18 @@ export function ProfileTab({
   userId,
   onDisplayNameChange,
   onAvatarUpdate,
+  onRevert,
+  dirty = false,
+  displayNameError,
 }: ProfileTabProps) {
   return (
-    <SettingsSection title="Profile" description="Manage your account information" status="implemented">
+    <SettingsSection
+      title="Profile"
+      description="Manage your account information"
+      status="implemented"
+      onRevert={onRevert}
+      dirty={dirty}
+    >
       <SettingCard>
         {/* Avatar Upload */}
         <div className="mb-8">
@@ -32,7 +44,11 @@ export function ProfileTab({
 
         {/* Profile Information */}
         <div className="space-y-4">
-          <SettingItem label="Display Name" description="Your name as it appears in the application">
+          <SettingItem
+            label="Display Name"
+            description="Your name as it appears in the application"
+            error={displayNameError || undefined}
+          >
             <Input
               type="text"
               placeholder="Enter your name"

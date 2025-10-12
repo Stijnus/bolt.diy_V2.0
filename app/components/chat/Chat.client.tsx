@@ -4,7 +4,7 @@ import type { UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import { X, Check, AlertTriangle } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
-import { cssTransition, ToastContainer } from 'react-toastify';
+import { cssTransition, ToastContainer, toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
@@ -153,11 +153,20 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
          * Prefer explicit <plan_document> marker if present; otherwise use full content.
          */
         if (content && mode === 'plan') {
-          setPendingPlan(lastMessage.id, content);
+          if (pendingPlan?.messageId === lastMessage.id) {
+            return;
+          }
+
+          const hasPlanMarker = /<plan_document[\s>]/i.test(content) || detectMarkdownPlan(content);
+          const hasForbiddenTags = /<(boltArtifact|boltAction)\b/i.test(content);
+
+          if (hasPlanMarker && !hasForbiddenTags) {
+            setPendingPlan(lastMessage.id, content, Date.now());
+          }
         }
       }
     }
-  }, [messages, isLoading, mode]);
+  }, [messages, isLoading, mode, pendingPlan?.messageId]);
 
   /*
    * Enforce plan-only output: if assistant response lacks <plan_document> or includes artifacts,
@@ -186,7 +195,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     // Non-compliant if any XML-like tags other than <plan_document> are present
     const extraneousXmlTags = /<(?!\/?plan_document\b)[a-zA-Z][\w:-]*(\s[^>]*)?>/i.test(content);
 
-    if ((!hasPlan || hasArtifacts || extraneousXmlTags) && planEnforceCountRef.current < 1) {
+    if ((!hasPlan || hasArtifacts || extraneousXmlTags) && planEnforceCountRef.current < 2) {
       planEnforceCountRef.current += 1;
 
       const reformatRequest = [
@@ -199,6 +208,31 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
       // Send a lightweight user message asking for compliant plan output
       void sendMessage({ role: 'user', parts: [{ type: 'text', text: reformatRequest }] } as any);
+    } else if ((!hasPlan || hasArtifacts || extraneousXmlTags) && planEnforceCountRef.current >= 2) {
+      toast.error('Plan mode response could not be validated after multiple attempts. Please adjust your request or exit plan mode.');
+    }
+  }, [messages, isLoading, mode]);
+
+  useEffect(() => {
+    if (mode !== 'discussion' || isLoading || messages.length === 0) {
+      return;
+    }
+
+    const lastMessage = messages[messages.length - 1] as any;
+
+    if (!lastMessage || lastMessage.role !== 'assistant') {
+      return;
+    }
+
+    const content = Array.isArray(lastMessage.parts)
+      ? lastMessage.parts
+          .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+          .map((p: any) => p.text)
+          .join('')
+      : (lastMessage.content ?? '');
+
+    if (/<(boltArtifact|boltAction)\b/i.test(content)) {
+      toast.warn('Discussion mode ignores generated actions. Ask for guidance or switch to plan/normal mode to execute.');
     }
   }, [messages, isLoading, mode]);
 
@@ -302,11 +336,23 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const planEnforceCountRef = useRef(0);
 
+  const containsPlanApprovalTag = (_text: string) => /<approved_plan[\s>]/i.test(_text);
+  const containsPlanDocumentTag = (_text: string) => /<plan_document[\s>]/i.test(_text);
+
   const sendMessageHandler = async (_event: React.UIEvent, messageInput?: string) => {
     const _input = messageInput || input;
 
     if (_input.length === 0 || isLoading) {
       return;
+    }
+
+    if (mode === 'discussion' && containsPlanApprovalTag(_input)) {
+      toast.warn('Approved plan markers are disabled in discussion mode. Switch to normal mode to execute plans.');
+      return;
+    }
+
+    if (mode === 'plan' && containsPlanDocumentTag(_input)) {
+      toast.info('User-supplied plan documents are ignored while plan mode is generating a plan.');
     }
 
     // Reset plan enforcement counter for this new user turn

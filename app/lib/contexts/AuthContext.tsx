@@ -177,8 +177,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated or authentication is not configured.');
     }
 
-    const { error } = await supabase.auth.updateUser({
-      data: { user_metadata: metadata },
+    const { error, data } = await supabase.auth.updateUser({
+      data: metadata,
     });
 
     if (error) {
@@ -186,7 +186,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     // Update local user state to reflect changes
-    setUser({ ...user, user_metadata: { ...user.user_metadata, ...metadata } });
+    setUser({ ...user, ...data.user, user_metadata: { ...user.user_metadata, ...metadata } });
   };
 
   const deleteAccount = async () => {
@@ -194,20 +194,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated or authentication is not configured.');
     }
 
-    /*
-     * Delete user data from database first (this would need to be implemented server-side)
-     * For now, we'll just delete the auth user
-     */
-
-    const { error } = await supabase.auth.admin.deleteUser(user.id);
-
-    if (error) {
-      throw error;
-    }
-
-    // Clear local state
-    setUser(null);
-    setSession(null);
+    // Note: Account deletion should be handled server-side with proper authorization
+    // For now, we'll sign out the user and they can contact support for account deletion
+    // In production, you should create an API endpoint that uses the service role key
+    
+    throw new Error('Account deletion must be implemented server-side. Please contact support.');
+    
+    // Alternative: Just sign out for now
+    // await signOut();
   };
 
   return (

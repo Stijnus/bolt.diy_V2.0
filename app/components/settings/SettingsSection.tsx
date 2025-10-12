@@ -9,9 +9,11 @@ interface SettingsSectionProps {
   status?: 'implemented' | 'coming-soon' | 'partial';
   children: ReactNode;
   onReset?: () => void;
+  onRevert?: () => void;
+  dirty?: boolean;
 }
 
-export function SettingsSection({ title, description, status, children, onReset }: SettingsSectionProps) {
+export function SettingsSection({ title, description, status, children, onReset, onRevert, dirty = false }: SettingsSectionProps) {
   return (
     <div className="border-b border-bolt-elements-borderColor pb-8 last:border-b-0">
       <div className="mb-6">
@@ -34,15 +36,29 @@ export function SettingsSection({ title, description, status, children, onReset 
               </Badge>
             )}
           </div>
-          {onReset && (
-            <button
-              onClick={onReset}
-              className="flex items-center gap-2 rounded-[calc(var(--radius))] px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-theme hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
-              title="Reset to defaults"
-            >
-              <RotateCcw className="h-4 w-4" />
-              Reset
-            </button>
+          {(onReset || onRevert) && (
+            <div className="flex items-center gap-2">
+              {onRevert && dirty && (
+                <button
+                  onClick={onRevert}
+                  className="rounded-[calc(var(--radius))] px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-theme hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+                  type="button"
+                >
+                  Discard
+                </button>
+              )}
+              {onReset && (
+                <button
+                  onClick={onReset}
+                  className="flex items-center gap-2 rounded-[calc(var(--radius))] px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-theme hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+                  title="Reset to defaults"
+                  type="button"
+                >
+                  <RotateCcw className="h-4 w-4" />
+                  Reset
+                </button>
+              )}
+            </div>
           )}
         </div>
         {description && <p className="mt-1 text-sm text-bolt-elements-textSecondary">{description}</p>}

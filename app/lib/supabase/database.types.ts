@@ -12,128 +12,44 @@ export type Database = {
     Tables: {
       chats: {
         Row: {
-          created_at: string | null;
+          created_at: string;
           description: string | null;
+          file_state: Json;
           id: string;
           messages: Json;
-          project_id: string | null;
-          updated_at: string | null;
+          model: string | null;
+          origin: string;
+          updated_at: string;
           url_id: string;
           user_id: string;
         };
         Insert: {
-          created_at?: string | null;
+          created_at?: string;
           description?: string | null;
+          file_state?: Json;
           id?: string;
           messages?: Json;
-          project_id?: string | null;
-          updated_at?: string | null;
+          model?: string | null;
+          origin?: string;
+          updated_at?: string;
           url_id: string;
           user_id: string;
         };
         Update: {
-          created_at?: string | null;
+          created_at?: string;
           description?: string | null;
+          file_state?: Json;
           id?: string;
           messages?: Json;
-          project_id?: string | null;
-          updated_at?: string | null;
+          model?: string | null;
+          origin?: string;
+          updated_at?: string;
           url_id?: string;
           user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'chats_project_id_fkey';
-            columns: ['project_id'];
-            isOneToOne: false;
-            referencedRelation: 'projects';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'chats_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      project_collaborators: {
-        Row: {
-          created_at: string | null;
-          id: string;
-          project_id: string;
-          role: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          id?: string;
-          project_id: string;
-          role?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string | null;
-          id?: string;
-          project_id?: string;
-          role?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'project_collaborators_project_id_fkey';
-            columns: ['project_id'];
-            isOneToOne: false;
-            referencedRelation: 'projects';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'project_collaborators_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      projects: {
-        Row: {
-          created_at: string | null;
-          description: string | null;
-          files: Json | null;
-          id: string;
-          name: string;
-          settings: Json | null;
-          updated_at: string | null;
-          user_id: string;
-          visibility: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          description?: string | null;
-          files?: Json | null;
-          id?: string;
-          name: string;
-          settings?: Json | null;
-          updated_at?: string | null;
-          user_id: string;
-          visibility?: string;
-        };
-        Update: {
-          created_at?: string | null;
-          description?: string | null;
-          files?: Json | null;
-          id?: string;
-          name?: string;
-          settings?: Json | null;
-          updated_at?: string | null;
-          user_id?: string;
-          visibility?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'projects_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'users';
@@ -144,30 +60,30 @@ export type Database = {
       users: {
         Row: {
           avatar_url: string | null;
-          created_at: string | null;
+          created_at: string;
           email: string;
           id: string;
           name: string | null;
           settings: Json;
-          updated_at: string | null;
+          updated_at: string;
         };
         Insert: {
           avatar_url?: string | null;
-          created_at?: string | null;
+          created_at?: string;
           email: string;
           id: string;
           name?: string | null;
           settings?: Json;
-          updated_at?: string | null;
+          updated_at?: string;
         };
         Update: {
           avatar_url?: string | null;
-          created_at?: string | null;
+          created_at?: string;
           email?: string;
           id?: string;
           name?: string | null;
           settings?: Json;
-          updated_at?: string | null;
+          updated_at?: string;
         };
         Relationships: [];
       };
