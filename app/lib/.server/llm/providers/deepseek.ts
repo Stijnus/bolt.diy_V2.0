@@ -9,7 +9,7 @@ export const deepseekConfig: ProviderConfig = {
   models: [
     {
       id: 'deepseek-chat',
-      name: 'DeepSeek Chat',
+      name: 'DeepSeek Chat V3.2-Exp',
       description: 'Latest DeepSeek-V3.2-Exp model with 128K context and enhanced reasoning.',
       provider: 'deepseek',
       maxTokens: 8192,
@@ -28,7 +28,7 @@ export const deepseekConfig: ProviderConfig = {
     },
     {
       id: 'deepseek-reasoner',
-      name: 'DeepSeek Reasoner',
+      name: 'DeepSeek Reasoner V3.2-Exp',
       description: 'Latest DeepSeek-V3.2-Exp reasoning model with transparent chain-of-thought and 64K output.',
       provider: 'deepseek',
       maxTokens: 8192,
