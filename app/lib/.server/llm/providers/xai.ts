@@ -8,12 +8,12 @@ export const xaiConfig: ProviderConfig = {
   apiKeyEnvVar: 'XAI_API_KEY',
   models: [
     {
-      id: 'grok-4-fast-reasoning',
-      name: 'Grok 4 Fast Reasoning',
-      description: 'Low-latency Grok 4 tier with upgraded tool use and 4x cheaper thinking bursts.',
+      id: 'grok-4-fast',
+      name: 'Grok 4 Fast',
+      description: 'Unified reasoning model with 2M context. 40% fewer tokens, 98% cheaper than Grok 4.',
       provider: 'xai',
       maxTokens: 8192,
-      contextWindow: 131072,
+      contextWindow: 2000000,
       capabilities: {
         tools: true,
         reasoning: true,
@@ -21,9 +21,9 @@ export const xaiConfig: ProviderConfig = {
         fast: true,
       },
       pricing: {
-        input: 0.35,
-        output: 1.8,
-        cachedInput: 0.035,
+        input: 0.2,
+        output: 0.5,
+        cachedInput: 0.05,
       },
       isDefault: true,
       isReasoningModel: true,
@@ -31,7 +31,7 @@ export const xaiConfig: ProviderConfig = {
     {
       id: 'grok-4',
       name: 'Grok 4',
-      description: 'Full-strength Grok model with integrated real-time search and GPU-native tools.',
+      description: 'Full-strength reasoning model with real-time search and advanced multimodal capabilities.',
       provider: 'xai',
       maxTokens: 8192,
       contextWindow: 131072,
@@ -49,7 +49,7 @@ export const xaiConfig: ProviderConfig = {
     {
       id: 'grok-code-fast-1-5',
       name: 'Grok Code Fast 1.5',
-      description: 'Iterative coding specialist ideal for refactors, pull-request reviews, and agent work.',
+      description: 'Specialized for code reviews, refactors, and iterative development. Fast and affordable.',
       provider: 'xai',
       maxTokens: 8192,
       contextWindow: 131072,

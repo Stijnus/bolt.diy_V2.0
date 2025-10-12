@@ -18,16 +18,7 @@ const PROVIDER_CARDS: Array<{ id: string; name: string }> = [
   { id: 'xai', name: 'xAI' },
   { id: 'mistral', name: 'Mistral' },
   { id: 'zai', name: 'ZAI (GLM)' },
-  { id: 'openrouter', name: 'OpenRouter' },
-  { id: 'qwen', name: 'Qwen (DashScope)' },
-  { id: 'moonshot', name: 'Moonshot (Kimi)' },
-  { id: 'cerebras', name: 'Cerebras' },
   { id: 'groq', name: 'Groq' },
-  { id: 'together', name: 'Together AI' },
-  { id: 'perplexity', name: 'Perplexity AI' },
-  { id: 'cohere', name: 'Cohere' },
-  { id: 'fireworks', name: 'Fireworks AI' },
-  { id: 'bedrock', name: 'Amazon Bedrock' },
 ];
 
 export const ApiProviderStatus = () => {

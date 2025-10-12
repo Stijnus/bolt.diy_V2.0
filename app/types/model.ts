@@ -2,23 +2,7 @@
  * Frontend types for AI model selection and configuration.
  */
 
-export type AIProvider =
-  | 'anthropic'
-  | 'openai'
-  | 'google'
-  | 'deepseek'
-  | 'xai'
-  | 'mistral'
-  | 'zai'
-  | 'openrouter'
-  | 'qwen'
-  | 'moonshot'
-  | 'cerebras'
-  | 'groq'
-  | 'together'
-  | 'perplexity'
-  | 'cohere'
-  | 'fireworks';
+export type AIProvider = 'anthropic' | 'openai' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'zai' | 'groq';
 
 export interface ModelCapabilities {
   vision?: boolean;

@@ -103,6 +103,7 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
       maxTokens: 8192,
       streamResponse: true,
       defaultModel: 'anthropic:claude-sonnet-4-5-20250929',
+      planModel: 'anthropic:claude-sonnet-4-5-20250929',
     });
     toast.success('AI settings reset to defaults');
   };
@@ -189,29 +190,40 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
         await updateUser({ name: displayName });
       }
 
-      // Save application settings to database
-      const response = await fetch('/api/settings', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          settings: {
-            editor: settings.editor,
-            ai: settings.ai,
-            preferences: settings.preferences,
-          },
-        }),
-      });
+      if (user) {
+        // Authenticated: Save to database (and client store already updated)
+        const response = await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            settings: {
+              editor: settings.editor,
+              ai: settings.ai,
+              preferences: settings.preferences,
+            },
+          }),
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Settings save failed:', response.status, errorText);
-        throw new Error(`Failed to save settings to database (${response.status}): ${errorText}`);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Settings save failed:', response.status, errorText);
+          throw new Error(`Failed to save settings to database (${response.status}): ${errorText}`);
+        }
+
+        const result = await response.json();
+        console.log('Settings saved to database:', result);
+      } else {
+        // Guest: Persist to IndexedDB
+        const { getDatabase, setAppSettings } = await import('~/lib/persistence/db');
+        const db = await getDatabase();
+        if (!db) throw new Error('IndexedDB unavailable');
+        await setAppSettings(db, {
+          editor: settings.editor,
+          ai: settings.ai,
+          preferences: settings.preferences,
+        });
+        console.log('Settings saved to IndexedDB');
       }
-
-      const result = await response.json();
-      console.log('Settings saved to database:', result);
 
       // Reset unsaved changes tracking after successful save
       setInitialSettings(settings);

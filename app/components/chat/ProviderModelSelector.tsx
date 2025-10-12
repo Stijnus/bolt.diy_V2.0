@@ -1,160 +1,34 @@
 import { useStore } from '@nanostores/react';
 import * as Select from '@radix-ui/react-select';
-import { ChevronDown, Check, Zap, Eye, Wrench, Brain, Layers, Target, Cpu, Wind, Gem } from 'lucide-react';
+import { ChevronDown, Check, Zap, Eye, Wrench, Brain } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { getAllKeys, buildAuthHeaders, type ProviderKey } from '~/lib/client/api-keys';
 import { PROVIDERS, MODELS, getModel } from '~/lib/models.client';
 import { chatId } from '~/lib/persistence';
+import { getProviderConfig } from '~/lib/provider-config';
 import { chatModels, currentModel, setChatModel, setCurrentModel } from '~/lib/stores/model';
 import type { AIProvider, ModelInfo } from '~/types/model';
 
-// Provider icons and styling for visual differentiation
-const PROVIDER_CONFIG = {
-  anthropic: {
-    icon: Brain,
-    color: 'text-purple-400',
-    bg: 'bg-purple-500/10',
-    hoverBg: 'hover:bg-purple-500/20',
-    gradient: 'from-purple-500/20 to-purple-600/10',
-    ring: 'focus-visible:ring-purple-500/50',
-    name: 'Anthropic',
-  },
-  openai: {
-    icon: Zap,
-    color: 'text-green-400',
-    bg: 'bg-green-500/10',
-    hoverBg: 'hover:bg-green-500/20',
-    gradient: 'from-green-500/20 to-green-600/10',
-    ring: 'focus-visible:ring-green-500/50',
-    name: 'OpenAI',
-  },
-  google: {
-    icon: Layers,
-    color: 'text-blue-400',
-    bg: 'bg-blue-500/10',
-    hoverBg: 'hover:bg-blue-500/20',
-    gradient: 'from-blue-500/20 to-blue-600/10',
-    ring: 'focus-visible:ring-blue-500/50',
-    name: 'Google',
-  },
-  deepseek: {
-    icon: Target,
-    color: 'text-orange-400',
-    bg: 'bg-orange-500/10',
-    hoverBg: 'hover:bg-orange-500/20',
-    gradient: 'from-orange-500/20 to-orange-600/10',
-    ring: 'focus-visible:ring-orange-500/50',
-    name: 'DeepSeek',
-  },
-  xai: {
-    icon: Cpu,
-    color: 'text-cyan-400',
-    bg: 'bg-cyan-500/10',
-    hoverBg: 'hover:bg-cyan-500/20',
-    gradient: 'from-cyan-500/20 to-cyan-600/10',
-    ring: 'focus-visible:ring-cyan-500/50',
-    name: 'xAI',
-  },
-  mistral: {
-    icon: Wind,
-    color: 'text-red-400',
-    bg: 'bg-red-500/10',
-    hoverBg: 'hover:bg-red-500/20',
-    gradient: 'from-red-500/20 to-red-600/10',
-    ring: 'focus-visible:ring-red-500/50',
-    name: 'Mistral',
-  },
-  zai: {
-    icon: Gem,
-    color: 'text-yellow-400',
-    bg: 'bg-yellow-500/10',
-    hoverBg: 'hover:bg-yellow-500/20',
-    gradient: 'from-yellow-500/20 to-yellow-600/10',
-    ring: 'focus-visible:ring-yellow-500/50',
-    name: 'ZAI (GLM)',
-  },
-  openrouter: {
-    icon: Layers,
-    color: 'text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    hoverBg: 'hover:bg-emerald-500/20',
-    gradient: 'from-emerald-500/20 to-emerald-600/10',
-    ring: 'focus-visible:ring-emerald-500/50',
-    name: 'OpenRouter',
-  },
-  qwen: {
-    icon: Cpu,
-    color: 'text-teal-400',
-    bg: 'bg-teal-500/10',
-    hoverBg: 'hover:bg-teal-500/20',
-    gradient: 'from-teal-500/20 to-teal-600/10',
-    ring: 'focus-visible:ring-teal-500/50',
-    name: 'Qwen (DashScope)',
-  },
-  moonshot: {
-    icon: Wind,
-    color: 'text-pink-400',
-    bg: 'bg-pink-500/10',
-    hoverBg: 'hover:bg-pink-500/20',
-    gradient: 'from-pink-500/20 to-pink-600/10',
-    ring: 'focus-visible:ring-pink-500/50',
-    name: 'Moonshot (Kimi)',
-  },
-  cerebras: {
-    icon: Target,
-    color: 'text-indigo-400',
-    bg: 'bg-indigo-500/10',
-    hoverBg: 'hover:bg-indigo-500/20',
-    gradient: 'from-indigo-500/20 to-indigo-600/10',
-    ring: 'focus-visible:ring-indigo-500/50',
-    name: 'Cerebras',
-  },
-  groq: {
-    icon: Zap,
-    color: 'text-amber-400',
-    bg: 'bg-amber-500/10',
-    hoverBg: 'hover:bg-amber-500/20',
-    gradient: 'from-amber-500/20 to-amber-600/10',
-    ring: 'focus-visible:ring-amber-500/50',
-    name: 'Groq',
-  },
-  together: {
-    icon: Layers,
-    color: 'text-violet-400',
-    bg: 'bg-violet-500/10',
-    hoverBg: 'hover:bg-violet-500/20',
-    gradient: 'from-violet-500/20 to-violet-600/10',
-    ring: 'focus-visible:ring-violet-500/50',
-    name: 'Together AI',
-  },
-  perplexity: {
-    icon: Brain,
-    color: 'text-sky-400',
-    bg: 'bg-sky-500/10',
-    hoverBg: 'hover:bg-sky-500/20',
-    gradient: 'from-sky-500/20 to-sky-600/10',
-    ring: 'focus-visible:ring-sky-500/50',
-    name: 'Perplexity AI',
-  },
-  cohere: {
-    icon: Wrench,
-    color: 'text-fuchsia-400',
-    bg: 'bg-fuchsia-500/10',
-    hoverBg: 'hover:bg-fuchsia-500/20',
-    gradient: 'from-fuchsia-500/20 to-fuchsia-600/10',
-    ring: 'focus-visible:ring-fuchsia-500/50',
-    name: 'Cohere',
-  },
-  fireworks: {
-    icon: Zap,
-    color: 'text-rose-400',
-    bg: 'bg-rose-500/10',
-    hoverBg: 'hover:bg-rose-500/20',
-    gradient: 'from-rose-500/20 to-rose-600/10',
-    ring: 'focus-visible:ring-rose-500/50',
-    name: 'Fireworks AI',
-  },
-} as const;
+// Reusable selector button styles
+const SELECTOR_BUTTON_CLASS = `
+  group inline-flex items-center gap-2 px-4 py-3 text-sm
+  bg-gradient-to-br from-bolt-elements-bg-depth-2 to-bolt-elements-bg-depth-3
+  border-2 border-bolt-elements-borderColor rounded-xl shadow-sm
+  hover:shadow-md hover:border-bolt-elements-borderColorActive
+  transition-all duration-200
+  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive
+  flex-1
+`;
+
+const DROPDOWN_CONTENT_CLASS = `
+  overflow-hidden bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor
+  rounded-xl shadow-2xl z-[9999] animate-scaleIn backdrop-blur-xl
+`;
+
+const SCROLL_BUTTON_CLASS = `
+  flex items-center justify-center h-6 bg-bolt-elements-background-depth-2
+  text-bolt-elements-textSecondary cursor-default
+`;
 
 export function ProviderModelSelector() {
   const model = useStore(currentModel);
@@ -260,7 +134,7 @@ export function ProviderModelSelector() {
     }
   };
 
-  const providerConfig = PROVIDER_CONFIG[selectedProvider];
+  const providerConfig = getProviderConfig(selectedProvider);
   const ProviderIcon = providerConfig.icon;
   const modelCount = runtimeModels[selectedProvider]?.length ?? MODELS[selectedProvider]?.length ?? 0;
 
@@ -268,18 +142,7 @@ export function ProviderModelSelector() {
     <div className="flex gap-3 items-center w-full">
       {/* Provider Selector */}
       <Select.Root value={selectedProvider} onValueChange={handleProviderChange}>
-        <Select.Trigger
-          className={`
-            group inline-flex items-center gap-2 px-4 py-3 text-sm
-            bg-gradient-to-br from-bolt-elements-bg-depth-2 to-bolt-elements-bg-depth-3
-            border-2 border-bolt-elements-borderColor
-            rounded-xl shadow-sm
-            hover:shadow-md hover:border-bolt-elements-borderColorActive
-            transition-all duration-200
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive
-            flex-1
-          `}
-        >
+        <Select.Trigger className={SELECTOR_BUTTON_CLASS}>
           <div className="w-6 h-6 rounded-lg bg-bolt-elements-background-depth-3 flex items-center justify-center flex-shrink-0">
             <ProviderIcon className="w-4 h-4 text-bolt-elements-textSecondary" />
           </div>
@@ -293,14 +156,8 @@ export function ProviderModelSelector() {
         </Select.Trigger>
 
         <Select.Portal>
-          <Select.Content
-            className="overflow-hidden bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor rounded-xl shadow-2xl z-[9999] min-w-[240px] animate-scaleIn backdrop-blur-xl"
-            position="popper"
-            sideOffset={8}
-          >
-            <Select.ScrollUpButton className="flex items-center justify-center h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary cursor-default">
-              ▲
-            </Select.ScrollUpButton>
+          <Select.Content className={`${DROPDOWN_CONTENT_CLASS} min-w-[240px]`} position="popper" sideOffset={8}>
+            <Select.ScrollUpButton className={SCROLL_BUTTON_CLASS}>▲</Select.ScrollUpButton>
             <Select.Viewport className="p-2 max-h-[400px]">
               {PROVIDERS.map((provider) => (
                 <ProviderOption
@@ -312,27 +169,14 @@ export function ProviderModelSelector() {
                 />
               ))}
             </Select.Viewport>
-            <Select.ScrollDownButton className="flex items-center justify-center h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary cursor-default">
-              ▼
-            </Select.ScrollDownButton>
+            <Select.ScrollDownButton className={SCROLL_BUTTON_CLASS}>▼</Select.ScrollDownButton>
           </Select.Content>
         </Select.Portal>
       </Select.Root>
 
       {/* Model Selector (filtered by provider) */}
       <Select.Root value={model.fullId} onValueChange={handleModelChange}>
-        <Select.Trigger
-          className={`
-            group inline-flex items-center gap-2 px-4 py-3 text-sm
-            bg-gradient-to-br from-bolt-elements-bg-depth-2 to-bolt-elements-bg-depth-3
-            border-2 border-bolt-elements-borderColor
-            rounded-xl shadow-sm
-            hover:shadow-md hover:border-bolt-elements-borderColorActive
-            transition-all duration-200
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive
-            flex-1
-          `}
-        >
+        <Select.Trigger className={SELECTOR_BUTTON_CLASS}>
           <div className="flex-1 text-left min-w-0">
             <div className="text-sm font-semibold text-bolt-elements-textPrimary truncate">
               {selectedModelInfo ? selectedModelInfo.name : model.modelId}
@@ -349,22 +193,14 @@ export function ProviderModelSelector() {
         </Select.Trigger>
 
         <Select.Portal>
-          <Select.Content
-            className="overflow-hidden bg-bolt-elements-background-depth-2 border-2 border-bolt-elements-borderColor rounded-xl shadow-2xl z-[9999] min-w-[480px] animate-scaleIn backdrop-blur-xl"
-            position="popper"
-            sideOffset={8}
-          >
-            <Select.ScrollUpButton className="flex items-center justify-center h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary cursor-default">
-              ▲
-            </Select.ScrollUpButton>
+          <Select.Content className={`${DROPDOWN_CONTENT_CLASS} min-w-[480px]`} position="popper" sideOffset={8}>
+            <Select.ScrollUpButton className={SCROLL_BUTTON_CLASS}>▲</Select.ScrollUpButton>
             <Select.Viewport className="p-2 max-h-[400px]">
               {(runtimeModels[selectedProvider] || MODELS[selectedProvider])?.map((modelInfo) => (
                 <ModelOption key={`${selectedProvider}:${modelInfo.id}`} model={modelInfo} />
               ))}
             </Select.Viewport>
-            <Select.ScrollDownButton className="flex items-center justify-center h-6 bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary cursor-default">
-              ▼
-            </Select.ScrollDownButton>
+            <Select.ScrollDownButton className={SCROLL_BUTTON_CLASS}>▼</Select.ScrollDownButton>
           </Select.Content>
         </Select.Portal>
       </Select.Root>
@@ -373,7 +209,7 @@ export function ProviderModelSelector() {
 }
 
 function ProviderOption({ provider, modelCount }: { provider: AIProvider; modelCount: number }) {
-  const config = PROVIDER_CONFIG[provider];
+  const config = getProviderConfig(provider);
   const ProviderIcon = config.icon;
 
   // modelCount provided via props to keep this component pure
@@ -410,53 +246,55 @@ function ModelOption({ model }: { model: ModelInfo }) {
   return (
     <Select.Item
       value={fullId}
-      className="relative flex flex-col px-4 py-3.5 mb-2 rounded-xl cursor-pointer select-none
-        border-2 border-bolt-elements-borderColor
+      className="relative flex flex-col px-3 py-2.5 mb-1.5 rounded-lg cursor-pointer select-none
+        min-h-[110px] max-h-[110px]
+        border border-bolt-elements-borderColor
         bg-gradient-to-br from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2
-        hover:border-bolt-elements-borderColorActive hover:shadow-lg
-        focus:border-bolt-elements-borderColorActive focus:shadow-lg
-        outline-none transition-all duration-300 group
-        hover:scale-[1.01] focus:scale-[1.01]"
+        hover:border-bolt-elements-borderColorActive hover:shadow-md
+        focus:border-bolt-elements-borderColorActive focus:shadow-md
+        outline-none transition-all duration-200 group
+        hover:scale-[1.005] focus:scale-[1.005]"
     >
       {/* Check Indicator - Top Right Badge */}
-      <Select.ItemIndicator className="absolute top-2 right-2 flex-shrink-0 animate-scaleIn">
-        <div className="w-6 h-6 rounded-full bg-bolt-elements-button-primary-background border-2 border-bolt-elements-borderColorActive flex items-center justify-center shadow-md">
-          <Check className="w-3.5 h-3.5 text-bolt-elements-button-primary-text" />
+      <Select.ItemIndicator className="absolute top-1.5 right-1.5 flex-shrink-0 animate-scaleIn">
+        <div className="w-5 h-5 rounded-full bg-bolt-elements-button-primary-background border border-bolt-elements-borderColorActive flex items-center justify-center shadow-sm">
+          <Check className="w-3 h-3 text-bolt-elements-button-primary-text" />
         </div>
       </Select.ItemIndicator>
 
       <Select.ItemText asChild>
-        <div className="flex-1 min-w-0 pr-8">
+        <div className="flex-1 min-w-0 pr-6">
           {/* Model Name & Default Badge */}
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-base font-bold text-bolt-elements-textPrimary group-hover:text-bolt-elements-icon-primary transition-colors">
+          <div className="flex items-center gap-1.5 mb-1.5">
+            <span className="text-sm font-bold text-bolt-elements-textPrimary group-hover:text-bolt-elements-icon-primary transition-colors truncate">
               {model.name}
             </span>
             {model.isDefault && (
-              <span className="px-2 py-0.5 text-[10px] font-semibold rounded-full bg-gradient-to-r from-bolt-elements-button-primary-background to-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text border border-bolt-elements-borderColorActive shadow-sm">
+              <span className="px-1.5 py-0.5 text-[9px] font-semibold rounded-full bg-gradient-to-r from-bolt-elements-button-primary-background to-bolt-elements-button-primary-backgroundHover text-bolt-elements-button-primary-text border border-bolt-elements-borderColorActive shadow-sm flex-shrink-0">
                 Default
               </span>
             )}
           </div>
 
-          {/* Description - 2 lines */}
-          <div className="text-sm text-bolt-elements-textSecondary mb-3 line-clamp-2 leading-relaxed">
+          {/* Description - 1 line only */}
+          <div className="text-xs text-bolt-elements-textSecondary mb-2 line-clamp-1 leading-tight">
             {model.description}
           </div>
 
           {/* Divider */}
-          <div className="h-px bg-bolt-elements-borderColor mb-3 opacity-50" />
+          <div className="h-px bg-bolt-elements-borderColor mb-2 opacity-40" />
 
           {/* Metadata Row: Badges + Pricing */}
-          <div className="flex items-center justify-between gap-3 flex-wrap">
-            <div className="flex items-center gap-1.5 flex-wrap">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center gap-1 flex-wrap min-w-0">
               <ModelCapabilityBadges model={model} />
             </div>
-            <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor">
-              <span className="text-xs font-medium text-bolt-elements-textSecondary">
-                {pricing ? `$${pricing.input.toFixed(2)}/$${pricing.output.toFixed(2)}` : 'N/A'}
+            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-bolt-elements-background-depth-3 border border-bolt-elements-borderColor flex-shrink-0">
+              <span className="text-[10px] font-medium text-bolt-elements-textSecondary whitespace-nowrap">
+                {pricing
+                  ? `$${pricing.input < 1 ? pricing.input.toFixed(2) : pricing.input}/$${pricing.output < 1 ? pricing.output.toFixed(2) : pricing.output}`
+                  : 'N/A'}
               </span>
-              {pricing && <span className="text-[10px] text-bolt-elements-textTertiary">per 1M</span>}
             </div>
           </div>
         </div>
@@ -465,60 +303,66 @@ function ModelOption({ model }: { model: ModelInfo }) {
   );
 }
 
+const BADGE_STYLES = {
+  fast: {
+    bg: 'bg-green-500/15',
+    text: 'text-green-400',
+    border: 'border-green-500/30',
+    hover: 'hover:bg-green-500/25',
+  },
+  reasoning: {
+    bg: 'bg-purple-500/15',
+    text: 'text-purple-400',
+    border: 'border-purple-500/30',
+    hover: 'hover:bg-purple-500/25',
+  },
+  vision: { bg: 'bg-blue-500/15', text: 'text-blue-400', border: 'border-blue-500/30', hover: 'hover:bg-blue-500/25' },
+  tools: {
+    bg: 'bg-orange-500/15',
+    text: 'text-orange-400',
+    border: 'border-orange-500/30',
+    hover: 'hover:bg-orange-500/25',
+  },
+} as const;
+
+function CapabilityBadge({
+  type,
+  icon,
+  label,
+  title,
+}: {
+  type: keyof typeof BADGE_STYLES;
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  title: string;
+}) {
+  const style = BADGE_STYLES[type];
+  const IconComponent = icon;
+
+  return (
+    <span
+      className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[9px] font-semibold rounded-full ${style.bg} ${style.text} ${style.border} ${style.hover} shadow-sm transition-colors`}
+      title={title}
+    >
+      <IconComponent className="w-2.5 h-2.5" />
+      {label}
+    </span>
+  );
+}
+
 function ModelCapabilityBadges({ model }: { model: ModelInfo }) {
-  const badges = [];
-
-  if (model.capabilities.fast) {
-    badges.push(
-      <span
-        key="fast"
-        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-green-500/15 text-green-400 border border-green-500/30 shadow-sm hover:bg-green-500/25 transition-colors"
-        title="Fast Response Time"
-      >
-        <Zap className="w-3 h-3" />
-        Fast
-      </span>,
-    );
-  }
-
-  if (model.capabilities.reasoning) {
-    badges.push(
-      <span
-        key="reasoning"
-        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-purple-500/15 text-purple-400 border border-purple-500/30 shadow-sm hover:bg-purple-500/25 transition-colors"
-        title="Advanced Reasoning Capabilities"
-      >
-        <Brain className="w-3 h-3" />
-        Reasoning
-      </span>,
-    );
-  }
-
-  if (model.capabilities.vision) {
-    badges.push(
-      <span
-        key="vision"
-        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-blue-500/15 text-blue-400 border border-blue-500/30 shadow-sm hover:bg-blue-500/25 transition-colors"
-        title="Vision & Image Analysis"
-      >
-        <Eye className="w-3 h-3" />
-        Vision
-      </span>,
-    );
-  }
-
-  if (model.capabilities.tools) {
-    badges.push(
-      <span
-        key="tools"
-        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold rounded-full bg-orange-500/15 text-orange-400 border border-orange-500/30 shadow-sm hover:bg-orange-500/25 transition-colors"
-        title="Tool Use & Function Calling"
-      >
-        <Wrench className="w-3 h-3" />
-        Tools
-      </span>,
-    );
-  }
-
-  return <div className="flex items-center gap-1.5 flex-wrap">{badges}</div>;
+  return (
+    <div className="flex items-center gap-1 flex-wrap">
+      {model.capabilities.fast && <CapabilityBadge type="fast" icon={Zap} label="Fast" title="Fast Response Time" />}
+      {model.capabilities.reasoning && (
+        <CapabilityBadge type="reasoning" icon={Brain} label="Reasoning" title="Advanced Reasoning Capabilities" />
+      )}
+      {model.capabilities.vision && (
+        <CapabilityBadge type="vision" icon={Eye} label="Vision" title="Vision & Image Analysis" />
+      )}
+      {model.capabilities.tools && (
+        <CapabilityBadge type="tools" icon={Wrench} label="Tools" title="Tool Use & Function Calling" />
+      )}
+    </div>
+  );
 }

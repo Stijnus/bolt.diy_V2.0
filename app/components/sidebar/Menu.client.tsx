@@ -1,6 +1,6 @@
 import { useNavigate } from '@remix-run/react';
 import { motion, type Variants } from 'framer-motion';
-import { MessageSquarePlus, FolderKanban, Upload } from 'lucide-react';
+import { MessageSquarePlus, FolderKanban, Upload, Settings } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -386,6 +386,19 @@ export function Menu() {
               <span className="text-sm font-semibold">Import Chat</span>
             </Button>
             <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" />
+
+            {/* Settings Button */}
+            <Button
+              asChild
+              variant="outline"
+              className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
+              size="lg"
+            >
+              <a href="/settings" className="flex items-center gap-2.5 text-sm font-semibold">
+                <Settings className="h-5 w-5" />
+                Settings
+              </a>
+            </Button>
 
             {/* My Projects Button */}
             {user ? (

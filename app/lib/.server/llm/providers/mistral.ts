@@ -8,12 +8,12 @@ export const mistralConfig: ProviderConfig = {
   apiKeyEnvVar: 'MISTRAL_API_KEY',
   models: [
     {
-      id: 'codestral-25.10',
-      name: 'Codestral 25.10',
-      description: 'Latest Codestral with 300K context and compiler-aware reasoning.',
+      id: 'codestral-25.01',
+      name: 'Codestral 25.01',
+      description: '#1 on LMsys copilot arena. 256K context, 80+ languages, 2.5x faster than predecessors.',
       provider: 'mistral',
       maxTokens: 8192,
-      contextWindow: 300000,
+      contextWindow: 256000,
       capabilities: {
         tools: true,
         coding: true,
@@ -28,7 +28,7 @@ export const mistralConfig: ProviderConfig = {
     {
       id: 'mistral-large-2',
       name: 'Mistral Large 2',
-      description: 'Second-generation large model optimized for multilingual engineering.',
+      description: 'Second-generation flagship optimized for multilingual engineering and reasoning.',
       provider: 'mistral',
       maxTokens: 8192,
       contextWindow: 160000,
@@ -45,7 +45,7 @@ export const mistralConfig: ProviderConfig = {
     {
       id: 'mistral-small-3',
       name: 'Mistral Small 3',
-      description: 'Ultra-fast assistant built for microservices, CLI agents, and automation.',
+      description: 'Ultra-fast lightweight model for microservices, CLI agents, and high-volume tasks.',
       provider: 'mistral',
       maxTokens: 8192,
       contextWindow: 48000,

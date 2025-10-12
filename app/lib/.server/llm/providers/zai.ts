@@ -102,7 +102,7 @@ export const zaiProvider: Provider = {
     // Create ZAI client using OpenAI SDK (assuming OpenAI-compatible API)
     const zai = createOpenAI({
       apiKey,
-      baseURL: 'https://api.zai.com/v1', // Replace with actual ZAI API endpoint
+      baseURL: 'https://api.z.ai/api/paas/v4',
     });
 
     const selectedModel = modelId || getDefaultModel('zai')?.id;

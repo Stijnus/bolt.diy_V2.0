@@ -42,6 +42,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   try {
     const lastUser = [...messages].reverse().find((m) => m.role === 'user');
     const lastContent = lastUser?.content || '';
+
     if (typeof lastContent === 'string' && /<approved_plan[\s>]/i.test(lastContent)) {
       mode = 'normal';
     }

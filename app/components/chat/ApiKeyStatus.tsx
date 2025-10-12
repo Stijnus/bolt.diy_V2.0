@@ -16,16 +16,8 @@ const PROVIDER_DISPLAY: Record<AIProvider, { name: string; docs: string }> = {
   deepseek: { name: 'DeepSeek', docs: 'https://platform.deepseek.com/api_keys' },
   xai: { name: 'xAI (Grok)', docs: 'https://console.x.ai/' },
   mistral: { name: 'Mistral', docs: 'https://console.mistral.ai/api-keys/' },
-  zai: { name: 'Zhipu (GLM)', docs: 'https://open.bigmodel.cn/usercenter/apikeys' },
-  openrouter: { name: 'OpenRouter', docs: 'https://openrouter.ai/keys' },
-  qwen: { name: 'Qwen (DashScope)', docs: 'https://dashscope.console.aliyun.com/apiKey' },
-  moonshot: { name: 'Moonshot (Kimi)', docs: 'https://platform.moonshot.cn/console/api-keys' },
-  cerebras: { name: 'Cerebras', docs: 'https://cloud.cerebras.ai/' },
+  zai: { name: 'ZAI (GLM)', docs: 'https://z.ai/manage-apikey/apikey-list' },
   groq: { name: 'Groq', docs: 'https://console.groq.com/keys' },
-  together: { name: 'Together AI', docs: 'https://api.together.xyz/settings/api-keys' },
-  perplexity: { name: 'Perplexity AI', docs: 'https://www.perplexity.ai/settings/api' },
-  cohere: { name: 'Cohere', docs: 'https://dashboard.cohere.com/api-keys' },
-  fireworks: { name: 'Fireworks AI', docs: 'https://fireworks.ai/account/api-keys' },
 };
 
 export const ApiKeyStatus = memo(({ provider: propProvider }: ApiKeyStatusProps) => {

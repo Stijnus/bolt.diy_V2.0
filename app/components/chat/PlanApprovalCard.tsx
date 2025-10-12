@@ -1,11 +1,14 @@
 import { useStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import { Check, X, Copy, Download } from 'lucide-react';
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useState } from 'react';
 import { Markdown } from './Markdown';
 import { chatModeStore, approvePlan, rejectPlan } from '~/lib/stores/chat-mode';
 import { cn } from '~/lib/utils';
 import { formatPlanToMarkdown } from '~/utils/plan-format';
+import { useStore as useNanoStore } from '@nanostores/react';
+import { settingsStore } from '~/lib/stores/settings';
+import { PROVIDERS } from '~/lib/models.client';
 
 interface PlanApprovalCardProps {
   onApprove: (planContent: string) => void;
@@ -14,6 +17,17 @@ interface PlanApprovalCardProps {
 
 export const PlanApprovalCard = memo(({ onApprove, onReject }: PlanApprovalCardProps) => {
   const { pendingPlan } = useStore(chatModeStore);
+  const userSettings = useNanoStore(settingsStore);
+  const [showTemplate, setShowTemplate] = useState(false);
+
+  const planModelId = userSettings.ai?.planModel || userSettings.ai?.defaultModel;
+  const planModelInfo = (() => {
+    for (const p of PROVIDERS) {
+      const match = p.models.find((m) => `${p.id}:${m.id}` === planModelId);
+      if (match) return { provider: p.name, name: match.name };
+    }
+    return null;
+  })();
 
   const handleApprove = () => {
     const planContent = approvePlan();
@@ -110,6 +124,14 @@ export const PlanApprovalCard = memo(({ onApprove, onReject }: PlanApprovalCardP
               <h3 className="text-lg font-semibold text-bolt-elements-textPrimary">Plan Ready for Review</h3>
             </div>
             <div className="flex items-center gap-3">
+              {planModelInfo ? (
+                <span className="rounded-full bg-bolt-elements-background-depth-1 px-2.5 py-1 text-xs text-bolt-elements-textSecondary border border-bolt-elements-borderColor">
+                  Plan Agent:{' '}
+                  <strong className="text-bolt-elements-textPrimary">
+                    {planModelInfo.provider} • {planModelInfo.name}
+                  </strong>
+                </span>
+              ) : null}
               <button
                 type="button"
                 onClick={() => navigator.clipboard?.writeText(displayContent)}
@@ -158,38 +180,66 @@ export const PlanApprovalCard = memo(({ onApprove, onReject }: PlanApprovalCardP
 
         {/* Action Buttons */}
         <div className="px-6 py-4 bg-bolt-elements-background-depth-3 border-t border-bolt-elements-borderColor">
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-between gap-3">
             <button
               type="button"
-              onClick={handleReject}
+              onClick={() => setShowTemplate((v) => !v)}
               className={cn(
-                'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all',
-                'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary',
-                'hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
-                'border border-bolt-elements-borderColor',
+                'text-xs px-2 py-1 rounded-md border border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-2 text-bolt-elements-textSecondary',
               )}
             >
-              <X className="w-4 h-4" />
-              <span>Revise Plan</span>
+              {showTemplate ? 'Hide Plan Template' : 'View Plan Template'}
             </button>
+            <div className="flex items-center justify-end gap-3">
+              <button
+                type="button"
+                onClick={handleReject}
+                className={cn(
+                  'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all',
+                  'bg-bolt-elements-background-depth-1 text-bolt-elements-textSecondary',
+                  'hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary',
+                  'border border-bolt-elements-borderColor',
+                )}
+              >
+                <X className="w-4 h-4" />
+                <span>Revise Plan</span>
+              </button>
 
-            <button
-              type="button"
-              onClick={handleApprove}
-              className={cn(
-                'flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg transition-all',
-                'bg-gradient-to-r from-green-600 to-emerald-600 text-white',
-                'hover:from-green-500 hover:to-emerald-500',
-                'shadow-lg hover:shadow-xl',
-                'transform hover:scale-105',
-              )}
-            >
-              <Check className="w-4 h-4" />
-              <span>Approve & Execute</span>
-            </button>
+              <button
+                type="button"
+                onClick={handleApprove}
+                className={cn(
+                  'flex items-center gap-2 px-5 py-2 text-sm font-medium rounded-lg transition-all',
+                  'bg-gradient-to-r from-green-600 to-emerald-600 text-white',
+                  'hover:from-green-500 hover:to-emerald-500',
+                  'shadow-lg hover:shadow-xl',
+                  'transform hover:scale-105',
+                )}
+              >
+                <Check className="w-4 h-4" />
+                <span>Approve & Execute</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Template Panel */}
+      {showTemplate && (
+        <div className="mt-3 rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4 text-xs text-bolt-elements-textSecondary">
+          <div className="font-semibold text-bolt-elements-textPrimary mb-2">Required Plan Sections (H2):</div>
+          <ul className="list-disc ml-5 space-y-1">
+            <li>Overview</li>
+            <li>Architecture</li>
+            <li>Files to Create/Modify (path → purpose)</li>
+            <li>Dependencies (versions)</li>
+            <li>Commands (ordered, fenced bash)</li>
+            <li>Implementation Steps (numbered)</li>
+            <li>Risks & Assumptions</li>
+            <li>Acceptance Criteria</li>
+          </ul>
+        </div>
+      )}
 
       {/* Helper Text */}
       <div className="mt-2 px-2 text-xs text-bolt-elements-textTertiary text-center">

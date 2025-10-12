@@ -88,7 +88,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const { messages, status, stop, sendMessage } = useChat({
     messages: initialMessages,
     body: {
-      model: modelSelection.fullId,
+      model: mode === 'plan' && settings.ai.planModel ? (settings.ai.planModel as FullModelId) : modelSelection.fullId,
       temperature: settings.ai.temperature,
       maxTokens: settings.ai.maxTokens,
       mode, // Pass current chat mode to API
@@ -183,8 +183,10 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     const hasPlan = /<plan_document[\s>]/i.test(content) || detectMarkdownPlan(content);
     const hasArtifacts = /<(boltArtifact|boltAction)\b/i.test(content);
+    // Non-compliant if any XML-like tags other than <plan_document> are present
+    const extraneousXmlTags = /<(?!\/?plan_document\b)[a-zA-Z][\w:-]*(\s[^>]*)?>/i.test(content);
 
-    if ((!hasPlan || hasArtifacts) && planEnforceCountRef.current < 1) {
+    if ((!hasPlan || hasArtifacts || extraneousXmlTags) && planEnforceCountRef.current < 1) {
       planEnforceCountRef.current += 1;
 
       const reformatRequest = [
@@ -365,7 +367,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const handlePlanApprove = (planContent: string) => {
     // Send a follow-up message to execute the approved plan deterministically
-    const executionMessage = `Implement the following approved plan exactly as-is. Do not re-plan.\n\n<approved_plan>\n${planContent}\n</approved_plan>`;
+    const executionMessage = `Implement the following approved plan exactly as-is. Do not re-plan.\n\n<approved_plan>\n${formatPlanToMarkdown(planContent)}\n</approved_plan>`;
     sendMessageHandler({} as any, executionMessage);
   };
 

@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useState } from 'react';
 import { ApiProviderStatus } from '~/components/settings/ApiProviderStatus';
 import { SettingItem } from '~/components/settings/SettingItem';
 import { SettingsSection } from '~/components/settings/SettingsSection';
@@ -13,6 +14,52 @@ interface AiAssistantTabProps {
 }
 
 export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssistantTabProps) {
+  // Fetch configured providers to filter models shown in selectors
+  const [enabledProviders, setEnabledProviders] = useState<Set<string> | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const res = await fetch('/api/providers');
+        if (!res.ok) throw new Error('Failed to load provider status');
+        const data: any = await res.json();
+        // Expecting shape: { providers: { openai: true, anthropic: false, ... } }
+        const set = new Set<string>();
+        if (data && (data as any).providers) {
+          for (const [k, v] of Object.entries<boolean>((data as any).providers)) {
+            if (v) set.add(k);
+          }
+        }
+        if (active) setEnabledProviders(set);
+      } catch {
+        if (active) setEnabledProviders(null); // fallback to show all
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const filteredProviders = useMemo(() => {
+    if (!enabledProviders || enabledProviders.size === 0) return PROVIDERS;
+    return PROVIDERS.filter((p) => enabledProviders.has(p.id));
+  }, [enabledProviders]);
+
+  const defaultModel = settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929';
+  const planModel = settings.planModel || defaultModel;
+
+  // Ensure current selection remains visible even if provider disabled
+  const ensureCurrentOption = (value: string) => {
+    const [prov] = value.split(':');
+    const providerPresent = filteredProviders.some((p) => p.id === prov);
+    if (providerPresent) return null;
+    return value;
+  };
+
+  const currentDefaultIfHidden = ensureCurrentOption(defaultModel);
+  const currentPlanIfHidden = ensureCurrentOption(planModel);
+
   return (
     <SettingsSection
       title="AI Assistant"
@@ -67,7 +114,40 @@ export function AiAssistantTab({ settings, onSettingChange, onReset }: AiAssista
           value={settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
           onChange={(e) => onSettingChange('defaultModel', e.target.value)}
         >
-          {PROVIDERS.map((provider) => (
+          {/* Show current value even if provider is not configured */}
+          {currentDefaultIfHidden && (
+            <optgroup label="Current (not configured)">
+              <option value={currentDefaultIfHidden}>{currentDefaultIfHidden}</option>
+            </optgroup>
+          )}
+          {filteredProviders.map((provider) => (
+            <optgroup key={provider.id} label={provider.name}>
+              {provider.models.map((model) => (
+                <option key={`${provider.id}:${model.id}`} value={`${provider.id}:${model.id}`}>
+                  {model.name} {model.isDefault && '(Default)'}
+                </option>
+              ))}
+            </optgroup>
+          ))}
+        </select>
+      </SettingItem>
+      <SettingItem
+        label="Plan Agent (Plan Mode Model)"
+        description="Model used when Plan mode is enabled"
+        tooltip="Choose the model used to generate structured plans. A strong planner like Claude Sonnet 4.5 is ideal."
+      >
+        <select
+          className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
+          value={settings.planModel || settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
+          onChange={(e) => onSettingChange('planModel', e.target.value)}
+        >
+          {/* Show current value even if provider is not configured */}
+          {currentPlanIfHidden && (
+            <optgroup label="Current (not configured)">
+              <option value={currentPlanIfHidden}>{currentPlanIfHidden}</option>
+            </optgroup>
+          )}
+          {filteredProviders.map((provider) => (
             <optgroup key={provider.id} label={provider.name}>
               {provider.models.map((model) => (
                 <option key={`${provider.id}:${model.id}`} value={`${provider.id}:${model.id}`}>

@@ -32,6 +32,10 @@ vi.mock('./providers', () => ({
     config: { apiKeyEnvVar: 'ZAI_API_KEY' },
     createModel: vi.fn((apiKey, modelId) => ({ provider: 'zai', apiKey, modelId })),
   },
+  groqProvider: {
+    config: { apiKeyEnvVar: 'GROQ_API_KEY' },
+    createModel: vi.fn((apiKey, modelId) => ({ provider: 'groq', apiKey, modelId })),
+  },
 }));
 
 // Mock the model-config module

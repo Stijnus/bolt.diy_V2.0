@@ -1,8 +1,7 @@
 import { useStore } from '@nanostores/react';
-import { Code2, MessageSquare, Settings } from 'lucide-react';
+import { Code2, MessageSquare } from 'lucide-react';
 import { useState } from 'react';
 
-import { SettingsModal } from '~/components/settings/SettingsModal';
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { classNames } from '~/utils/classNames';
@@ -12,7 +11,6 @@ interface HeaderActionButtonsProps {}
 export function HeaderActionButtons({}: HeaderActionButtonsProps) {
   const showWorkbench = useStore(workbenchStore.showWorkbench);
   const { showChat } = useStore(chatStore);
-  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
 
   const canHideChat = showWorkbench || !showChat;
 
@@ -44,11 +42,7 @@ export function HeaderActionButtons({}: HeaderActionButtonsProps) {
         >
           <Code2 className="h-4 w-4" />
         </Button>
-        <Button onClick={() => setSettingsModalOpen(true)} label="Settings">
-          <Settings className="h-4 w-4" />
-        </Button>
       </div>
-      <SettingsModal open={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
     </>
   );
 }

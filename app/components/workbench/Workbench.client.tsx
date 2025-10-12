@@ -1,8 +1,8 @@
 import { useStore } from '@nanostores/react';
 import { motion, type HTMLMotionProps, type Variants } from 'framer-motion';
-import { Terminal, XCircle } from 'lucide-react';
+import { Terminal, XCircle, Download, RefreshCcw } from 'lucide-react';
 import { computed } from 'nanostores';
-import { memo, useCallback, useEffect } from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import type React from 'react';
 import { toast } from 'react-toastify';
 import { EditorPanel } from './EditorPanel';
@@ -17,6 +17,7 @@ import { PanelHeaderButton } from '~/components/ui/PanelHeaderButton';
 import { Slider, type SliderOptions } from '~/components/ui/Slider';
 import { settingsStore } from '~/lib/stores/settings';
 import { workbenchStore, type WorkbenchViewType } from '~/lib/stores/workbench';
+import { webcontainer } from '~/lib/webcontainer';
 import { classNames } from '~/utils/classNames';
 import { debounce } from '~/utils/debounce';
 import { cubicEasingFn } from '~/utils/easings';
@@ -129,6 +130,221 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
     workbenchStore.resetCurrentDocument();
   }, []);
 
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = useCallback(async () => {
+    if (exporting) {
+      return;
+    }
+
+    setExporting(true);
+
+    try {
+      const wc = await webcontainer;
+
+      // Export project tree as JSON to walk and filter
+      const tree: any = await wc.export('.', { format: 'json' as const });
+      const root = tree?.directory ?? tree;
+
+      const outBase = `.bolt-export-${Date.now()}`;
+      await wc.fs.mkdir(outBase, { recursive: true });
+
+      const ensureDir = async (dir: string) => {
+        if (!dir || dir === '.' || dir === '/') {
+          return;
+        }
+
+        try {
+          await wc.fs.mkdir(dir, { recursive: true });
+        } catch {}
+      };
+
+      const walk = async (prefix: string, node: Record<string, any>) => {
+        if (!node) {
+          return;
+        }
+
+        for (const [name, entry] of Object.entries(node)) {
+          const relPath = prefix ? `${prefix}/${name}` : name;
+
+          // Skip node_modules anywhere in the path
+          if (relPath.split('/').includes('node_modules')) {
+            continue;
+          }
+
+          if (entry && typeof entry === 'object' && 'directory' in entry) {
+            await ensureDir(`${outBase}/${relPath}`);
+            await walk(relPath, entry.directory as Record<string, any>);
+          } else if (entry && typeof entry === 'object' && 'file' in entry) {
+            const fileEntry = entry.file as { contents?: string | Uint8Array; symlink?: string };
+
+            if ('symlink' in fileEntry && typeof fileEntry.symlink === 'string') {
+              continue;
+            }
+
+            const contents = fileEntry.contents;
+            const targetPath = `${outBase}/${relPath}`;
+            await ensureDir(targetPath.split('/').slice(0, -1).join('/'));
+
+            if (typeof contents === 'string') {
+              await wc.fs.writeFile(targetPath, contents);
+            } else if (contents instanceof Uint8Array) {
+              await wc.fs.writeFile(targetPath, contents);
+            } else {
+              await wc.fs.writeFile(targetPath, '');
+            }
+          }
+        }
+      };
+
+      await walk('', root as Record<string, any>);
+
+      // Package as zip archive and download
+      const zipData: Uint8Array = await wc.export(outBase, { format: 'zip' as const });
+      const blob = new Blob([zipData.buffer as ArrayBuffer], { type: 'application/zip' });
+
+      const dateStr = new Date().toISOString().split('T')[0];
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `project-${dateStr}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Project exported');
+
+      // Attempt cleanup (best-effort)
+      try {
+        // @ts-ignore optional rm may not exist
+        await wc.fs.rm?.(outBase, { recursive: true, force: true });
+      } catch {}
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to export project');
+    } finally {
+      setExporting(false);
+    }
+  }, [exporting]);
+
+  // Sync to local folder using File System Access API
+  const [syncing, setSyncing] = useState(false);
+  const [dirHandle, setDirHandle] = useState<FileSystemDirectoryHandle | null>(null);
+
+  const ensureLocalDir = useCallback(async (base: FileSystemDirectoryHandle, path: string) => {
+    const parts = path.split('/').filter(Boolean);
+
+    let current = base;
+
+    for (const part of parts) {
+      try {
+        current = await current.getDirectoryHandle(part, { create: true });
+      } catch {
+        // try again without create (if it already exists)
+        current = await current.getDirectoryHandle(part, { create: false });
+      }
+    }
+
+    return current;
+  }, []);
+
+  const writeLocalFile = useCallback(
+    async (base: FileSystemDirectoryHandle, filePath: string, data: string | Uint8Array) => {
+      const segments = filePath.split('/').filter(Boolean);
+      const fileName = segments.pop()!;
+      const folderPath = segments.join('/');
+
+      const dir = folderPath ? await ensureLocalDir(base, folderPath) : base;
+      const fileHandle = await dir.getFileHandle(fileName, { create: true });
+      const writable = await fileHandle.createWritable();
+
+      if (typeof data === 'string') {
+        await writable.write(data);
+      } else {
+        const ab = new ArrayBuffer(data.byteLength);
+        new Uint8Array(ab).set(data);
+        await writable.write(new Blob([ab]));
+      }
+
+      await writable.close();
+    },
+    [ensureLocalDir],
+  );
+
+  const handleSync = useCallback(async () => {
+    if (syncing) {
+      return;
+    }
+
+    setSyncing(true);
+
+    try {
+      // Ask for folder on first run
+      let target = dirHandle;
+
+      if (!target) {
+        if (!('showDirectoryPicker' in window)) {
+          toast.error('Your browser does not support folder access for sync. Try Chrome or Edge.');
+          setSyncing(false);
+
+          return;
+        }
+
+        // @ts-ignore - TS lib may lack the specific Window type for showDirectoryPicker
+        target = await (window as any).showDirectoryPicker({ mode: 'readwrite' });
+        setDirHandle(target as FileSystemDirectoryHandle);
+      }
+
+      const wc = await webcontainer;
+      const tree: any = await wc.export('.', { format: 'json' as const });
+      const root = tree?.directory ?? tree;
+
+      const walkToLocal = async (prefix: string, node: Record<string, any>) => {
+        if (!node) {
+          return;
+        }
+
+        for (const [name, entry] of Object.entries(node)) {
+          const relPath = prefix ? `${prefix}/${name}` : name;
+
+          // Skip node_modules
+          if (relPath.split('/').includes('node_modules')) {
+            continue;
+          }
+
+          if (entry && typeof entry === 'object' && 'directory' in entry) {
+            await walkToLocal(relPath, entry.directory as Record<string, any>);
+          } else if (entry && typeof entry === 'object' && 'file' in entry) {
+            const fileEntry = entry.file as { contents?: string | Uint8Array; symlink?: string };
+
+            if ('symlink' in fileEntry && typeof fileEntry.symlink === 'string') {
+              continue;
+            }
+
+            const contents = fileEntry.contents;
+
+            if (typeof contents === 'string') {
+              await writeLocalFile(target!, relPath, contents);
+            } else if (contents instanceof Uint8Array) {
+              await writeLocalFile(target!, relPath, contents);
+            } else {
+              await writeLocalFile(target!, relPath, '');
+            }
+          }
+        }
+      };
+
+      await walkToLocal('', root as Record<string, any>);
+      toast.success('Synced project to local folder');
+    } catch (e) {
+      console.error(e);
+      toast.error('Failed to sync to local folder');
+    } finally {
+      setSyncing(false);
+    }
+  }, [dirHandle, syncing]);
+
   return (
     chatStarted && (
       <motion.div
@@ -152,15 +368,25 @@ export const Workbench = memo(({ chatStarted, isStreaming }: WorkspaceProps) => 
                 <Slider selected={selectedView} options={sliderOptions} setSelected={setSelectedView} />
                 <div className="ml-auto" />
                 {selectedView === 'code' && (
-                  <PanelHeaderButton
-                    className="mr-1 text-sm"
-                    onClick={() => {
-                      workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
-                    }}
-                  >
-                    <Terminal className="w-4 h-4" />
-                    Toggle Terminal
-                  </PanelHeaderButton>
+                  <>
+                    <PanelHeaderButton className="mr-1 text-sm" disabled={exporting} onClick={handleExport}>
+                      <Download className="w-4 h-4" />
+                      Export
+                    </PanelHeaderButton>
+                    <PanelHeaderButton className="mr-1 text-sm" disabled={syncing} onClick={handleSync}>
+                      <RefreshCcw className="w-4 h-4" />
+                      Sync
+                    </PanelHeaderButton>
+                    <PanelHeaderButton
+                      className="mr-1 text-sm"
+                      onClick={() => {
+                        workbenchStore.toggleTerminal(!workbenchStore.showTerminal.get());
+                      }}
+                    >
+                      <Terminal className="w-4 h-4" />
+                      Toggle Terminal
+                    </PanelHeaderButton>
+                  </>
                 )}
                 <IconButton
                   icon={XCircle}

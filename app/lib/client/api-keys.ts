@@ -1,24 +1,7 @@
 /** Client-side API key storage (localStorage). */
 const STORAGE_KEY = 'boltdiy.apiKeys.v1';
 
-export type ProviderKey =
-  | 'anthropic'
-  | 'openai'
-  | 'google'
-  | 'deepseek'
-  | 'xai'
-  | 'mistral'
-  | 'zai'
-  | 'openrouter'
-  | 'qwen'
-  | 'moonshot'
-  | 'cerebras'
-  | 'groq'
-  | 'together'
-  | 'perplexity'
-  | 'cohere'
-  | 'fireworks'
-  | 'bedrock';
+export type ProviderKey = 'anthropic' | 'openai' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'zai' | 'groq';
 
 export function getAllKeys(): Partial<Record<ProviderKey, string>> {
   try {

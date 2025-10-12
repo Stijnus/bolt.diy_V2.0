@@ -4,10 +4,8 @@ import { PROVIDERS, getModel } from '~/lib/models.client';
 import { currentModel } from '~/lib/stores/model';
 
 export function ModelBadge() {
-  const selection = useStore(currentModel);
-  const modelInfo = getModel(selection.provider, selection.modelId);
-
-  const providerName = PROVIDERS.find((provider) => provider.id === selection.provider)?.name ?? selection.provider;
+  const { provider, modelId } = useStore(currentModel);
+  const modelInfo = getModel(provider, modelId);
 
   if (!modelInfo) {
     return null;
@@ -18,7 +16,7 @@ export function ModelBadge() {
       <Sparkles className="h-3.5 w-3.5 text-bolt-elements-textTertiary" />
       <span className="font-medium text-bolt-elements-textPrimary">{modelInfo.name}</span>
       <span className="text-bolt-elements-textTertiary">•</span>
-      <span>{providerName}</span>
+      <span>{PROVIDERS.find((p) => p.id === provider)?.name ?? provider}</span>
     </div>
   );
 }

@@ -75,31 +75,6 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
 
   const counts: Record<string, number> = {};
 
-  // OpenRouter
-  const OPENROUTER_API_KEY = getHeaderKey(request, 'openrouter') || getEnvVar(env, 'OPENROUTER_API_KEY');
-
-  if (OPENROUTER_API_KEY) {
-    const orHeaders: Record<string, string> = {
-      Authorization: `Bearer ${OPENROUTER_API_KEY}`,
-    };
-
-    const orRef = getEnvVar(env, 'OPENROUTER_APP_REFERRER');
-
-    if (orRef) {
-      orHeaders['HTTP-Referer'] = orRef;
-    }
-
-    const orTitle = getEnvVar(env, 'OPENROUTER_APP_TITLE');
-
-    if (orTitle) {
-      orHeaders['X-Title'] = orTitle;
-    }
-
-    counts.openrouter = await safeFetchCount('https://openrouter.ai/api/v1/models', {
-      headers: orHeaders,
-    });
-  }
-
   // DeepSeek
   const DEEPSEEK_API_KEY = getHeaderKey(request, 'deepseek') || getEnvVar(env, 'DEEPSEEK_API_KEY');
 
@@ -125,38 +100,20 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     });
   }
 
+  // ZAI (GLM)
+
+  const ZAI_API_KEY = getHeaderKey(request, 'zai') || getEnvVar(env, 'ZAI_API_KEY');
+
+  if (ZAI_API_KEY) {
+    // Static count aligned with our curated MODELS.zai list
+    counts.zai = 5;
+  }
+
   // Google Gemini (API key in query)
   const GOOGLE_API_KEY = getHeaderKey(request, 'google') || getEnvVar(env, 'GOOGLE_API_KEY');
 
   if (GOOGLE_API_KEY) {
     counts.google = await safeFetchCount(`https://generativelanguage.googleapis.com/v1/models?key=${GOOGLE_API_KEY}`);
-  }
-
-  // Moonshot (Kimi)
-  const MOONSHOT_API_KEY = getHeaderKey(request, 'moonshot') || getEnvVar(env, 'MOONSHOT_API_KEY');
-
-  if (MOONSHOT_API_KEY) {
-    counts.moonshot = await safeFetchCount('https://api.moonshot.ai/v1/models', {
-      headers: { Authorization: `Bearer ${MOONSHOT_API_KEY}` },
-    });
-  }
-
-  // Cerebras
-  const CEREBRAS_API_KEY = getHeaderKey(request, 'cerebras') || getEnvVar(env, 'CEREBRAS_API_KEY');
-
-  if (CEREBRAS_API_KEY) {
-    counts.cerebras = await safeFetchCount('https://api.cerebras.ai/v1/models', {
-      headers: { Authorization: `Bearer ${CEREBRAS_API_KEY}` },
-    });
-  }
-
-  // Qwen (DashScope) — OpenAI-compatible mode
-  const DASHSCOPE_API_KEY = getHeaderKey(request, 'qwen') || getEnvVar(env, 'DASHSCOPE_API_KEY');
-
-  if (DASHSCOPE_API_KEY) {
-    counts.qwen = await safeFetchCount('https://dashscope.aliyuncs.com/compatible-mode/v1/models', {
-      headers: { Authorization: `Bearer ${DASHSCOPE_API_KEY}` },
-    });
   }
 
   /*
@@ -184,40 +141,6 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
   if (GROQ_API_KEY) {
     counts.groq = await safeFetchCount('https://api.groq.com/openai/v1/models', {
       headers: { Authorization: `Bearer ${GROQ_API_KEY}` },
-    });
-  }
-
-  // Together AI
-  const TOGETHER_API_KEY = getHeaderKey(request, 'together') || getEnvVar(env, 'TOGETHER_API_KEY');
-
-  if (TOGETHER_API_KEY) {
-    counts.together = await safeFetchCount('https://api.together.xyz/v1/models', {
-      headers: { Authorization: `Bearer ${TOGETHER_API_KEY}` },
-    });
-  }
-
-  // Perplexity AI (no public list endpoint, return static count)
-  const PERPLEXITY_API_KEY = getHeaderKey(request, 'perplexity') || getEnvVar(env, 'PERPLEXITY_API_KEY');
-
-  if (PERPLEXITY_API_KEY) {
-    counts.perplexity = 3;
-  }
-
-  // Cohere
-  const COHERE_API_KEY = getHeaderKey(request, 'cohere') || getEnvVar(env, 'COHERE_API_KEY');
-
-  if (COHERE_API_KEY) {
-    counts.cohere = await safeFetchCount('https://api.cohere.ai/v1/models', {
-      headers: { Authorization: `Bearer ${COHERE_API_KEY}` },
-    });
-  }
-
-  // Fireworks AI
-  const FIREWORKS_API_KEY = getHeaderKey(request, 'fireworks') || getEnvVar(env, 'FIREWORKS_API_KEY');
-
-  if (FIREWORKS_API_KEY) {
-    counts.fireworks = await safeFetchCount('https://api.fireworks.ai/inference/v1/models', {
-      headers: { Authorization: `Bearer ${FIREWORKS_API_KEY}` },
     });
   }
 

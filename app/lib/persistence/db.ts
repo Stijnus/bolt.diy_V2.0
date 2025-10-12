@@ -26,8 +26,8 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
   console.log('[DB] openDatabase called');
 
   return new Promise((resolve) => {
-    // Version 3: Fixed urlId unique constraint to match Supabase schema
-    const request = indexedDB.open('boltHistory', 3);
+    // Version 4: Added app_settings store; v3 fixed urlId unique constraint
+    const request = indexedDB.open('boltHistory', 4);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       console.log('[DB] Database upgrade needed, current version:', event.oldVersion);
@@ -65,6 +65,12 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
          * Version 2: Added 'usage' object store (for completeness)
          * This is handled by the initial creation check above
          */
+      }
+
+      // Version 4: Add app_settings store for guest settings persistence
+      if (!db.objectStoreNames.contains('app_settings')) {
+        const settingsStore = db.createObjectStore('app_settings', { keyPath: 'id' });
+        settingsStore.createIndex('id', 'id', { unique: true });
       }
     };
 
@@ -644,5 +650,35 @@ export async function repairDatabase(db: IDBDatabase): Promise<{
     };
 
     request.onerror = () => reject(request.error);
+  });
+}
+
+// --- App Settings (guest) persistence ---
+export async function getAppSettings(db: IDBDatabase): Promise<any | null> {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction('app_settings', 'readonly');
+      const store = tx.objectStore('app_settings');
+      const req = store.get('guest');
+      req.onsuccess = () => resolve((req.result as any) ?? null);
+      req.onerror = () => reject(req.error);
+    } catch (e) {
+      resolve(null);
+    }
+  });
+}
+
+export async function setAppSettings(db: IDBDatabase, settings: any): Promise<void> {
+  return new Promise((resolve, reject) => {
+    try {
+      const tx = db.transaction('app_settings', 'readwrite');
+      const store = tx.objectStore('app_settings');
+      const record = { id: 'guest', settings, updatedAt: new Date().toISOString() };
+      const req = store.put(record);
+      req.onsuccess = () => resolve();
+      req.onerror = () => reject(req.error);
+    } catch (e) {
+      resolve();
+    }
   });
 }
