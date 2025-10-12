@@ -6,6 +6,15 @@ import {
   xaiConfig,
   mistralConfig,
   zaiConfig,
+  openrouterConfig,
+  qwenConfig,
+  moonshotConfig,
+  cerebrasConfig,
+  groqConfig,
+  togetherConfig,
+  perplexityConfig,
+  cohereConfig,
+  fireworksConfig,
 } from './providers';
 import type { AIProvider, ModelInfo, ProviderConfig } from './providers/types';
 
@@ -20,6 +29,15 @@ export const PROVIDER_CONFIGS: Record<AIProvider, ProviderConfig> = {
   xai: xaiConfig,
   mistral: mistralConfig,
   zai: zaiConfig,
+  openrouter: openrouterConfig,
+  qwen: qwenConfig,
+  moonshot: moonshotConfig,
+  cerebras: cerebrasConfig,
+  groq: groqConfig,
+  together: togetherConfig,
+  perplexity: perplexityConfig,
+  cohere: cohereConfig,
+  fireworks: fireworksConfig,
 };
 
 /**

@@ -22,6 +22,7 @@
  */
 
 import { errorStore } from '~/lib/stores/errors';
+import { parseError, containsError } from '~/lib/webcontainer/error-patterns';
 import type { DevServerError } from '~/types/errors';
 
 const TEST_ERRORS: Record<string, Omit<DevServerError, 'id' | 'timestamp' | 'dismissed'>> = {
@@ -156,8 +157,6 @@ export function listErrorTypes() {
  * Test error monitoring by simulating output
  */
 export function testErrorPatterns() {
-  const { parseError, containsError } = require('~/lib/webcontainer/error-patterns');
-
   const testOutputs = [
     '[vite] Internal server error: Cannot find module',
     'Error: Unexpected token } in JSON at position 42',

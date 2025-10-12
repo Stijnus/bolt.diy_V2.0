@@ -8,9 +8,27 @@ export const zaiConfig: ProviderConfig = {
   apiKeyEnvVar: 'ZAI_API_KEY',
   models: [
     {
+      id: 'glm-4.6-ultra',
+      name: 'GLM-4.6 Ultra',
+      description: 'Premium GLM tier with upgraded long-context reasoning and math accuracy.',
+      provider: 'zai',
+      maxTokens: 8192,
+      contextWindow: 220000,
+      capabilities: {
+        tools: true,
+        reasoning: true,
+        coding: true,
+      },
+      pricing: {
+        input: 1.2,
+        output: 2.4,
+      },
+      isDefault: true,
+    },
+    {
       id: 'glm-4.6',
       name: 'GLM-4.6',
-      description: 'Latest flagship GLM model with state-of-the-art coding and reasoning capabilities.',
+      description: 'Balanced GLM flagship for enterprise coding assistants and RAG systems.',
       provider: 'zai',
       maxTokens: 8192,
       contextWindow: 200000,
@@ -23,29 +41,11 @@ export const zaiConfig: ProviderConfig = {
         input: 1.0,
         output: 2.0,
       },
-      isDefault: true,
     },
     {
-      id: 'glm-4.5',
-      name: 'GLM-4.5',
-      description: 'Previous flagship GLM model with excellent coding and reasoning performance.',
-      provider: 'zai',
-      maxTokens: 8192,
-      contextWindow: 128000,
-      capabilities: {
-        tools: true,
-        reasoning: true,
-        coding: true,
-      },
-      pricing: {
-        input: 0.75,
-        output: 1.5,
-      },
-    },
-    {
-      id: 'glm-4-flash',
-      name: 'GLM-4-Flash',
-      description: 'Fast and efficient GLM model optimized for coding tasks.',
+      id: 'glm-4.5-flash',
+      name: 'GLM-4.5 Flash',
+      description: 'Flash tier tuned for sub-second completions and rapid auto-complete.',
       provider: 'zai',
       maxTokens: 8192,
       contextWindow: 128000,
@@ -55,8 +55,8 @@ export const zaiConfig: ProviderConfig = {
         fast: true,
       },
       pricing: {
-        input: 0.3,
-        output: 0.6,
+        input: 0.35,
+        output: 0.7,
       },
     },
     {
@@ -89,8 +89,8 @@ export const zaiConfig: ProviderConfig = {
         fast: true,
       },
       pricing: {
-        input: 0.2,
-        output: 0.4,
+        input: 0.18,
+        output: 0.38,
       },
     },
   ],

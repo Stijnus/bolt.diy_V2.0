@@ -28,6 +28,10 @@ vi.mock('./providers', () => ({
     config: { apiKeyEnvVar: 'MISTRAL_API_KEY' },
     createModel: vi.fn((apiKey, modelId) => ({ provider: 'mistral', apiKey, modelId })),
   },
+  zaiProvider: {
+    config: { apiKeyEnvVar: 'ZAI_API_KEY' },
+    createModel: vi.fn((apiKey, modelId) => ({ provider: 'zai', apiKey, modelId })),
+  },
 }));
 
 // Mock the model-config module
@@ -62,8 +66,19 @@ describe('Provider Factory', () => {
     });
 
     it('should return undefined if the API key is not set', () => {
-      const key = getProviderApiKey('google', mockEnv);
-      expect(key).toBeUndefined();
+      const orig = process.env.GOOGLE_API_KEY;
+
+      try {
+        delete process.env.GOOGLE_API_KEY;
+
+        const key = getProviderApiKey('google', mockEnv);
+
+        expect(key).toBeUndefined();
+      } finally {
+        if (orig !== undefined) {
+          process.env.GOOGLE_API_KEY = orig;
+        }
+      }
     });
   });
 
@@ -87,9 +102,19 @@ describe('Provider Factory', () => {
     });
 
     it('should throw an error if the API key for the specified provider is missing', () => {
-      expect(() => createModel('google', 'gemini-2.5-pro', mockEnv)).toThrow(
-        'Missing API key for provider google. Please set GOOGLE_API_KEY in your environment.',
-      );
+      const orig = process.env.GOOGLE_API_KEY;
+
+      try {
+        delete process.env.GOOGLE_API_KEY;
+
+        expect(() => createModel('google', 'gemini-2.5-pro', mockEnv)).toThrow(
+          'Missing API key for provider google. Please set GOOGLE_API_KEY in your environment.',
+        );
+      } finally {
+        if (orig !== undefined) {
+          process.env.GOOGLE_API_KEY = orig;
+        }
+      }
     });
 
     it('should use the default model for a provider if the specified modelId is invalid', () => {

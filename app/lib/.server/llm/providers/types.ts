@@ -3,7 +3,23 @@ import type { LanguageModel } from 'ai';
 /**
  * Supported AI providers for code generation.
  */
-export type AIProvider = 'anthropic' | 'openai' | 'google' | 'deepseek' | 'xai' | 'mistral' | 'zai';
+export type AIProvider =
+  | 'anthropic'
+  | 'openai'
+  | 'google'
+  | 'deepseek'
+  | 'xai'
+  | 'mistral'
+  | 'zai'
+  | 'openrouter'
+  | 'qwen'
+  | 'moonshot'
+  | 'cerebras'
+  | 'groq'
+  | 'together'
+  | 'perplexity'
+  | 'cohere'
+  | 'fireworks';
 
 /**
  * Model capabilities for filtering and display.

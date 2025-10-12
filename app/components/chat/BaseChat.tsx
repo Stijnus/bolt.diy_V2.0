@@ -1,11 +1,16 @@
+import { useStore } from '@nanostores/react';
 import type { UIMessage } from 'ai';
 import { motion } from 'framer-motion';
-import { Loader2, Sparkles, Zap, Code2, Rocket } from 'lucide-react';
+import { Loader2, Sparkles, Zap, Code2, Rocket, ClipboardList, MessageCircle } from 'lucide-react';
 import React, { type RefCallback } from 'react';
 import { ClientOnly } from 'remix-utils/client-only';
+import { ApiKeyStatus } from './ApiKeyStatus';
 import styles from './BaseChat.module.scss';
+import { DiscussionModeButton } from './DiscussionModeButton';
 import { Messages } from './Messages.client';
-import { ModelSelector } from './ModelSelector';
+import { PlanApprovalCard } from './PlanApprovalCard';
+import { PlanModeToggle } from './PlanModeToggle';
+import { ProviderModelSelector } from './ProviderModelSelector';
 import { SendButton } from './SendButton.client';
 import { UsageStats } from './UsageStats';
 import { Menu } from '~/components/sidebar/Menu.client';
@@ -14,6 +19,7 @@ import { FeatureCard } from '~/components/ui/FeatureCard';
 import { GradientText } from '~/components/ui/GradientText';
 import { IconButton } from '~/components/ui/IconButton';
 import { Workbench } from '~/components/workbench/Workbench.client';
+import { chatModeStore } from '~/lib/stores/chat-mode';
 import { classNames } from '~/utils/classNames';
 
 interface BaseChatProps {
@@ -32,6 +38,8 @@ interface BaseChatProps {
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   onRevertMessage?: (index: number) => void;
+  onPlanApprove?: (planContent: string) => void;
+  onPlanReject?: () => void;
 }
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -54,9 +62,12 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       enhancePrompt,
       handleStop,
       onRevertMessage,
+      onPlanApprove,
+      onPlanReject,
     },
     ref,
   ) => {
+    const { mode } = useStore(chatModeStore);
     const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
     return (
@@ -76,22 +87,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 id="intro"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="mx-auto mt-[12vh] flex w-full max-w-4xl flex-col items-center gap-10 px-6 text-center"
+                transition={{ duration: 0.5 }}
+                className="mx-auto mt-[8vh] flex w-full max-w-3xl flex-col items-center gap-6 px-6 text-center"
               >
-                {/* Hero Badge */}
-                <AnimatedBadge variant="pulse" pulse size="md" className="animate-slideInFromBottom">
-                  <Sparkles className="h-3.5 w-3.5" />
+                {/* Hero Badge - More Compact */}
+                <AnimatedBadge variant="pulse" pulse size="sm" className="animate-slideInFromBottom">
+                  <Sparkles className="h-3 w-3" />
                   BoltDIY V2.0
                 </AnimatedBadge>
 
-                {/* Hero Content */}
-                <div className="space-y-6">
+                {/* Hero Content - More Compact */}
+                <div className="space-y-4">
                   <motion.h1
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.1 }}
-                    className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
+                    transition={{ duration: 0.5, delay: 0.1 }}
+                    className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl leading-tight"
                   >
                     Where <GradientText>ideas begin</GradientText>
                     <br />
@@ -101,37 +112,39 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <motion.p
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.6, delay: 0.2 }}
-                    className="mx-auto max-w-2xl text-lg text-bolt-elements-textSecondary sm:text-xl text-balance"
+                    transition={{ duration: 0.5, delay: 0.2 }}
+                    className="mx-auto max-w-xl text-base text-bolt-elements-textSecondary sm:text-lg text-balance leading-relaxed"
                   >
                     Design, develop, and deploy in one canvas. Craft a prompt, hand off tasks to AI, and iterate
-                    together in real time with BoltDIY V2.0.
+                    together in real time.
                   </motion.p>
                 </div>
 
-                {/* Feature Cards Grid */}
-                <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                {/* Feature Cards Grid - More Compact */}
+                <div className="grid w-full gap-3 sm:grid-cols-3 mt-2">
                   <FeatureCard
                     icon={Zap}
                     title="Instant Previews"
-                    description="See every change in real-time without leaving the chat. Deploy with a single command."
+                    description="See changes in real-time without leaving the chat."
                     gradient
                     delay={0.3}
+                    compact
                   />
                   <FeatureCard
                     icon={Code2}
                     title="Smart Context"
-                    description="BoltDIY remembers your project, tracks files, and suggests next steps intelligently."
+                    description="AI remembers your project and suggests next steps."
                     gradient
                     delay={0.4}
+                    compact
                   />
                   <FeatureCard
                     icon={Rocket}
                     title="Ship Faster"
-                    description="From idea to deployment in minutes. AI handles the heavy lifting while you focus on creativity."
+                    description="From idea to deployment in minutes with AI."
                     gradient
                     delay={0.5}
-                    className="sm:col-span-2 lg:col-span-1"
+                    compact
                   />
                 </div>
               </motion.div>
@@ -159,10 +172,47 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   'sticky bottom-0': chatStarted,
                 })}
               >
-                <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/90 shadow-lg backdrop-blur-xl">
+                <ClientOnly>
+                  {() => (
+                    <PlanApprovalCard
+                      onApprove={(planContent) => onPlanApprove?.(planContent)}
+                      onReject={() => onPlanReject?.()}
+                    />
+                  )}
+                </ClientOnly>
+                {mode !== 'normal' && (
+                  <div className="mb-4 px-5 py-3 rounded-2xl bg-gradient-to-br from-bolt-elements-background-depth-2 to-bolt-elements-background-depth-3 border-2 border-bolt-elements-borderColor shadow-md backdrop-blur-xl animate-slideUp">
+                    <p className="text-sm text-bolt-elements-textPrimary text-center font-medium">
+                      {mode === 'plan' ? (
+                        <>
+                          <ClipboardList className="inline w-4 h-4 mr-2 text-purple-400" />
+                          <span className="text-purple-300">Plan mode active</span> - AI will create a plan for your
+                          approval before executing actions
+                        </>
+                      ) : (
+                        <>
+                          <MessageCircle className="inline w-4 h-4 mr-2 text-green-400" />
+                          <span className="text-green-300">Discussion mode active</span> - AI will provide advice
+                          without executing actions
+                        </>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {/* API Key Status */}
+                <div className="mb-3">
+                  <ClientOnly>{() => <ApiKeyStatus />}</ClientOnly>
+                </div>
+                {/* Provider and Model Selectors */}
+                <div className="mb-4 flex justify-center">
+                  <div className="w-full max-w-3xl">
+                    <ClientOnly>{() => <ProviderModelSelector />}</ClientOnly>
+                  </div>
+                </div>
+                <div className="rounded-3xl border-2 border-bolt-elements-borderColor bg-gradient-to-br from-bolt-elements-background-depth-1 to-bolt-elements-background-depth-2 shadow-2xl backdrop-blur-xl transition-all duration-300 hover:border-bolt-elements-borderColorActive hover:shadow-[0_0_30px_rgba(45,166,255,0.15)]">
                   <textarea
                     ref={textareaRef}
-                    className="w-full resize-none rounded-3xl border-none bg-transparent px-5 pb-5 pt-5 text-base text-bolt-elements-textPrimary outline-none placeholder:text-bolt-elements-textTertiary"
+                    className="w-full resize-none rounded-3xl border-none bg-transparent px-6 pb-6 pt-6 text-base text-bolt-elements-textPrimary outline-none placeholder:text-bolt-elements-textTertiary"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {
@@ -185,55 +235,46 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     placeholder="How can BoltDIY help you today?"
                     translate="no"
                   />
-                  <ClientOnly>
-                    {() => (
-                      <SendButton
-                        show={input.length > 0 || isStreaming}
-                        isStreaming={isStreaming}
-                        onClick={(event) => {
-                          if (isStreaming) {
-                            handleStop?.();
-                            return;
-                          }
+                  <div className="relative">
+                    <ClientOnly>
+                      {() => (
+                        <SendButton
+                          show={input.length > 0 || isStreaming}
+                          isStreaming={isStreaming}
+                          onClick={(event) => {
+                            if (isStreaming) {
+                              handleStop?.();
+                              return;
+                            }
 
-                          sendMessage?.(event);
-                        }}
-                      />
-                    )}
-                  </ClientOnly>
-                  <div className="flex items-start justify-between px-5 pb-4 text-sm">
+                            sendMessage?.(event);
+                          }}
+                        />
+                      )}
+                    </ClientOnly>
+                  </div>
+                  <div className="flex items-center justify-between px-6 pb-5">
                     <div className="flex gap-1 items-center">
+                      {/* Icon-only buttons */}
                       <IconButton
                         title="Enhance prompt"
                         disabled={input.length === 0 || enhancingPrompt}
-                        className={classNames({
+                        className={classNames('transition-colors', {
                           '!opacity-100': enhancingPrompt,
-                          '!text-bolt-elements-item-contentAccent pr-1.5 enabled:hover:!bg-bolt-elements-item-backgroundAccent':
+                          '!text-bolt-elements-item-contentAccent enabled:hover:!bg-bolt-elements-item-backgroundAccent':
                             promptEnhanced,
                         })}
                         onClick={() => enhancePrompt?.()}
                       >
                         {enhancingPrompt ? (
-                          <>
-                            <Loader2 className="w-5 h-5 text-bolt-elements-loader-progress animate-spin" />
-                            <div className="ml-1.5">Enhancing prompt...</div>
-                          </>
+                          <Loader2 className="w-5 h-5 text-bolt-elements-loader-progress animate-spin" />
                         ) : (
-                          <>
-                            <Sparkles className="h-5 w-5" />
-                            {promptEnhanced && <div className="ml-1.5 text-xs">Prompt enhanced</div>}
-                          </>
+                          <Sparkles className="h-5 w-5" />
                         )}
                       </IconButton>
                       <ClientOnly>{() => <UsageStats />}</ClientOnly>
-                    </div>
-                    <div className="flex gap-3 items-center">
-                      <ClientOnly>{() => <ModelSelector />}</ClientOnly>
-                      {input.length > 3 ? (
-                        <div className="text-xs text-bolt-elements-textSecondary">
-                          Use <kbd className="kdb">Shift</kbd> + <kbd className="kdb">Return</kbd> for a new line
-                        </div>
-                      ) : null}
+                      <ClientOnly>{() => <DiscussionModeButton show={chatStarted && mode !== 'plan'} />}</ClientOnly>
+                      <ClientOnly>{() => <PlanModeToggle show={input.length > 0 && !isStreaming} />}</ClientOnly>
                     </div>
                   </div>
                 </div>

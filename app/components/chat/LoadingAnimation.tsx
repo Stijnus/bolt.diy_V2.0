@@ -12,15 +12,19 @@ interface LoadingAnimationProps {
  */
 export const LoadingAnimation = memo(({ className, variant = 'wave' }: LoadingAnimationProps) => {
   switch (variant) {
-    case 'wave':
+    case 'wave': {
       return <WaveAnimation className={className} />;
-    case 'pulse':
+    }
+    case 'pulse': {
       return <PulseAnimation className={className} />;
-    case 'shimmer':
+    }
+    case 'shimmer': {
       return <ShimmerAnimation className={className} />;
+    }
     case 'dots':
-    default:
+    default: {
       return <DotsAnimation className={className} />;
+    }
   }
 });
 

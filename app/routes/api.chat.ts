@@ -1,6 +1,6 @@
 import { type ActionFunctionArgs } from '@remix-run/cloudflare';
 import type { ModelMessage, UIMessage } from 'ai';
-import { MAX_RESPONSE_SEGMENTS, MAX_TOKENS } from '~/lib/.server/llm/constants';
+import { MAX_RESPONSE_SEGMENTS } from '~/lib/.server/llm/constants';
 import { CONTINUE_PROMPT } from '~/lib/.server/llm/prompts';
 import { streamText, type StreamTextOptions } from '~/lib/.server/llm/stream-text';
 import SwitchableStream from '~/lib/.server/llm/switchable-stream';
@@ -35,6 +35,20 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   const temperature = body?.temperature as number | undefined;
   const maxTokens = body?.maxTokens as number | undefined;
 
+  // extract chat mode from request body (optional)
+  let mode = (body?.mode as 'normal' | 'plan' | 'discussion') ?? 'normal';
+
+  // If the last user message contains an approved plan marker, force execution mode
+  try {
+    const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+    const lastContent = lastUser?.content || '';
+    if (typeof lastContent === 'string' && /<approved_plan[\s>]/i.test(lastContent)) {
+      mode = 'normal';
+    }
+  } catch {
+    // ignore
+  }
+
   const stream = new SwitchableStream();
 
   // define onFinish handler that can be reused
@@ -49,7 +63,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       }
 
       const switchesLeft = MAX_RESPONSE_SEGMENTS - stream.switches;
-      console.log(`Reached max token limit (${MAX_TOKENS}): Continuing message (${switchesLeft} switches left)`);
+      console.log(`Reached model token limit: Continuing message (${switchesLeft} switches left)`);
 
       messages.push({ role: 'assistant', content });
       messages.push({ role: 'user', content: CONTINUE_PROMPT });
@@ -72,6 +86,7 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
       fullModelId, // pass model selection to streamText
       temperature, // pass temperature setting
       maxTokens, // pass max tokens setting
+      mode, // pass chat mode to streamText
     };
 
     options.onFinish = createOnFinishHandler(options);

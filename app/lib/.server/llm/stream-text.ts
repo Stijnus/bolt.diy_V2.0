@@ -25,6 +25,9 @@ export interface StreamTextOptions extends StreamingOptions {
 
   /** Maximum number of tokens in response */
   maxTokens?: number;
+
+  /** Chat mode: normal, plan, or discussion */
+  mode?: 'normal' | 'plan' | 'discussion';
 }
 
 type UsageMetadata =
@@ -45,7 +48,7 @@ export type StreamTextReturn = ReturnType<typeof _streamText> & {
 };
 
 export function streamText(messages: Messages, env: Env, options?: StreamTextOptions): StreamTextReturn {
-  const { provider, modelId, fullModelId, temperature, maxTokens, ...streamOptions } = options || {};
+  const { provider, modelId, fullModelId, temperature, maxTokens, mode, ...streamOptions } = options || {};
 
   // determine which model to use
   let selectedProvider = provider;
@@ -96,7 +99,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
 
   const result = _streamText({
     model,
-    system: getBoltSystemPrompt(fullModelIdForPrompt),
+    system: getBoltSystemPrompt(fullModelIdForPrompt, mode),
     maxOutputTokens: finalMaxTokens,
     temperature: finalTemperature,
     headers,

@@ -1,6 +1,7 @@
 import type { UIMessage } from 'ai';
 import { useCallback, useState } from 'react';
 import { StreamingMessageParser } from '~/lib/runtime/message-parser';
+import { chatModeStore } from '~/lib/stores/chat-mode';
 import { workbenchStore } from '~/lib/stores/workbench';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -29,8 +30,15 @@ const messageParser = new StreamingMessageParser({
     onActionOpen: (data) => {
       logger.trace('onActionOpen', data.action);
 
-      if (skipActionExecution) {
-        logger.debug('Skipping action execution for imported chat:', data.action.type);
+      // Check if we should skip action execution
+      const { mode } = chatModeStore.get();
+      const shouldSkip = skipActionExecution || mode === 'plan' || mode === 'discussion';
+
+      if (shouldSkip) {
+        logger.debug(
+          `Skipping action execution (${skipActionExecution ? 'imported chat' : `${mode} mode`}):`,
+          data.action.type,
+        );
         return;
       }
 
@@ -42,8 +50,12 @@ const messageParser = new StreamingMessageParser({
     onActionClose: (data) => {
       logger.trace('onActionClose', data.action);
 
-      if (skipActionExecution) {
-        logger.debug('Skipping action execution for imported chat');
+      // Check if we should skip action execution
+      const { mode } = chatModeStore.get();
+      const shouldSkip = skipActionExecution || mode === 'plan' || mode === 'discussion';
+
+      if (shouldSkip) {
+        logger.debug(`Skipping action execution (${skipActionExecution ? 'imported chat' : `${mode} mode`})`);
         return;
       }
 
@@ -58,7 +70,6 @@ const messageParser = new StreamingMessageParser({
 
 export function useMessageParser() {
   const [parsedMessages, setParsedMessages] = useState<{ [key: number]: string }>({});
-  const [isImportedChat, setIsImportedChat] = useState(false);
 
   const parseMessages = useCallback(
     (messages: UIMessage[], isLoading: boolean) => {
@@ -82,11 +93,9 @@ export function useMessageParser() {
           'messages - skipping action execution (files already restored)',
         );
         skipActionExecution = true;
-        setIsImportedChat(true);
       } else if (isLoading) {
         // New message streaming, not an import - re-enable actions
         skipActionExecution = false;
-        setIsImportedChat(false);
       }
 
       for (const [index, message] of messages.entries()) {

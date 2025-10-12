@@ -4,7 +4,7 @@ import { getReasoningSystemPrompt } from './prompts-reasoning';
 import { WORK_DIR } from '~/utils/constants';
 
 /**
- * Gets the appropriate system prompt based on the model type.
+ * Gets the appropriate system prompt based on the model type and chat mode.
  *
  * Reasoning models (o1, o3, DeepSeek R1) require different prompting:
  * - Minimal, concise instructions
@@ -19,20 +19,25 @@ import { WORK_DIR } from '~/utils/constants';
  * - Detailed guidelines
  *
  * @param modelFullId - Full model ID in format "provider:modelId" (e.g., "openai:o3")
+ * @param mode - Chat mode: normal, plan, or discussion
  * @param cwd - Current working directory (defaults to WORK_DIR)
- * @returns Optimized system prompt for the model type
+ * @returns Optimized system prompt for the model type and mode
  */
-export function getBoltSystemPrompt(modelFullId: string, cwd: string = WORK_DIR): string {
+export function getBoltSystemPrompt(
+  modelFullId: string,
+  mode?: 'normal' | 'plan' | 'discussion',
+  cwd: string = WORK_DIR,
+): string {
   // Get model info to check if it's a reasoning model
   const modelInfo = getModelByFullId(modelFullId);
 
   // Use reasoning-optimized prompt for reasoning models
   if (modelInfo?.isReasoningModel) {
-    return getReasoningSystemPrompt(cwd);
+    return getReasoningSystemPrompt(cwd, mode);
   }
 
   // Use standard comprehensive prompt for all other models
-  return getSystemPrompt(cwd);
+  return getSystemPrompt(cwd, mode);
 }
 
 /**

@@ -8,6 +8,15 @@ import {
   xaiProvider,
   mistralProvider,
   zaiProvider,
+  openrouterProvider,
+  qwenProvider,
+  moonshotProvider,
+  cerebrasProvider,
+  groqProvider,
+  togetherProvider,
+  perplexityProvider,
+  cohereProvider,
+  fireworksProvider,
 } from './providers';
 import type { AIProvider } from './providers/types';
 
@@ -22,6 +31,15 @@ const PROVIDERS = {
   xai: xaiProvider,
   mistral: mistralProvider,
   zai: zaiProvider,
+  openrouter: openrouterProvider,
+  qwen: qwenProvider,
+  moonshot: moonshotProvider,
+  cerebras: cerebrasProvider,
+  groq: groqProvider,
+  together: togetherProvider,
+  perplexity: perplexityProvider,
+  cohere: cohereProvider,
+  fireworks: fireworksProvider,
 } as const;
 
 /**

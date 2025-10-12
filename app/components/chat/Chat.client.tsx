@@ -11,6 +11,7 @@ import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from
 import { useChatHistory, chatId } from '~/lib/persistence';
 import { revertMessagesToIndex } from '~/lib/persistence/chat-actions';
 import { chatStore } from '~/lib/stores/chat';
+import { chatModeStore, setPendingPlan } from '~/lib/stores/chat-mode';
 import { currentModel } from '~/lib/stores/model';
 import { settingsStore } from '~/lib/stores/settings';
 import { workbenchStore } from '~/lib/stores/workbench';
@@ -18,6 +19,7 @@ import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
 import { renderLogger } from '~/utils/logger';
+import { detectMarkdownPlan, formatPlanToMarkdown } from '~/utils/plan-format';
 
 const toastAnimation = cssTransition({
   enter: 'animated fadeInRight',
@@ -77,6 +79,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
 
   const { showChat, pendingInput } = useStore(chatStore);
+  const { mode, pendingPlan } = useStore(chatModeStore);
   const modelSelection = useStore(currentModel);
   const settings = useStore(settingsStore);
 
@@ -88,6 +91,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       model: modelSelection.fullId,
       temperature: settings.ai.temperature,
       maxTokens: settings.ai.maxTokens,
+      mode, // Pass current chat mode to API
     } as Record<string, unknown>,
   } as any);
 
@@ -131,7 +135,70 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   useEffect(() => {
     parseMessages(messages, isLoading);
-  }, [messages, isLoading]);
+
+    // Detect plan generation in plan mode
+    if (mode === 'plan' && !isLoading && messages.length > 0) {
+      const lastMessage = messages[messages.length - 1];
+
+      if (lastMessage?.role === 'assistant') {
+        const content = Array.isArray((lastMessage as any).parts)
+          ? (lastMessage as any).parts
+              .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+              .map((p: any) => p.text)
+              .join('')
+          : ((lastMessage as any).content ?? '');
+
+        /*
+         * In Plan mode, always capture the assistant's response as the pending plan.
+         * Prefer explicit <plan_document> marker if present; otherwise use full content.
+         */
+        if (content && mode === 'plan') {
+          setPendingPlan(lastMessage.id, content);
+        }
+      }
+    }
+  }, [messages, isLoading, mode]);
+
+  /*
+   * Enforce plan-only output: if assistant response lacks <plan_document> or includes artifacts,
+   * send a one-time follow-up requesting proper plan formatting.
+   */
+  useEffect(() => {
+    if (mode !== 'plan' || isLoading || messages.length === 0) {
+      return;
+    }
+
+    const lastMessage = messages[messages.length - 1] as any;
+
+    if (!lastMessage || lastMessage.role !== 'assistant') {
+      return;
+    }
+
+    const content = Array.isArray(lastMessage.parts)
+      ? lastMessage.parts
+          .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+          .map((p: any) => p.text)
+          .join('')
+      : (lastMessage.content ?? '');
+
+    const hasPlan = /<plan_document[\s>]/i.test(content) || detectMarkdownPlan(content);
+    const hasArtifacts = /<(boltArtifact|boltAction)\b/i.test(content);
+
+    if ((!hasPlan || hasArtifacts) && planEnforceCountRef.current < 1) {
+      planEnforceCountRef.current += 1;
+
+      const reformatRequest = [
+        'Your previous reply did not follow PLAN MODE.',
+        'Return ONLY a <plan_document> with these sections:',
+        'Overview, Architecture, Files to Create/Modify (path → purpose), Dependencies (versions),',
+        'Commands (ordered), Implementation Steps (numbered), Risks & Assumptions, Acceptance Criteria.',
+        'FORBIDDEN: <boltArtifact>, <boltAction>, or any other XML tags. Do not execute anything.',
+      ].join(' ');
+
+      // Send a lightweight user message asking for compliant plan output
+      void sendMessage({ role: 'user', parts: [{ type: 'text', text: reformatRequest }] } as any);
+    }
+  }, [messages, isLoading, mode]);
 
   // Save when streaming completes - single save point with proper timing
   useEffect(() => {
@@ -231,12 +298,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     setChatStarted(true);
   };
 
+  const planEnforceCountRef = useRef(0);
+
   const sendMessageHandler = async (_event: React.UIEvent, messageInput?: string) => {
     const _input = messageInput || input;
 
     if (_input.length === 0 || isLoading) {
       return;
     }
+
+    // Reset plan enforcement counter for this new user turn
+    planEnforceCountRef.current = 0;
 
     // Clear input immediately to provide instant feedback
     setInput('');
@@ -291,6 +363,19 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     }
   };
 
+  const handlePlanApprove = (planContent: string) => {
+    // Send a follow-up message to execute the approved plan deterministically
+    const executionMessage = `Implement the following approved plan exactly as-is. Do not re-plan.\n\n<approved_plan>\n${planContent}\n</approved_plan>`;
+    sendMessageHandler({} as any, executionMessage);
+  };
+
+  const handlePlanReject = () => {
+    // User can provide feedback in the chat input
+
+    setInput('I would like to revise the plan. ');
+    textareaRef.current?.focus();
+  };
+
   return (
     <BaseChat
       ref={animationScope}
@@ -307,19 +392,29 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       handleInputChange={handleInputChange}
       handleStop={abort}
       onRevertMessage={handleRevertMessage}
-      messages={messages.map((message, i) => {
-        if (message.role === 'user') {
-          return message as UIMessage;
+      onPlanApprove={handlePlanApprove}
+      onPlanReject={handlePlanReject}
+      messages={(function buildMessages() {
+        const base = messages.map((message, i) => {
+          if (message.role === 'user') {
+            return message as UIMessage;
+          }
+
+          return {
+            ...(message as any),
+            parts: [{ type: 'text', text: parsedMessages[i] || '' }],
+          } as UIMessage;
+        });
+
+        if (mode === 'plan' && pendingPlan?.content) {
+          base.push({
+            role: 'assistant',
+            parts: [{ type: 'text', text: formatPlanToMarkdown(pendingPlan.content) }],
+          } as UIMessage);
         }
 
-        // for assistant messages, replace content text with parsedMessages, preserving other fields
-        return {
-          ...(message as any),
-
-          // provide a simple text part for UIMessage in AI SDK v5
-          parts: [{ type: 'text', text: parsedMessages[i] || '' }],
-        } as UIMessage;
-      })}
+        return base;
+      })()}
       enhancePrompt={() => {
         enhancePrompt(input, (input) => {
           setInput(input);

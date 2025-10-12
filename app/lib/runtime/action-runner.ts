@@ -4,7 +4,7 @@ import { map, type MapStore } from 'nanostores';
 import type { ActionCallbackData } from './message-parser';
 import { writeToBoltTerminal } from '~/lib/runtime/bolt-terminal-bus';
 import { errorStore } from '~/lib/stores/errors';
-import { containsError, extractStackTrace, parseError, parseAllErrors } from '~/lib/webcontainer/error-patterns';
+import { extractStackTrace, parseAllErrors } from '~/lib/webcontainer/error-patterns';
 import type { BoltAction } from '~/types/actions';
 import { WORK_DIR } from '~/utils/constants';
 import { createScopedLogger } from '~/utils/logger';

@@ -1,14 +1,5 @@
 import { useStore } from '@nanostores/react';
-import {
-  FolderTree,
-  Save,
-  History,
-  Terminal as TerminalIcon,
-  Plus,
-  ChevronDown,
-  Power,
-  RefreshCcw,
-} from 'lucide-react';
+import { FolderTree, Save, History, Terminal as TerminalIcon, ChevronDown, Power, RefreshCcw } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
 import { FileBreadcrumb } from './FileBreadcrumb';
@@ -50,7 +41,6 @@ interface EditorPanelProps {
   onFileReset?: () => void;
 }
 
-const MAX_TERMINALS = 3;
 const DEFAULT_TERMINAL_SIZE = 25;
 const DEFAULT_EDITOR_SIZE = 100 - DEFAULT_TERMINAL_SIZE;
 
@@ -92,7 +82,7 @@ export const EditorPanel = memo(
 
     // 0 = Bolt Terminal (readonly); 1..N = interactive terminals
     const [activeTerminal, setActiveTerminal] = useState(0);
-    const [terminalCount, setTerminalCount] = useState(1);
+    const terminalCount = 1;
 
     // Bolt Terminal wiring
     const boltXtermRef = useRef<import('@xterm/xterm').Terminal | null>(null);
@@ -145,23 +135,7 @@ export const EditorPanel = memo(
       terminalToggledByShortcut.current = false;
     }, [showTerminal]);
 
-    const addTerminal = () => {
-      if (terminalCount < MAX_TERMINALS) {
-        setTerminalCount(terminalCount + 1);
-        setActiveTerminal(terminalCount);
-      }
-    };
-
     // Keep internal ref arrays bounded to the number of terminals
-    useEffect(() => {
-      if (terminalRefs.current.length > terminalCount) {
-        terminalRefs.current.length = terminalCount;
-      }
-
-      if (terminalRefCallbacks.current.length > terminalCount) {
-        terminalRefCallbacks.current.length = terminalCount;
-      }
-    }, [terminalCount]);
 
     return (
       <PanelGroup direction="vertical">
@@ -338,8 +312,6 @@ export const EditorPanel = memo(
                 className={classNames('h-full overflow-hidden', {
                   hidden: activeTerminal !== 0,
                 })}
-
-                // do not attach to shell; readonly and fed via bus
                 readonly
                 onTerminalReady={(xterm) => {
                   boltXtermRef.current = xterm as any;

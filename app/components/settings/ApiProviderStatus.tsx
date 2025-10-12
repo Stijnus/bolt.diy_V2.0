@@ -1,31 +1,61 @@
 import { CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
 import { useEffect, useState } from 'react';
-import { PROVIDERS } from '~/lib/models.client';
-import type { AIProvider } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 
 interface ProviderStatus {
-  providers: Record<AIProvider, boolean>;
+  providers: Record<string, boolean>;
 }
+
+interface ModelCounts {
+  counts: Record<string, number>;
+}
+
+const PROVIDER_CARDS: Array<{ id: string; name: string }> = [
+  { id: 'anthropic', name: 'Anthropic' },
+  { id: 'openai', name: 'OpenAI' },
+  { id: 'google', name: 'Google' },
+  { id: 'deepseek', name: 'DeepSeek' },
+  { id: 'xai', name: 'xAI' },
+  { id: 'mistral', name: 'Mistral' },
+  { id: 'zai', name: 'ZAI (GLM)' },
+  { id: 'openrouter', name: 'OpenRouter' },
+  { id: 'qwen', name: 'Qwen (DashScope)' },
+  { id: 'moonshot', name: 'Moonshot (Kimi)' },
+  { id: 'cerebras', name: 'Cerebras' },
+  { id: 'groq', name: 'Groq' },
+  { id: 'together', name: 'Together AI' },
+  { id: 'perplexity', name: 'Perplexity AI' },
+  { id: 'cohere', name: 'Cohere' },
+  { id: 'fireworks', name: 'Fireworks AI' },
+  { id: 'bedrock', name: 'Amazon Bedrock' },
+];
 
 export const ApiProviderStatus = () => {
   const [providerStatus, setProviderStatus] = useState<ProviderStatus | null>(null);
+  const [modelCounts, setModelCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchProviderStatus = async () => {
+  const fetchStatus = async () => {
     setLoading(true);
     setError(null);
 
     try {
-      const response = await fetch('/api/providers');
+      const [providersRes, modelsRes] = await Promise.all([fetch('/api/providers'), fetch('/api/models')]);
 
-      if (!response.ok) {
+      if (!providersRes.ok) {
         throw new Error('Failed to fetch provider status');
       }
 
-      const data = (await response.json()) as ProviderStatus;
-      setProviderStatus(data);
+      if (!modelsRes.ok) {
+        throw new Error('Failed to fetch model counts');
+      }
+
+      const providersData = (await providersRes.json()) as ProviderStatus;
+      const modelsData = (await modelsRes.json()) as ModelCounts;
+
+      setProviderStatus(providersData);
+      setModelCounts(modelsData.counts || {});
     } catch (err) {
       setError('Failed to load provider status');
       console.error(err);
@@ -35,7 +65,7 @@ export const ApiProviderStatus = () => {
   };
 
   useEffect(() => {
-    void fetchProviderStatus();
+    void fetchStatus();
   }, []);
 
   if (loading) {
@@ -63,7 +93,7 @@ export const ApiProviderStatus = () => {
           API keys are configured in your environment variables. Below is the status of each provider.
         </p>
         <button
-          onClick={fetchProviderStatus}
+          onClick={fetchStatus}
           className="flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-bolt-elements-textSecondary transition-colors hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
           title="Refresh status"
         >
@@ -73,8 +103,9 @@ export const ApiProviderStatus = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-        {PROVIDERS.map((provider) => {
-          const isConfigured = providerStatus.providers[provider.id as AIProvider];
+        {PROVIDER_CARDS.map((provider) => {
+          const isConfigured = !!providerStatus.providers[provider.id];
+          const count = modelCounts[provider.id];
 
           return (
             <div
@@ -102,7 +133,9 @@ export const ApiProviderStatus = () => {
                 <div>
                   <h3 className="text-sm font-semibold text-bolt-elements-textPrimary">{provider.name}</h3>
                   <p className="text-xs text-bolt-elements-textSecondary">
-                    {provider.models.length} model{provider.models.length !== 1 ? 's' : ''} available
+                    {typeof count === 'number'
+                      ? `${count} model${count !== 1 ? 's' : ''} available`
+                      : 'Model count unavailable'}
                   </p>
                 </div>
               </div>

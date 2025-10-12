@@ -1,7 +1,7 @@
 import { useNavigate } from '@remix-run/react';
 import { motion } from 'framer-motion';
 import { MessageSquare } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { ChatActionsMenu } from './ChatActionsMenu';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Input } from '~/components/ui/Input';
@@ -16,36 +16,10 @@ interface HistoryItemProps {
 }
 
 export function HistoryItem({ item, onDelete, onUpdate }: HistoryItemProps) {
-  const [hovering, setHovering] = useState(false);
   const [showRenameDialog, setShowRenameDialog] = useState(false);
   const [newDescription, setNewDescription] = useState('');
-  const hoverRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { user } = useAuth();
-
-  useEffect(() => {
-    let timeout: NodeJS.Timeout | undefined;
-
-    function mouseEnter() {
-      setHovering(true);
-
-      if (timeout) {
-        clearTimeout(timeout);
-      }
-    }
-
-    function mouseLeave() {
-      setHovering(false);
-    }
-
-    hoverRef.current?.addEventListener('mouseenter', mouseEnter);
-    hoverRef.current?.addEventListener('mouseleave', mouseLeave);
-
-    return () => {
-      hoverRef.current?.removeEventListener('mouseenter', mouseEnter);
-      hoverRef.current?.removeEventListener('mouseleave', mouseLeave);
-    };
-  }, []);
 
   const handleExport = () => {
     exportChatToJSON(item.id);
@@ -77,7 +51,6 @@ export function HistoryItem({ item, onDelete, onUpdate }: HistoryItemProps) {
   return (
     <>
       <motion.div
-        ref={hoverRef}
         initial={{ opacity: 0, y: -10 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.2 }}

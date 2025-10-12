@@ -1,7 +1,6 @@
 import type { UIMessage } from 'ai';
 import { toast } from 'react-toastify';
 import { getMessages, setMessages, openDatabase, generateChatId } from './db';
-import type { ChatHistoryItem } from './useChatHistory';
 import { setSyncing, setConnectionError } from '~/lib/stores/connection';
 import { createClient } from '~/lib/supabase/client';
 import { createScopedLogger } from '~/utils/logger';

@@ -194,18 +194,15 @@ const ErrorCard = memo(({ error, isExpanded, onToggleExpand, onDismiss }: ErrorC
 });
 
 function getErrorTitle(error: DevServerError): string {
-  switch (error.type) {
-    case 'syntax':
-      return 'Syntax Error';
-    case 'runtime':
-      return 'Runtime Error';
-    case 'build':
-      return 'Build Error';
-    case 'warning':
-      return 'Warning';
-    default:
-      return 'Error';
-  }
+  const titles: Record<DevServerError['type'] | 'default', string> = {
+    syntax: 'Syntax Error',
+    runtime: 'Runtime Error',
+    build: 'Build Error',
+    warning: 'Warning',
+    unknown: 'Error',
+    default: 'Error',
+  };
+  return titles[error.type] ?? titles.default;
 }
 
 function getErrorSourceBadge(source: DevServerError['source']): string {

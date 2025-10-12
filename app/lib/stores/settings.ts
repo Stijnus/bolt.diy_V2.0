@@ -38,6 +38,7 @@ export interface UserPreferences {
   notifications: boolean;
   autoSave: boolean;
   autoSaveDelay: number;
+  chatMode?: 'normal' | 'plan' | 'discussion';
 }
 
 export interface Settings {
@@ -78,6 +79,7 @@ const defaultUserPreferences: UserPreferences = {
   notifications: true,
   autoSave: true,
   autoSaveDelay: 1000,
+  chatMode: 'normal',
 };
 
 export const settingsStore = map<Settings>({

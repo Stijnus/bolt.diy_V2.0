@@ -146,7 +146,8 @@
 - `claude-sonnet-4-5-20250929` - Latest, best overall coding
 
 **DeepSeek:**
-- `deepseek-chat` - V3.2, cost-effective
+- `deepseek-chat` - V3.2-Exp, latest with 50%+ cost reduction
+- `deepseek-reasoner` - V3.2-Exp, thinking mode
 
 **Google:**
 - `gemini-2.5-pro` - Web development specialist
@@ -170,7 +171,7 @@
 
 ### Cost Tracking Rates (per 1M tokens)
 - Claude Sonnet 4.5: $3 input / $15 output
-- DeepSeek V3.2: $0.28 input / $0.42 output
+- DeepSeek V3.2-Exp: $0.028 input / $0.042 output (50%+ cheaper than V3.1)
 - Gemini 2.5 Pro: Variable
 - GPT-5: $3-15 (varies by model)
 - Grok Code Fast: $0.20 input / $1.50 output
