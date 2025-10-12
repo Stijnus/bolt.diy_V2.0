@@ -37,6 +37,7 @@ interface ModelInfo {
   capabilities: { vision?: boolean; tools?: boolean; reasoning?: boolean; fast?: boolean; coding?: boolean };
   pricing?: { input: number; output: number; cachedInput?: number };
   isDefault?: boolean;
+  isReasoningModel?: boolean;
 }
 
 const DEFAULTS = {
@@ -353,10 +354,31 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
             break;
           }
           case 'deepseek': {
-            const raw = await safeList('https://api.deepseek.com/models', {
-              headers: { Authorization: `Bearer ${key}` },
-            });
-            results[p] = normalize(p, raw);
+            // Use static models for DeepSeek to ensure we have the latest names and descriptions
+            results[p] = [
+              {
+                id: 'deepseek-chat',
+                name: 'DeepSeek Chat V3.2-Exp',
+                description: 'Latest DeepSeek-V3.2-Exp model with 128K context and enhanced reasoning',
+                provider: 'deepseek',
+                maxTokens: 8192,
+                contextWindow: 128000,
+                capabilities: { tools: true, reasoning: true, coding: true },
+                pricing: { input: 0.028, output: 0.042, cachedInput: 0.014 },
+                isDefault: true,
+              },
+              {
+                id: 'deepseek-reasoner',
+                name: 'DeepSeek Reasoner V3.2-Exp',
+                description: 'Latest DeepSeek-V3.2-Exp reasoning model with transparent chain-of-thought and 64K output',
+                provider: 'deepseek',
+                maxTokens: 8192,
+                contextWindow: 128000,
+                capabilities: { tools: true, reasoning: true, coding: true },
+                pricing: { input: 0.028, output: 0.042, cachedInput: 0.014 },
+                isReasoningModel: true,
+              },
+            ];
             break;
           }
           case 'xai': {
