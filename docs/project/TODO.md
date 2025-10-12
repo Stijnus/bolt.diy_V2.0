@@ -150,7 +150,12 @@
 - `deepseek-reasoner` - V3.2-Exp, thinking mode
 
 **Google:**
+- `gemini-2.5-ultra` - Enterprise flagship with 2M context
 - `gemini-2.5-pro` - Web development specialist
+- `gemini-2.5-flash` - Latency-optimized with multimodal support
+- `gemma-3-27b` - High-performance with advanced reasoning
+- `gemma-3-12b` - Efficient model for fast response
+- `gemma-3-4b` - Lightweight model for simple tasks
 
 **OpenAI:**
 - `gpt-5` - Latest, best overall
@@ -172,7 +177,12 @@
 ### Cost Tracking Rates (per 1M tokens)
 - Claude Sonnet 4.5: $3 input / $15 output
 - DeepSeek V3.2-Exp: $0.028 input / $0.042 output (50%+ cheaper than V3.1)
-- Gemini 2.5 Pro: Variable
+- Gemini 2.5 Ultra: $3 input / $12 output
+- Gemini 2.5 Pro: $2.2 input / $8.8 output
+- Gemini 2.5 Flash: $0.12 input / $0.45 output
+- Gemma 3 27B: $0.8 input / $0.8 output
+- Gemma 3 12B: $0.25 input / $0.25 output
+- Gemma 3 4B: $0.08 input / $0.08 output
 - GPT-5: $3-15 (varies by model)
 - Grok Code Fast: $0.20 input / $1.50 output
 - Codestral: Low cost

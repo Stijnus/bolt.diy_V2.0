@@ -370,7 +370,8 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
               {
                 id: 'deepseek-reasoner',
                 name: 'DeepSeek Reasoner V3.2-Exp',
-                description: 'Latest DeepSeek-V3.2-Exp reasoning model with transparent chain-of-thought and 64K output',
+                description:
+                  'Latest DeepSeek-V3.2-Exp reasoning model with transparent chain-of-thought and 64K output',
                 provider: 'deepseek',
                 maxTokens: 8192,
                 contextWindow: 128000,
@@ -396,8 +397,70 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
             break;
           }
           case 'google': {
-            const raw = await safeList(`https://generativelanguage.googleapis.com/v1/models?key=${key}`);
-            results[p] = normalize(p, raw);
+            // Use static models for Google to ensure we have the latest names and descriptions
+            results[p] = [
+              {
+                id: 'gemini-2.5-ultra',
+                name: 'Gemini 2.5 Ultra',
+                description: 'Enterprise flagship with 2M context, best-in-class web and Android knowledge',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 2000000,
+                capabilities: { vision: true, tools: true, reasoning: true, coding: true },
+                pricing: { input: 3, output: 12 },
+                isDefault: true,
+              },
+              {
+                id: 'gemini-2.5-pro',
+                name: 'Gemini 2.5 Pro',
+                description: 'Balanced model for production-grade coding and architectural planning',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 1000000,
+                capabilities: { vision: true, tools: true, reasoning: true, coding: true },
+                pricing: { input: 2.2, output: 8.8 },
+              },
+              {
+                id: 'gemini-2.5-flash',
+                name: 'Gemini 2.5 Flash',
+                description: 'Latency-optimized tier with full multimodal support and cached contexts',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 1000000,
+                capabilities: { vision: true, tools: true, coding: true, fast: true },
+                pricing: { input: 0.12, output: 0.45 },
+              },
+              {
+                id: 'gemma-3-27b',
+                name: 'Gemma 3 27B',
+                description: 'High-performance Gemma 3 model with advanced reasoning and coding capabilities',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 8000,
+                capabilities: { tools: true, reasoning: true, coding: true },
+                pricing: { input: 0.8, output: 0.8 },
+              },
+              {
+                id: 'gemma-3-12b',
+                name: 'Gemma 3 12B',
+                description: 'Efficient Gemma 3 model optimized for fast response and cost-effectiveness',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 8000,
+                capabilities: { tools: true, coding: true, fast: true },
+                pricing: { input: 0.25, output: 0.25 },
+              },
+              {
+                id: 'gemma-3-4b',
+                name: 'Gemma 3 4B',
+                description: 'Lightweight Gemma 3 model ideal for simple tasks and high-throughput scenarios',
+                provider: 'google',
+                maxTokens: 8192,
+                contextWindow: 8000,
+                capabilities: { tools: true, coding: true, fast: true },
+                pricing: { input: 0.08, output: 0.08 },
+              },
+            ];
             break;
           }
           case 'groq': {
