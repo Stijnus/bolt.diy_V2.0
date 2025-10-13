@@ -57,7 +57,7 @@
     "@codemirror/language": "^6.11.3",
     "@codemirror/search": "^6.5.11",
     "@codemirror/state": "^6.5.2",
-    "@codemirror/view": "^6.38.4",
+    "@codemirror/view": "^6.38.6",
     "@hookform/resolvers": "^5.2.2",
     "@lezer/highlight": "^1.2.1",
     "@nanostores/react": "^1.0.0",
