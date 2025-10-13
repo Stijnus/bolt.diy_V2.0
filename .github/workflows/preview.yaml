@@ -43,7 +43,7 @@ jobs:
           wranglerVersion: '4'
 
       - name: Comment Preview URL
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
@@ -93,7 +93,7 @@ jobs:
 
     steps:
       - name: Comment Cleanup
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
           script: |
