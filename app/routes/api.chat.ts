@@ -84,10 +84,10 @@ async function chatAction({ context, request }: ActionFunctionArgs) {
   try {
     const options: StreamTextOptions = {
       toolChoice: 'none',
-      fullModelId, // pass model selection to streamText
-      temperature, // pass temperature setting
-      maxTokens, // pass max tokens setting
-      mode, // pass chat mode to streamText
+      fullModelId,
+      temperature,
+      maxTokens,
+      mode,
     };
 
     options.onFinish = createOnFinishHandler(options);

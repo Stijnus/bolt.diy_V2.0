@@ -41,6 +41,7 @@ export async function exportChatToJSON(chatId: string): Promise<void> {
         terminalState: chatHistory.terminalState,
         workbenchState: chatHistory.workbenchState,
         editorState: chatHistory.editorState,
+        projectId: chatHistory.projectId ?? null,
       },
     };
 
@@ -132,6 +133,7 @@ export async function importChatFromJSON(
       terminalState,
       workbenchState,
       editorState,
+      chat.projectId ?? null,
     );
 
     // If user is authenticated, also save to Supabase
@@ -153,6 +155,7 @@ export async function importChatFromJSON(
             terminal_state: terminalState,
             workbench_state: workbenchState,
             editor_state: editorState,
+            project_id: chat.projectId ?? null,
             updated_at: new Date().toISOString(),
           },
           {
@@ -232,6 +235,7 @@ export async function renameChatDescription(chatId: string, newDescription: stri
       chatHistory.terminalState,
       chatHistory.workbenchState,
       chatHistory.editorState,
+      chatHistory.projectId ?? null,
     );
 
     // If user is authenticated and chat is from remote, update in Supabase
@@ -246,6 +250,7 @@ export async function renameChatDescription(chatId: string, newDescription: stri
           .from('chats')
           .update({
             description: trimmedDescription,
+            project_id: chatHistory.projectId ?? null,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId)
@@ -317,6 +322,7 @@ export async function duplicateChat(chatId: string, userId?: string): Promise<{ 
       originalChat.terminalState,
       originalChat.workbenchState,
       originalChat.editorState,
+      originalChat.projectId ?? null,
     );
 
     // If user is authenticated, also save to Supabase
@@ -338,6 +344,7 @@ export async function duplicateChat(chatId: string, userId?: string): Promise<{ 
             terminal_state: originalChat.terminalState,
             workbench_state: originalChat.workbenchState,
             editor_state: originalChat.editorState,
+            project_id: originalChat.projectId ?? null,
             updated_at: new Date().toISOString(),
           },
           {
@@ -418,6 +425,7 @@ export async function revertMessagesToIndex(chatId: string, messageIndex: number
       chatHistory.terminalState,
       chatHistory.workbenchState,
       chatHistory.editorState,
+      chatHistory.projectId ?? null,
     );
 
     // If user is authenticated, update in Supabase
@@ -432,6 +440,7 @@ export async function revertMessagesToIndex(chatId: string, messageIndex: number
           .from('chats')
           .update({
             messages: revertedMessages as any,
+            project_id: chatHistory.projectId ?? null,
             updated_at: new Date().toISOString(),
           })
           .eq('user_id', userId)

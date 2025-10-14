@@ -1,6 +1,5 @@
 import { useStore } from '@nanostores/react';
 import { Code2, MessageSquare } from 'lucide-react';
-import { useState } from 'react';
 
 import { chatStore } from '~/lib/stores/chat';
 import { workbenchStore } from '~/lib/stores/workbench';

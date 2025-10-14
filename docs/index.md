@@ -1,193 +1,81 @@
----
-layout: default
-title: BoltDIY V2.0 Documentation Hub
-description: Complete documentation for BoltDIY V2.0 - enhanced AI development platform with multi-model support
----
+# BoltDIY V2.0 Documentation
 
-# 📖 BoltDIY V2.0 Documentation
+Welcome to the BoltDIY V2.0 documentation. This project is an AI-powered in-browser IDE built with Remix, Cloudflare Pages/Workers, Vercel AI SDK, WebContainers, Supabase, CodeMirror, and Radix UI.
 
-Welcome to the complete documentation for BoltDIY V2.0 - the enhanced AI development platform with multi-model support, authentication, and modern UI.
+## Quick Navigation
 
-## 🚀 Quick Navigation
+### 🚀 [Getting Started](./getting-started/)
+Everything you need to get BoltDIY up and running on your system.
+- [Setup Guide](./getting-started/SETUP_GUIDE.md) - Complete installation and configuration
+- [Docker Guide](./getting-started/DOCKER.md) - Running with Docker
+- [AI Models](./getting-started/ai-models.md) - Configuring AI providers
+- [FAQ](./getting-started/faq.md) - Frequently asked questions
+- [Troubleshooting](./getting-started/troubleshooting.md) - Common issues and solutions
 
-### 🏁 Getting Started
-- **[📋 Complete Setup Guide](./guides/SETUP_GUIDE.md)** - Step-by-step installation and configuration
-- **[⚡ Quick Start](../README.md#-installation--setup)** - Fast setup for experienced users
-- **[🎯 First Project](#creating-your-first-project)** - Build your first application
-- **[🐛 Troubleshooting](./guides/troubleshooting.md)** - Common issues and solutions
+### 🏗️ [Architecture](./architecture/)
+Technical architecture and design documentation.
+- [Application Flow & Architecture](./architecture/APPLICATION_FLOW_AND_ARCHITECTURE.md) - High-level system design
+- [Current Architecture](./architecture/CURRENT_ARCHITECTURE.md) - Detailed technical architecture
+- [Design System](./architecture/DESIGN_SYSTEM.md) - UI/UX design guidelines
+- [Multi-Model Implementation](./architecture/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - AI model integration
 
-### 📚 Features & Guides
-- **[🤖 AI Models Guide](./guides/ai-models.md)** - Complete guide to all 19+ supported AI models
-- **[❓ FAQ](./guides/faq.md)** - Frequently asked questions
-- **[📄 Documentation Overview](./guides/index.md)** - Project landing page
-- **[🎨 UI Components](./technical/DESIGN_SYSTEM.md)** - Design system and components
+### 🔧 [Development](./development/)
+Resources for developers contributing to BoltDIY.
+- [Contributing Guide](./development/CONTRIBUTING.md) - How to contribute
+- [Documentation Restructure](./development/DOCUMENTATION_RESTRUCTURE.md) - Docs organization
+- [Guides Index](./development/guides-index.md) - Development guides overview
 
-### 🔧 Technical Documentation
-- **[🏗️ Architecture Overview](./technical/CURRENT_ARCHITECTURE.md)** - System architecture and design
-- **[🔌 Provider Integration](./technical/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md)** - AI provider implementation details
-- **[🛠️ Claude Guidelines](../CLAUDE.md)** - Development guidelines for AI assistants
-- **[🌐 WARP Guidelines](../WARP.md)** - AI terminal usage guidelines
-- **[⚡ Quick Fixes](./technical/QUICK_FIX.md)** - Common technical solutions
-- **[🔐 Supabase Integration](./technical/SUPABASE_INTEGRATION_PLAN.md)** - Database and auth implementation
-- **[🔧 Constraint Fixes](./technical/SUPABASE_CONSTRAINT_FIX.md)** - Database constraint solutions
+### 🚀 [Deployment](./deployment/)
+Documentation for deploying BoltDIY in production.
+- [GitHub Pages Setup](./deployment/GITHUB_PAGES_SETUP.md) - Deploying to GitHub Pages
 
-### 📊 Project Management
-- **[🛠️ Contributing](./project/CONTRIBUTING.md)** - How to contribute to the project
-- **[📋 TODO List](./project/TODO.md)** - Current roadmap and tasks
-- **[🎯 Feature Roadmap](./project/FEATURE_ROADMAP.md)** - Planned features and updates
-- **[📊 Project Management](./project/PROJECT_MANAGEMENT.md)** - Development workflow and planning
-- **[⚡ Current Sprint](./project/SPRINT_CURRENT.md)** - Current development sprint
-- **[✅ Quick Wins](./project/QUICK_WINS_PLAN.md)** - Easy improvements to implement
+### 📋 [Project Management](./project-management/)
+Project planning, roadmaps, and decision records.
+- [Project Management](./project-management/PROJECT_MANAGEMENT.md) - Development process
+- [Feature Roadmap](./project-management/FEATURE_ROADMAP.md) - Planned features
+- [Quick Wins Plan](./project-management/QUICK_WINS_PLAN.md) - Priority improvements
+- [Current Sprint](./project-management/SPRINT_CURRENT.md) - Active development
+- [TODO](./project-management/TODO.md) - Task tracking
+- [ADRs](./project-management/adr/) - Architecture Decision Records
 
----
+### 🔧 [Fixes & Issues](./fixes/)
+Bug fixes, patches, and technical solutions.
+- [Authentication Fix Summary](./fixes/AUTHENTICATION_FIX_SUMMARY.md)
+- [Storage Bucket Fix](./fixes/STORAGE_BUCKET_FIX.md)
+- [Settings UX Analysis](./fixes/SETTINGS_UX_ANALYSIS.md)
+- [Settings UX Fixes Implementation](./fixes/SETTINGS_UX_FIXES_IMPLEMENTATION.md)
+- [Supabase Constraint Fix](./fixes/SUPABASE_CONSTRAINT_FIX.md)
+- [Supabase Integration Plan](./fixes/SUPABASE_INTEGRATION_PLAN.md)
+- [Quick Fixes](./fixes/QUICK_FIX.md)
 
-## 🌟 What is BoltDIY V2.0?
+### 📚 [Archive](./archive/)
+Historical documentation and completed project phases.
+- [Projects Implementation Summary](./archive/PROJECTS_IMPLEMENTATION_SUMMARY.md)
+- [Projects Phase 1 Quickstart](./archive/PROJECTS_PHASE1_QUICKSTART.md)
+- [Projects UX Fixes Needed](./archive/PROJECTS_UX_FIXES_NEEDED.md)
+- [Projects UX Improvements Complete](./archive/PROJECTS_UX_IMPROVEMENTS_COMPLETE.md)
+- [Projects UX Redesign Summary](./archive/PROJECTS_UX_REDESIGN_SUMMARY.md)
+- [Projects Phase 1 Complete](./archive/PROJECTS_PHASE1_COMPLETE.md)
+- [Projects Phase 2 Complete](./archive/PROJECTS_PHASE2_COMPLETE.md)
+- [Projects UX Implementation Status](./archive/PROJECTS_UX_IMPLEMENTATION_STATUS.md)
 
-BoltDIY V2.0 is an enhanced AI-powered development platform that combines the power of multiple AI models with a complete development environment in your browser.
+## Quick Reference
 
-### Key Features
+For quick access to key information:
+- **Setup**: Start with the [Setup Guide](./getting-started/SETUP_GUIDE.md)
+- **Development**: See the [Contributing Guide](./development/CONTRIBUTING.md)
+- **Architecture**: Review the [Application Flow & Architecture](./architecture/APPLICATION_FLOW_AND_ARCHITECTURE.md)
+- **AI Models**: Configure providers with the [AI Models Guide](./getting-started/ai-models.md)
 
-🤖 **Multi-Model AI Support**
-- 19+ AI models from 6 major providers
-- Switch between models for different tasks
-- Cost-effective and powerful options
+## Project Structure
 
-🔐 **Secure Authentication**
-- User accounts with Supabase Auth
-- Secure session management
-- Cross-device synchronization
-
-💻 **Full Development Environment**
-- Powered by StackBlitz WebContainers
-- Run Node.js, install packages, deploy apps
-- Complete filesystem access for AI
-
-🎨 **Modern UI**
-- Built with Radix UI and Tailwind CSS
-- Responsive design
-- Dark/light theme support
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Node.js >= 20.0.0
-- pnpm 10.18.0 (recommended) or npm
-- Supabase account (free tier available)
-- At least one AI provider API key
-
-### Installation Overview
-
-1. **[Clone and Install](./guides/SETUP_GUIDE.md#step-1-clone-and-install)** - Get the code and dependencies
-2. **[Setup Supabase](./guides/SETUP_GUIDE.md#step-2-create-supabase-project)** - Create your database
-3. **[Configure Environment](./guides/SETUP_GUIDE.md#step-4-configure-environment-variables)** - Add API keys
-4. **[Initialize Database](./guides/SETUP_GUIDE.md#step-5-set-up-database-the-easy-way-)** - Run our setup script
-5. **[Start Developing](./guides/SETUP_GUIDE.md#step-8-start-developing-)** - Launch the application
-
-> 💡 **Need detailed instructions?** Follow our [Complete Setup Guide](./guides/SETUP_GUIDE.md) for step-by-step instructions with troubleshooting.
+BoltDIY V2.0 uses:
+- **Runtime**: Remix + Vite + TypeScript targeting Cloudflare Pages/Workers
+- **UI**: React, Radix UI, Tailwind CSS, CodeMirror 6, xterm.js
+- **AI**: Vercel AI SDK with multiple provider support
+- **Database**: Supabase with RLS
+- **Container**: WebContainer API for browser-based Node environment
 
 ---
 
-## 🤖 AI Models at a Glance
-
-BoltDIY supports 19+ models across 6 providers:
-
-| Provider | Models | Best For | Cost Range |
-|----------|--------|----------|------------|
-| **Anthropic** | Claude Sonnet 4.5, 4 | Complex coding, architecture | $3-15/1M tokens |
-| **OpenAI** | GPT-5, GPT-4.1, o3, o4-mini | Reasoning, specialized tasks | $3-15/1M tokens |
-| **Google** | Gemini 2.5 Pro, Flash | Web dev, large context | $0.15-7.50/1M tokens |
-| **DeepSeek** | V3.2, Reasoner | Cost-effective development | $0.28-0.42/1M tokens |
-| **xAI** | Grok Code Fast 1, 3, 4 | Fast iterations | $0.20-1.50/1M tokens |
-| **Mistral** | Codestral 25.08, Large | Multi-language coding | $0.30-0.90/1M tokens |
-
-**[📖 View Complete AI Models Guide →](./guides/ai-models.md)**
-
----
-
-## 🎯 Creating Your First Project
-
-Once you have BoltDIY running:
-
-1. **Sign Up**: Create your account using the Sign Up button
-2. **Verify Email**: Check your inbox and click the verification link
-3. **Start Chatting**: Use the chat interface to describe your project
-4. **Choose a Model**: Select the best AI model for your task
-5. **Build**: Let AI scaffold your application with full-stack capabilities
-
-### Pro Tips for Success
-
-💡 **Be Specific**: Mention frameworks like "React with Tailwind" or "Next.js with TypeScript"
-
-🔄 **Use the Right Model**: 
-- Fast iterations → Grok Code Fast 1
-- Complex architecture → Claude Sonnet 4.5
-- Cost-effective → DeepSeek V3.2
-
-📝 **Enhance Prompts**: Use the enhance button (✨) to improve your prompts
-
-🏗️ **Scaffold First**: Start with basic structure, then add features
-
----
-
-## 📊 Architecture Overview
-
-BoltDIY V2.0 is built with modern technologies:
-
-```
-Frontend (Remix + React)
-├── Authentication (Supabase Auth)
-├── AI Models (6 Providers, 19+ Models)
-├── WebContainers (StackBlitz)
-└── UI Components (Radix + Tailwind)
-
-Backend (Cloudflare Workers)
-├── API Routes (/api/chat)
-├── Database (Supabase PostgreSQL)
-├── File System (WebContainers)
-└── Model Routing (Provider Factory)
-```
-
-**[🔍 Detailed Architecture →](./technical/CURRENT_ARCHITECTURE.md)**
-
----
-
-## 🆘 Need Help?
-
-### Quick Links
-- **[🐛 Troubleshooting](./guides/troubleshooting.md)** - Common issues and solutions
-- **[❓ FAQ](./guides/faq.md)** - Frequently asked questions
-- **[💬 GitHub Issues](https://github.com/Stijnus/bolt.diy_V2.0/issues)** - Report bugs or request features
-
-### Support Options
-
-1. **Check Documentation**: Most questions are answered in our guides
-2. **Search Issues**: Look for existing solutions in GitHub issues
-3. **Create New Issue**: Provide detailed information for new problems
-4. **Community**: Engage with other users in discussions
-
----
-
-## 🔗 External Links
-
-- **[Main Repository](https://github.com/Stijnus/bolt.diy_V2.0)** - Source code and releases
-- **[Supabase Dashboard](https://supabase.com)** - Manage your database
-- **[StackBlitz WebContainers](https://webcontainers.io)** - The technology powering our dev environment
-- **[Remix Framework](https://remix.run)** - The web framework we use
-
----
-
-## 📄 License & Credits
-
-**License**: MIT - see [LICENSE](../LICENSE) for details
-
-**Credits**:
-- Built on [Bolt.new](https://bolt.new) by StackBlitz
-- Enhanced by [@Stijnus](https://github.com/Stijnus)
-- Powered by [WebContainers](https://webcontainers.io)
-- UI components from [Radix UI](https://www.radix-ui.com)
-
----
-
-*Last updated: October 2025 | Version 2.0.0*
+*For questions or contributions, please see our [Contributing Guide](./development/CONTRIBUTING.md).*

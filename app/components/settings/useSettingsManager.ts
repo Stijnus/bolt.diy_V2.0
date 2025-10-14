@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useStore } from '@nanostores/react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { z } from 'zod';
 import {
   settingsStore,
@@ -37,10 +37,19 @@ const preferencesSchema = z.object({
   chatMode: z.enum(['normal', 'plan', 'discussion']).optional(),
 });
 
+const projectDefaultsSchema = z.record(
+  z.string(),
+  z.object({
+    defaultModel: z.string().optional(),
+    planModel: z.string().optional(),
+  }),
+);
+
 const settingsSchema = z.object({
   editor: editorSchema,
   ai: aiSchema,
   preferences: preferencesSchema,
+  projectDefaults: projectDefaultsSchema.optional().default({}),
 });
 
 export type SettingsDraft = z.infer<typeof settingsSchema>;
@@ -63,6 +72,7 @@ function getDefaultDraft(): SettingsDraft {
     editor: clone(defaultEditorSettings),
     ai: clone(defaultAISettings),
     preferences: clone(defaultUserPreferences),
+    projectDefaults: {},
   };
 }
 
@@ -70,6 +80,7 @@ function clone<T>(value: T): T {
   if (typeof structuredClone === 'function') {
     return structuredClone(value);
   }
+
   return JSON.parse(JSON.stringify(value));
 }
 
@@ -77,47 +88,60 @@ function deepEqual(a: unknown, b: unknown): boolean {
   if (a === b) {
     return true;
   }
+
   if (typeof a !== typeof b) {
     return false;
   }
+
   if (a && b && typeof a === 'object') {
     if (Array.isArray(a) && Array.isArray(b)) {
       if (a.length !== b.length) {
         return false;
       }
+
       for (let i = 0; i < a.length; i += 1) {
         if (!deepEqual(a[i], b[i])) {
           return false;
         }
       }
+
       return true;
     }
+
     if (!Array.isArray(a) && !Array.isArray(b)) {
       const keysA = Object.keys(a as Record<string, unknown>);
       const keysB = Object.keys(b as Record<string, unknown>);
+
       if (keysA.length !== keysB.length) {
         return false;
       }
+
       for (const key of keysA) {
         if (!deepEqual((a as Record<string, unknown>)[key], (b as Record<string, unknown>)[key])) {
           return false;
         }
       }
+
       return true;
     }
+
     return false;
   }
+
   return false;
 }
 
-function buildErrorMap(issues: z.ZodIssue[]): FieldErrors {
+function buildErrorMap(issues: Array<{ path: ReadonlyArray<PropertyKey>; message: string }>): FieldErrors {
   const result: FieldErrors = {};
+
   for (const issue of issues) {
-    const path = issue.path.join('.');
+    const path = issue.path.map(String).join('.');
+
     if (path && !result[path]) {
       result[path] = issue.message;
     }
   }
+
   return result;
 }
 
@@ -126,14 +150,18 @@ function groupErrors(errors: FieldErrors): SectionErrors {
     editor: {},
     ai: {},
     preferences: {},
+    projectDefaults: {},
   };
+
   for (const [path, message] of Object.entries(errors)) {
     const [section, ...rest] = path.split('.');
+
     if (section && section in grouped) {
       const key = rest.join('.') || section;
       grouped[section as SectionKey][key] = message;
     }
   }
+
   return grouped;
 }
 
@@ -142,10 +170,13 @@ function sanitizeStore(settings: Settings): SettingsDraft {
     editor: settings.editor,
     ai: settings.ai,
     preferences: settings.preferences,
+    projectDefaults: settings.projectDefaults,
   });
+
   if (parsed.success) {
     return parsed.data;
   }
+
   return getDefaultDraft();
 }
 
@@ -159,14 +190,20 @@ export function useSettingsManager() {
 
   const groupedErrors = useMemo(() => groupErrors(errors), [errors]);
   const hasUnsavedChanges = useMemo(() => !deepEqual(draft, initial), [draft, initial]);
-  const sectionDirtyState = useMemo(() => ({
-    editor: !deepEqual(draft.editor, initial.editor),
-    ai: !deepEqual(draft.ai, initial.ai),
-    preferences: !deepEqual(draft.preferences, initial.preferences),
-  }), [draft, initial]);
+
+  const sectionDirtyState = useMemo(
+    () => ({
+      editor: !deepEqual(draft.editor, initial.editor),
+      ai: !deepEqual(draft.ai, initial.ai),
+      preferences: !deepEqual(draft.preferences, initial.preferences),
+      projectDefaults: !deepEqual(draft.projectDefaults, initial.projectDefaults),
+    }),
+    [draft, initial],
+  );
 
   useEffect(() => {
     setInitial(clone(sanitizedStore));
+
     if (!hasUnsavedChanges) {
       setDraft(clone(sanitizedStore));
       setErrors({});
@@ -175,46 +212,64 @@ export function useSettingsManager() {
 
   const validateDraft = useCallback((next: SettingsDraft) => {
     const validation = settingsSchema.safeParse(next);
+
     if (validation.success) {
       return { success: true as const, data: validation.data, errorMap: {} as FieldErrors };
     }
+
     return { success: false as const, errorMap: buildErrorMap(validation.error.issues) };
   }, []);
 
-  const applyDraft = useCallback((updater: (prev: SettingsDraft) => SettingsDraft) => {
-    setDraft((prev) => {
-      const next = updater(prev);
-      const validation = validateDraft(next);
-      setErrors(validation.errorMap);
-      return next;
-    });
-  }, [validateDraft]);
+  const applyDraft = useCallback(
+    (updater: (prev: SettingsDraft) => SettingsDraft) => {
+      setDraft((prev) => {
+        const next = updater(prev);
+        const validation = validateDraft(next);
+        setErrors(validation.errorMap);
 
-  const updateSection = useCallback(<K extends SectionKey>(section: K, updates: Partial<SettingsDraft[K]>) => {
-    applyDraft((prev) => ({
-      ...prev,
-      [section]: {
-        ...prev[section],
-        ...updates,
-      },
-    }));
-  }, [applyDraft]);
+        return next;
+      });
+    },
+    [validateDraft],
+  );
 
-  const replaceSection = useCallback(<K extends SectionKey>(section: K, value: SettingsDraft[K]) => {
-    applyDraft((prev) => ({
-      ...prev,
-      [section]: value,
-    }));
-  }, [applyDraft]);
+  const updateSection = useCallback(
+    <K extends SectionKey>(section: K, updates: Partial<SettingsDraft[K]>) => {
+      applyDraft((prev) => ({
+        ...prev,
+        [section]: {
+          ...prev[section],
+          ...updates,
+        },
+      }));
+    },
+    [applyDraft],
+  );
 
-  const resetSection = useCallback((section: SectionKey) => {
-    const defaults = getDefaultDraft();
-    replaceSection(section, defaults[section]);
-  }, [replaceSection]);
+  const replaceSection = useCallback(
+    <K extends SectionKey>(section: K, value: SettingsDraft[K]) => {
+      applyDraft((prev) => ({
+        ...prev,
+        [section]: value,
+      }));
+    },
+    [applyDraft],
+  );
 
-  const revertSection = useCallback((section: SectionKey) => {
-    replaceSection(section, initial[section]);
-  }, [initial, replaceSection]);
+  const resetSection = useCallback(
+    (section: SectionKey) => {
+      const defaults = getDefaultDraft();
+      replaceSection(section, defaults[section]);
+    },
+    [replaceSection],
+  );
+
+  const revertSection = useCallback(
+    (section: SectionKey) => {
+      replaceSection(section, initial[section]);
+    },
+    [initial, replaceSection],
+  );
 
   const revertAll = useCallback(() => {
     setDraft(initial);
@@ -223,46 +278,59 @@ export function useSettingsManager() {
 
   const getValidatedDraft = useCallback(() => {
     const validation = validateDraft(draft);
+
     if (!validation.success) {
       setErrors(validation.errorMap);
       throw new Error('Validation failed');
     }
+
     setErrors({});
+
     return validation.data;
   }, [draft, validateDraft]);
 
-  const markSaved = useCallback((saved: SettingsDraft) => {
-    const validation = validateDraft(saved);
-    if (!validation.success) {
-      setErrors(validation.errorMap);
-      return;
-    }
-    setInitial(validation.data);
-    setDraft(validation.data);
-    setErrors({});
-    setSettingsSections(validation.data);
-  }, [validateDraft]);
+  const markSaved = useCallback(
+    (saved: SettingsDraft) => {
+      const validation = validateDraft(saved);
+
+      if (!validation.success) {
+        setErrors(validation.errorMap);
+        return;
+      }
+
+      setInitial(validation.data);
+      setDraft(validation.data);
+      setErrors({});
+      setSettingsSections(validation.data);
+    },
+    [validateDraft],
+  );
 
   const importSettings = useCallback((payload: unknown) => {
     if (!payload || typeof payload !== 'object') {
       throw new Error('Invalid settings payload');
     }
+
     const maybe = payload as Partial<ImportPayload>;
     const source = maybe.settings ?? maybe;
     const validation = settingsSchema.safeParse(source);
+
     if (!validation.success) {
       throw new Error('Settings file is not valid');
     }
+
     setDraft(validation.data);
     setErrors({});
   }, []);
 
   const getExportPayload = useCallback(() => {
     const validation = validateDraft(draft);
+
     if (!validation.success) {
       setErrors(validation.errorMap);
       throw new Error('Fix validation errors before exporting');
     }
+
     return {
       version: '2.0',
       exportedAt: new Date().toISOString(),

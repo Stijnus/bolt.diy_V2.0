@@ -63,9 +63,7 @@ export function AccountTab({
           </div>
           <Button
             onClick={onChangePassword}
-            disabled={
-              isChangingPassword || !newPassword || !confirmPassword || (passwordError ? true : false)
-            }
+            disabled={isChangingPassword || !newPassword || !confirmPassword || !!passwordError}
             size="sm"
             className="rounded-[calc(var(--radius))] transition-theme"
           >

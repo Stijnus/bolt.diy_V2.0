@@ -1,5 +1,10 @@
 import { setCurrentModel } from '~/lib/stores/model';
-import { updateEditorSettings, updateAISettings, updateUserPreferences } from '~/lib/stores/settings';
+import {
+  updateEditorSettings,
+  updateAISettings,
+  updateUserPreferences,
+  setProjectDefaultsMap,
+} from '~/lib/stores/settings';
 
 /**
  * Load user settings from database and apply them to the stores
@@ -52,6 +57,10 @@ export async function loadUserSettings() {
 
     if (settings.preferences) {
       updateUserPreferences(settings.preferences);
+    }
+
+    if (settings.projectDefaults) {
+      setProjectDefaultsMap(settings.projectDefaults);
     }
 
     console.log('Successfully applied user settings from database');

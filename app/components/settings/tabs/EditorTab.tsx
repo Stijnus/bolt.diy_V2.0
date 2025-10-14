@@ -36,6 +36,7 @@ export function EditorTab({ settings, onSettingChange, onReset, onRevert, dirty 
           value={settings.tabSize}
           onChange={(e) => {
             const value = Number.parseInt(e.target.value, 10);
+
             if (!Number.isNaN(value)) {
               onSettingChange('tabSize', value);
             }
@@ -57,6 +58,7 @@ export function EditorTab({ settings, onSettingChange, onReset, onRevert, dirty 
           value={settings.fontSize}
           onChange={(e) => {
             const value = Number.parseInt(e.target.value, 10);
+
             if (!Number.isNaN(value)) {
               onSettingChange('fontSize', value);
             }
@@ -79,6 +81,7 @@ export function EditorTab({ settings, onSettingChange, onReset, onRevert, dirty 
           value={settings.lineHeight}
           onChange={(e) => {
             const value = Number.parseFloat(e.target.value);
+
             if (!Number.isNaN(value)) {
               onSettingChange('lineHeight', value);
             }

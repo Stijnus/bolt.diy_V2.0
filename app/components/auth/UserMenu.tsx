@@ -1,4 +1,4 @@
-import { ChevronDown, FolderOpen, Home, LogOut, Settings } from 'lucide-react';
+import { ChevronDown, FolderOpen, Home, LogOut, Settings, Plus } from 'lucide-react';
 import { useState } from 'react';
 
 import { LoginModal } from './LoginModal';
@@ -57,13 +57,15 @@ export function UserMenu() {
           <button
             type="button"
             className={classNames(
-              'group flex items-center gap-2.5 rounded-full border border-transparent bg-bolt-elements-background-depth-2 px-2 py-1.5 pr-3 shadow-sm transition-all hover:border-bolt-elements-borderColor hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'group flex items-center gap-2.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 pr-3 shadow-sm transition-all hover:border-bolt-elements-borderColorActive hover:shadow-md hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               {
-                'border-bolt-elements-borderColorActive ring-2 ring-primary ring-offset-2 ring-offset-background':
+                'border-bolt-elements-borderColorActive ring-2 ring-primary ring-offset-2 ring-offset-background bg-bolt-elements-background-depth-3':
                   menuOpen,
               },
             )}
             aria-label="User menu"
+            aria-haspopup="menu"
+            aria-expanded={menuOpen}
           >
             <div className="relative">
               <img
@@ -87,13 +89,48 @@ export function UserMenu() {
           </button>
         </DropdownMenuTrigger>
 
-        <DropdownMenuContent align="end" className="w-72 p-2">
+        <DropdownMenuContent align="end" className="w-80 p-2">
           <DropdownMenuLabel className="flex flex-col gap-1 px-3 py-3">
-            <span className="text-base font-bold text-bolt-elements-textPrimary">
+            <span
+              className="text-base font-bold text-bolt-elements-textPrimary"
+              title={user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
+            >
               {user.user_metadata?.name || user.email?.split('@')[0] || 'User'}
             </span>
-            <span className="text-sm text-bolt-elements-textSecondary">{user.email}</span>
+            <span className="truncate text-sm text-bolt-elements-textSecondary" title={user.email || undefined}>
+              {user.email}
+            </span>
           </DropdownMenuLabel>
+
+          {/* Quick actions */}
+          <div className="flex items-center gap-2 px-3 pb-2">
+            <a
+              href="/"
+              className="inline-flex items-center gap-1.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColorActive transition-all hover:shadow-sm"
+              title="New Chat"
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <Plus className="h-3 w-3" />
+              </span>
+              New Chat
+            </a>
+            <button
+              className="inline-flex items-center gap-1.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-3 py-1 text-xs font-medium text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-3 hover:border-bolt-elements-borderColorActive transition-all hover:shadow-sm"
+              onClick={() => {
+                try {
+                  window.dispatchEvent(new CustomEvent('bolt:open-import-dialog'));
+                  setMenuOpen(false);
+                } catch {}
+              }}
+              title="Import Folder"
+            >
+              <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary">
+                <FolderOpen className="h-3 w-3" />
+              </span>
+              Import Folder
+            </button>
+          </div>
+
           <DropdownMenuSeparator className="my-2" />
           <DropdownMenuItem asChild>
             <a href="/projects" className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium">

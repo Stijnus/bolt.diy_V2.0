@@ -13,7 +13,15 @@ interface SettingsSectionProps {
   dirty?: boolean;
 }
 
-export function SettingsSection({ title, description, status, children, onReset, onRevert, dirty = false }: SettingsSectionProps) {
+export function SettingsSection({
+  title,
+  description,
+  status,
+  children,
+  onReset,
+  onRevert,
+  dirty = false,
+}: SettingsSectionProps) {
   return (
     <div className="border-b border-bolt-elements-borderColor pb-8 last:border-b-0">
       <div className="mb-6">

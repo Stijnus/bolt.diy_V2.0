@@ -1,14 +1,14 @@
 import { useStore } from '@nanostores/react';
+import { useStore as useNanoStore } from '@nanostores/react';
 import { motion } from 'framer-motion';
 import { Check, X, Copy, Download } from 'lucide-react';
 import { memo, useMemo, useState } from 'react';
 import { Markdown } from './Markdown';
+import { PROVIDERS } from '~/lib/models.client';
 import { chatModeStore, approvePlan, rejectPlan } from '~/lib/stores/chat-mode';
+import { settingsStore } from '~/lib/stores/settings';
 import { cn } from '~/lib/utils';
 import { formatPlanToMarkdown } from '~/utils/plan-format';
-import { useStore as useNanoStore } from '@nanostores/react';
-import { settingsStore } from '~/lib/stores/settings';
-import { PROVIDERS } from '~/lib/models.client';
 
 interface PlanApprovalCardProps {
   onApprove: (planContent: string) => void;
@@ -21,10 +21,14 @@ export const PlanApprovalCard = memo(({ onApprove, onReject }: PlanApprovalCardP
   const [showTemplate, setShowTemplate] = useState(false);
 
   const planModelId = userSettings.ai?.planModel || userSettings.ai?.defaultModel;
+
   const planModelInfo = (() => {
     for (const p of PROVIDERS) {
       const match = p.models.find((m) => `${p.id}:${m.id}` === planModelId);
-      if (match) return { provider: p.name, name: match.name };
+
+      if (match) {
+        return { provider: p.name, name: match.name };
+      }
     }
     return null;
   })();

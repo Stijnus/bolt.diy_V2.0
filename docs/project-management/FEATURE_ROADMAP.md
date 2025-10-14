@@ -15,15 +15,15 @@ This roadmap outlines feature enhancements to position Bolt.new competitively wi
 ## 🚀 Priority 1: Core Development Experience
 
 ### 1.1 Multi-Model AI Support
-**Status:** 🔴 Not Implemented  
+**Status:** 🟡 In Progress  
 **Competitor Feature:** Cursor, Cline, Continue.dev  
 **Impact:** High
 
 **Features:**
-- [ ] Multiple LLM provider support (OpenAI, Gemini, Mistral, local models)
-- [ ] Model selection dropdown in chat interface
+- [x] Multiple LLM provider support (OpenAI, Gemini, Mistral, Anthropic, DeepSeek, Groq)
+- [x] Model selection dropdown in chat interface
 - [ ] Per-project model configuration
-- [ ] Cost tracking per model/session
+- [x] Cost tracking per model/session
 - [ ] Custom model endpoint support (Ollama, LM Studio)
 
 **Technical Notes:**
@@ -613,33 +613,69 @@ This roadmap outlines feature enhancements to position Bolt.new competitively wi
 
 ---
 
+## 📊 Projects Feature Status
+
+### ✅ Completed (Basic Infrastructure)
+- [x] Project CRUD operations (Create, Read, Update, Delete)
+- [x] Project metadata storage (Supabase)
+- [x] Project list UI with cards
+- [x] Project detail page (metadata view)
+- [x] Project visibility settings (public/private)
+- [x] Project collaborator management
+- [x] Project sharing dialog
+- [x] Project store for state management
+- [x] Project routes (/projects, /projects/:id)
+- [x] Project-to-chat linkage (projectId field in chats)
+
+### ⚠️ Partially Implemented (Non-Functional)
+- [ ] Project opening mechanism - **CRITICAL MISSING**
+- [ ] File state persistence for projects
+- [ ] File loading when opening projects
+- [ ] Workbench integration with projects
+- [ ] Chat history restoration for projects
+- [ ] Project file synchronization
+
+### 🔴 Not Implemented (Required for Full Feature)
+- [ ] Load project files into WebContainer
+- [ ] Restore project chat history
+- [ ] Save file changes back to project
+- [ ] Project-specific file storage (Supabase or enhanced IndexedDB)
+- [ ] "Continue working" on project functionality
+- [ ] Project export with files
+- [ ] Project templates with starter code
+- [ ] Project import from GitHub/ZIP
+- [ ] Project snapshots/versioning
+- [ ] Project deployment integration
+
+---
+
 ## 📈 Implementation Priority Matrix
 
 ### Quick Wins (High Impact, Low Effort)
-1. ✅ Multi-model AI support
-2. ✅ Project templates & starters
-3. ✅ Prompt library
-4. ✅ Enhanced terminal (tabs)
-5. ✅ Export project functionality
+1. 🟡 Multi-model AI support (per-project defaults & local endpoints pending)
+2. 🔴 Project templates & starters
+3. 🔴 Prompt library
+4. 🔴 Enhanced terminal (tabs)
+5. 🔴 Export project functionality
 
 ### Major Initiatives (High Impact, High Effort)
-1. ✅ Git integration
-2. ✅ Real-time collaboration
-3. ✅ Advanced code intelligence (LSP)
-4. ✅ Context-aware AI with RAG
-5. ✅ Extension system
+1. 🔴 Git integration
+2. 🔴 Real-time collaboration
+3. 🔴 Advanced code intelligence (LSP)
+4. 🔴 Context-aware AI with RAG
+5. 🔴 Extension system
 
 ### Strategic Bets (Medium-High Impact, High Effort)
-1. ✅ Import existing projects
-2. ✅ Third-party integrations
-3. ✅ AI agent modes
-4. ✅ Design integration (Figma to code)
+1. 🔴 Import existing projects
+2. 🔴 Third-party integrations
+3. 🔴 AI agent modes
+4. 🔴 Design integration (Figma to code)
 
 ### Polish & Nice-to-Have (Variable Impact, Low-Medium Effort)
-1. ✅ Theming & customization
-2. ✅ Mobile experience
-3. ✅ Analytics dashboard
-4. ✅ Tutorial system
+1. 🔴 Theming & customization
+2. 🔴 Mobile experience
+3. 🔴 Analytics dashboard
+4. 🔴 Tutorial system
 
 ---
 
@@ -682,6 +718,150 @@ Bolt.new's unique advantages are:
 3. **StackBlitz backing** - Strong infrastructure and expertise
 
 Focus on making these advantages even stronger while addressing gaps in collaboration, git support, and AI capabilities.
+
+---
+
+## 🔧 Critical: Project Opening Implementation Guide
+
+### Problem Statement
+The Projects feature has UI and database infrastructure but **cannot actually open projects**. When users click "Open Project", they see only metadata - no files are loaded into the workbench, making the feature non-functional.
+
+### Current Flow (Broken)
+1. User clicks "Open Project" → Navigates to `/projects/:id`
+2. `ProjectDetailPage` loads → Shows only metadata
+3. **END** - No files loaded, no workbench opened, no chat history restored
+
+### Required Flow (Target)
+1. User clicks "Open Project" → Should open workbench with project files
+2. Load associated chat history (if exists)
+3. Restore file state into WebContainer
+4. Open workbench in code view
+5. Continue from last session state
+
+### Implementation Tasks (Priority Order)
+
+#### Phase 1: Minimal Viable Opening (Critical - 2-3 days)
+1. **Create project file storage mechanism**
+   - Add `file_state` JSONB column to `projects` table in Supabase
+   - Store files as `Record<string, { content: string; isBinary: boolean; encoding?: 'plain' | 'base64' }>`
+   - Update `projectService.updateProject()` to save file state
+   
+2. **Create project opening flow**
+   - Modify `handleOpenProject()` in `ProjectsList.tsx` to:
+     - Navigate to main chat interface (`/`)
+     - Load project's most recent chat OR create new chat
+     - Pass project context to chat loader
+   
+3. **Integrate with existing chat restoration**
+   - Extend `useChatHistory` to accept `projectId` parameter
+   - When opening project, load latest chat for that project
+   - If no chat exists, create new chat linked to project
+   - Use existing file restoration logic (lines 224-303 in useChatHistory.ts)
+
+4. **Add file auto-save to project**
+   - Listen to file changes in workbench
+   - Periodically save file state to project
+   - Save on: file save, project switch, window unload
+
+**Files to modify:**
+- `app/lib/services/projects.ts` - Add `saveProjectFiles()` method
+- `app/components/projects/ProjectsList.tsx` - Fix `handleOpenProject()`
+- `app/lib/persistence/useChatHistory.ts` - Add project context awareness
+- `app/lib/stores/workbench.ts` - Add project file sync listener
+
+#### Phase 2: Enhanced Project Experience (1-2 days)
+5. **Project context indicator**
+   - Show active project badge in header
+   - "Save to project" button in workbench
+   - Last saved timestamp
+
+6. **Project chat history**
+   - List all chats for a project
+   - Switch between project chats
+   - Create new chat within project
+
+7. **File diff and version awareness**
+   - Show which files changed since last save
+   - Option to discard changes
+   - Conflict resolution if remote changes exist
+
+#### Phase 3: Advanced Features (3-5 days)
+8. **Project snapshots**
+   - Save named snapshots/checkpoints
+   - Restore from snapshot
+   - Compare snapshots
+
+9. **Project templates**
+   - Create from template with starter files
+   - Save project as template
+   - Template marketplace
+
+10. **Export/Import**
+    - Export project as ZIP with files
+    - Import ZIP as new project
+    - Import from GitHub repository
+
+### Key Technical Considerations
+
+**File Storage Strategy:**
+- **Option A (Recommended):** Store files in Supabase `projects.file_state` JSONB column
+  - Pros: Simple, uses existing auth, automatic sync
+  - Cons: 5MB file size limits, cost at scale
+  
+- **Option B:** Use Supabase Storage buckets for files
+  - Pros: No size limits, optimized for files
+  - Cons: More complex, separate auth/sync
+
+**Chat-Project Relationship:**
+- Multiple chats can belong to one project
+- Each chat maintains its own file snapshot (for history)
+- Project maintains "current" file state
+- When opening project, load most recent chat
+
+**File Sync Architecture:**
+```
+User Opens Project
+       ↓
+Load Project Metadata (Supabase)
+       ↓
+Find Latest Chat for Project (Supabase/IndexedDB)
+       ↓
+Load Chat with File State
+       ↓
+Restore Files to WebContainer (existing logic)
+       ↓
+Open Workbench
+       ↓
+[Work on files]
+       ↓
+Auto-save to Project (debounced)
+       ↓
+Save Chat History with File State (existing logic)
+```
+
+### Recommended Actions
+
+- **Resume original chats:** Users should reopen the existing chat entry linked to a project instead of expecting re-imported files to restore prior discussions until the roadmap items for "Restore project chat history" and "Continue working" are delivered.
+- **Verify file restoration:** After importing, confirm the project contents using terminal commands such as `ls` and inspect key files (for example, `cat package.json`) to ensure sources were written to `WORK_DIR`.
+- **Rerun setup commands:** Prompt users to execute the detected package manager's install and dev scripts (e.g., `pnpm install` followed by `pnpm run dev`) post-import, since dependency installation and dev server startup are not automated.
+
+### Future Work Prioritization
+
+- **Restore project continuity:** Elevate "Restore project chat history" and "Continue working on project" items to near-term roadmap targets so imported or reopened projects automatically hydrate prior conversations and state.
+- **Automate post-import setup:** Plan an automated workflow that runs package installation and common dev scripts after import (or guides the user with a wizard) to reduce manual shell steps surfaced in the recommended actions.
+
+### Code References
+- **Existing file restoration:** `app/lib/persistence/useChatHistory.ts` lines 224-303
+- **Project service:** `app/lib/services/projects.ts`
+- **Workbench store:** `app/lib/stores/workbench.ts` (has `restoreFiles` method)
+- **Chat persistence:** `app/lib/persistence/db.ts` (already saves fileState)
+
+### Estimated Effort
+- **Phase 1 (MVP):** 2-3 days - Makes projects actually work
+- **Phase 2 (Polish):** 1-2 days - Better UX
+- **Phase 3 (Advanced):** 3-5 days - Power features
+
+**Total: 6-10 days for complete feature**
 
 ---
 

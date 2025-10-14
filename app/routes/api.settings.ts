@@ -88,6 +88,10 @@ export async function action({ request, context }: ActionFunctionArgs) {
       validSettings.preferences = settings.preferences;
     }
 
+    if (settings.projectDefaults && typeof settings.projectDefaults === 'object') {
+      validSettings.projectDefaults = settings.projectDefaults as Settings['projectDefaults'];
+    }
+
     if (Object.keys(validSettings).length === 0) {
       return new Response('No valid settings provided', { status: 400 });
     }

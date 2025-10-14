@@ -21,7 +21,14 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-export const loader = () => json({});
+export const loader = ({ request }: { request: Request }) => {
+  const url = new URL(request.url);
+  const projectId = url.searchParams.get('projectId');
+
+  return json({
+    projectId: projectId || undefined,
+  });
+};
 
 export default function Index() {
   return (

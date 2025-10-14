@@ -1,14 +1,14 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { AlertCircle } from 'lucide-react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 
-import { useSettingsManager } from './useSettingsManager';
 import { AiAssistantTab } from './tabs/AIAssistantTab';
 import { AccountTab } from './tabs/AccountTab';
 import { EditorTab } from './tabs/EditorTab';
 import { PreferencesTab } from './tabs/PreferencesTab';
 import { ProfileTab } from './tabs/ProfileTab';
 import { UsageTab } from './tabs/UsageTab';
+import { useSettingsManager } from './useSettingsManager';
 import { Button } from '~/components/ui/Button';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '~/components/ui/Tabs';
 import { useAuth } from '~/lib/contexts/AuthContext';
@@ -19,6 +19,7 @@ import { classNames } from '~/utils/classNames';
 
 export function SettingsContent({ showBackButton = false }: { showBackButton?: boolean }) {
   const { user, updateUser, deleteAccount } = useAuth();
+
   const {
     draft,
     hasUnsavedChanges: settingsDirty,
@@ -34,6 +35,7 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
     persistenceUnavailable,
     setPersistenceUnavailable,
   } = useSettingsManager();
+
   const [isSaving, setIsSaving] = useState(false);
   const [displayName, setDisplayName] = useState(user?.user_metadata?.name || '');
   const [avatarUrl, setAvatarUrl] = useState(user ? getAvatarUrl(user) : '');
@@ -50,12 +52,14 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
 
   const canonicalDisplayName = user?.user_metadata?.name || '';
   const trimmedDisplayName = displayName.trim();
+
   const displayNameError =
     trimmedDisplayName.length === 0
       ? 'Display name is required.'
       : trimmedDisplayName.length > 64
         ? 'Display name must be 64 characters or fewer.'
         : null;
+
   const displayNameDirty = trimmedDisplayName !== canonicalDisplayName;
   const hasPendingChanges = settingsDirty || displayNameDirty;
 
@@ -87,8 +91,13 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
     return null;
   }, [newPassword, confirmPassword]);
 
-  const editorErrors = useMemo(() => groupedErrors.editor as Partial<Record<keyof EditorSettings, string>>, [groupedErrors]);
+  const editorErrors = useMemo(
+    () => groupedErrors.editor as Partial<Record<keyof EditorSettings, string>>,
+    [groupedErrors],
+  );
+
   const aiErrors = useMemo(() => groupedErrors.ai as Partial<Record<keyof AISettings, string>>, [groupedErrors]);
+
   const preferencesErrors = useMemo(
     () => groupedErrors.preferences as Partial<Record<keyof UserPreferences, string>>,
     [groupedErrors],
@@ -173,6 +182,7 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
 
     input.onchange = async (event) => {
       const file = (event.target as HTMLInputElement).files?.[0];
+
       if (!file) {
         return;
       }
@@ -202,6 +212,7 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
       setIsSaving(false);
       toast.error('Please fix validation errors before saving.');
       console.error('Validation error while saving settings:', error);
+
       return;
     }
 
@@ -230,21 +241,26 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
       } else {
         const { getDatabase, setAppSettings } = await import('~/lib/persistence/db');
         const db = await getDatabase();
+
         if (!db) {
           throw new Error('IndexedDB unavailable');
         }
+
         await setAppSettings(db, validatedSettings);
         setPersistenceUnavailable(false);
       }
 
       markSaved(validatedSettings);
+
       if (displayNameDirty) {
         setDisplayName(trimmedDisplayName);
       }
+
       toast.success('Settings saved successfully');
     } catch (error) {
       toast.error(error instanceof Error ? error.message : 'Failed to save settings');
       console.error('Error saving settings:', error);
+
       if (error instanceof Error && /indexeddb|database not available/i.test(error.message)) {
         setPersistenceUnavailable(true);
       }
@@ -476,7 +492,8 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
               <div className="space-y-1">
                 <p className="font-semibold text-bolt-elements-warning-text">Local persistence unavailable</p>
                 <p>
-                  Your browser blocked IndexedDB access, so settings are stored only for this session. Use the Export / Import buttons above to back up changes manually.
+                  Your browser blocked IndexedDB access, so settings are stored only for this session. Use the Export /
+                  Import buttons above to back up changes manually.
                 </p>
               </div>
             </div>

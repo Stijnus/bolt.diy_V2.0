@@ -16,36 +16,61 @@ interface AiAssistantTabProps {
   errors?: Partial<Record<keyof AISettings, string>>;
 }
 
-export function AiAssistantTab({ settings, onSettingChange, onReset, onRevert, dirty = false, errors }: AiAssistantTabProps) {
+export function AiAssistantTab({
+  settings,
+  onSettingChange,
+  onReset,
+  onRevert,
+  dirty = false,
+  errors,
+}: AiAssistantTabProps) {
   // Fetch configured providers to filter models shown in selectors
   const [enabledProviders, setEnabledProviders] = useState<Set<string> | null>(null);
 
   useEffect(() => {
     let active = true;
+
     (async () => {
       try {
         const res = await fetch('/api/providers');
-        if (!res.ok) throw new Error('Failed to load provider status');
+
+        if (!res.ok) {
+          throw new Error('Failed to load provider status');
+        }
+
         const data: any = await res.json();
+
         // Expecting shape: { providers: { openai: true, anthropic: false, ... } }
         const set = new Set<string>();
+
         if (data && (data as any).providers) {
           for (const [k, v] of Object.entries<boolean>((data as any).providers)) {
-            if (v) set.add(k);
+            if (v) {
+              set.add(k);
+            }
           }
         }
-        if (active) setEnabledProviders(set);
+
+        if (active) {
+          setEnabledProviders(set);
+        }
       } catch {
-        if (active) setEnabledProviders(null); // fallback to show all
+        if (active) {
+          setEnabledProviders(null);
+        } // fallback to show all
       }
     })();
+
     return () => {
       active = false;
     };
   }, []);
 
   const filteredProviders = useMemo(() => {
-    if (!enabledProviders || enabledProviders.size === 0) return PROVIDERS;
+    if (!enabledProviders || enabledProviders.size === 0) {
+      return PROVIDERS;
+    }
+
     return PROVIDERS.filter((p) => enabledProviders.has(p.id));
   }, [enabledProviders]);
 
@@ -56,7 +81,11 @@ export function AiAssistantTab({ settings, onSettingChange, onReset, onRevert, d
   const ensureCurrentOption = (value: string) => {
     const [prov] = value.split(':');
     const providerPresent = filteredProviders.some((p) => p.id === prov);
-    if (providerPresent) return null;
+
+    if (providerPresent) {
+      return null;
+    }
+
     return value;
   };
 
@@ -86,6 +115,7 @@ export function AiAssistantTab({ settings, onSettingChange, onReset, onRevert, d
           value={settings.temperature}
           onChange={(e) => {
             const value = Number.parseFloat(e.target.value);
+
             if (!Number.isNaN(value)) {
               onSettingChange('temperature', value);
             }
@@ -108,6 +138,7 @@ export function AiAssistantTab({ settings, onSettingChange, onReset, onRevert, d
           value={settings.maxTokens}
           onChange={(e) => {
             const value = Number.parseInt(e.target.value, 10);
+
             if (!Number.isNaN(value)) {
               onSettingChange('maxTokens', value);
             }

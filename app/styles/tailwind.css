@@ -33,7 +33,7 @@
     --bolt-elements-bg-depth-1: var(--background);
     --bolt-elements-bg-depth-2: var(--card);
     --bolt-elements-bg-depth-3: var(--muted);
-    --bolt-elements-bg-depth-4: oklch(0.8866 0.0404 89.6994 / 0.35);
+    --bolt-elements-bg-depth-4: oklch(0.8866 0.0404 89.6994 / 0.5);
 
     --bolt-elements-background-depth-1: var(--background);
     --bolt-elements-background-depth-2: var(--card);
@@ -41,21 +41,21 @@
 
     --bolt-elements-textPrimary: var(--foreground);
     --bolt-elements-textSecondary: var(--muted-foreground);
-    --bolt-elements-textTertiary: hsl(210 25% 7.8431% / 0.6);
+    --bolt-elements-textTertiary: hsl(210 25% 7.8431% / 0.75);
 
     --bolt-elements-code-background: var(--muted);
     --bolt-elements-code-text: var(--foreground);
 
-    --bolt-elements-button-primary-background: hsl(203.8863 88.2845% 53.1373% / 0.12);
-    --bolt-elements-button-primary-backgroundHover: hsl(203.8863 88.2845% 53.1373% / 0.22);
+    --bolt-elements-button-primary-background: hsl(203.8863 88.2845% 53.1373% / 0.20);
+    --bolt-elements-button-primary-backgroundHover: hsl(203.8863 88.2845% 53.1373% / 0.30);
     --bolt-elements-button-primary-text: var(--primary);
 
-    --bolt-elements-button-secondary-background: hsl(240 1.9608% 90% / 0.6);
-    --bolt-elements-button-secondary-backgroundHover: hsl(240 1.9608% 90% / 0.85);
+    --bolt-elements-button-secondary-background: hsl(240 1.9608% 90% / 0.75);
+    --bolt-elements-button-secondary-backgroundHover: hsl(240 1.9608% 90% / 0.9);
     --bolt-elements-button-secondary-text: var(--secondary-foreground);
 
-    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.12);
-    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.22);
+    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.20);
+    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.30);
     --bolt-elements-button-danger-text: var(--destructive);
 
     --bolt-elements-item-contentDefault: var(--muted-foreground);
@@ -64,14 +64,14 @@
     --bolt-elements-item-contentDanger: var(--destructive);
     --bolt-elements-item-backgroundDefault: transparent;
     --bolt-elements-item-backgroundActive: hsl(201.4286 30.4348% 90.9804% / 0.45);
-    --bolt-elements-item-backgroundAccent: hsl(203.8863 88.2845% 53.1373% / 0.12);
-    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.12);
+    --bolt-elements-item-backgroundAccent: hsl(203.8863 88.2845% 53.1373% / 0.18);
+    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.18);
 
-    --bolt-elements-loader-background: hsl(201.4286 30.4348% 90.9804% / 0.5);
+    --bolt-elements-loader-background: hsl(201.4286 30.4348% 90.9804% / 0.6);
     --bolt-elements-loader-progress: var(--primary);
 
     --bolt-elements-artifacts-background: var(--card);
-    --bolt-elements-artifacts-backgroundHover: hsl(240 1.9608% 90% / 0.6);
+    --bolt-elements-artifacts-backgroundHover: hsl(240 1.9608% 90% / 0.75);
     --bolt-elements-artifacts-borderColor: var(--border);
     --bolt-elements-artifacts-inlineCode-background: var(--muted);
     --bolt-elements-artifacts-inlineCode-text: var(--foreground);
@@ -95,9 +95,9 @@
 
     --bolt-elements-prompt-background: hsl(0 0% 100% / 0.8);
 
-    --bolt-elements-sidebar-dropdownShadow: hsl(201.4286 30.4348% 90.9804% / 0.35);
-    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.8863 88.2845% 53.1373% / 0.12);
-    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.8863 88.2845% 53.1373% / 0.22);
+    --bolt-elements-sidebar-dropdownShadow: hsl(201.4286 30.4348% 90.9804% / 0.45);
+    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.8863 88.2845% 53.1373% / 0.18);
+    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.8863 88.2845% 53.1373% / 0.28);
     --bolt-elements-sidebar-buttonText: var(--primary);
 
     --bolt-elements-preview-addressBar-background: var(--muted);
@@ -179,16 +179,16 @@
     --shadow-y: 2px;
     --shadow-blur: 0px;
     --shadow-spread: 0px;
-    --shadow-opacity: 0;
+    --shadow-opacity: 0.10;
     --shadow-color: rgba(29, 161, 242, 0.15);
-    --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+    --shadow-2xs: 0px 1px 2px 0px hsl(210 25% 7.8431% / 0.05);
+    --shadow-xs: 0px 1px 3px 0px hsl(210 25% 7.8431% / 0.08);
+    --shadow-sm: 0px 2px 4px 0px hsl(210 25% 7.8431% / 0.08), 0px 1px 2px -1px hsl(210 25% 7.8431% / 0.06);
+    --shadow: 0px 2px 4px 0px hsl(210 25% 7.8431% / 0.10), 0px 1px 3px -1px hsl(210 25% 7.8431% / 0.08);
+    --shadow-md: 0px 4px 6px 0px hsl(210 25% 7.8431% / 0.10), 0px 2px 4px -1px hsl(210 25% 7.8431% / 0.08);
+    --shadow-lg: 0px 6px 10px 0px hsl(210 25% 7.8431% / 0.12), 0px 4px 6px -1px hsl(210 25% 7.8431% / 0.10);
+    --shadow-xl: 0px 10px 15px 0px hsl(210 25% 7.8431% / 0.12), 0px 8px 10px -1px hsl(210 25% 7.8431% / 0.10);
+    --shadow-2xl: 0px 20px 25px 0px hsl(210 25% 7.8431% / 0.15);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
@@ -221,7 +221,7 @@
     --bolt-elements-bg-depth-1: var(--background);
     --bolt-elements-bg-depth-2: var(--card);
     --bolt-elements-bg-depth-3: var(--muted);
-    --bolt-elements-bg-depth-4: oklch(0.3741 0.0087 67.5582 / 0.35);
+    --bolt-elements-bg-depth-4: oklch(0.3741 0.0087 67.5582 / 0.5);
 
     --bolt-elements-background-depth-1: var(--background);
     --bolt-elements-background-depth-2: var(--card);
@@ -229,21 +229,21 @@
 
     --bolt-elements-textPrimary: var(--foreground);
     --bolt-elements-textSecondary: var(--muted-foreground);
-    --bolt-elements-textTertiary: hsl(210 3.3898% 46.2745%);
+    --bolt-elements-textTertiary: hsl(210 3.3898% 52%);
 
     --bolt-elements-code-background: var(--muted);
     --bolt-elements-code-text: var(--foreground);
 
-    --bolt-elements-button-primary-background: hsl(203.7736 87.6033% 52.549% / 0.25);
-    --bolt-elements-button-primary-backgroundHover: hsl(203.7736 87.6033% 52.549% / 0.4);
+    --bolt-elements-button-primary-background: hsl(203.7736 87.6033% 52.549% / 0.30);
+    --bolt-elements-button-primary-backgroundHover: hsl(203.7736 87.6033% 52.549% / 0.45);
     --bolt-elements-button-primary-text: var(--primary);
 
-    --bolt-elements-button-secondary-background: hsl(210 5.2632% 14.902% / 0.35);
-    --bolt-elements-button-secondary-backgroundHover: hsl(210 5.2632% 14.902% / 0.55);
+    --bolt-elements-button-secondary-background: hsl(210 5.2632% 14.902% / 0.50);
+    --bolt-elements-button-secondary-backgroundHover: hsl(210 5.2632% 14.902% / 0.70);
     --bolt-elements-button-secondary-text: var(--secondary-foreground);
 
-    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.2);
-    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.35);
+    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.30);
+    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.45);
     --bolt-elements-button-danger-text: var(--destructive);
 
     --bolt-elements-item-contentDefault: var(--muted-foreground);
@@ -252,10 +252,10 @@
     --bolt-elements-item-contentDanger: var(--destructive);
     --bolt-elements-item-backgroundDefault: transparent;
     --bolt-elements-item-backgroundActive: hsl(210 5.2632% 14.902% / 0.45);
-    --bolt-elements-item-backgroundAccent: hsl(203.7736 87.6033% 52.549% / 0.3);
-    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.3);
+    --bolt-elements-item-backgroundAccent: hsl(203.7736 87.6033% 52.549% / 0.35);
+    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.35);
 
-    --bolt-elements-loader-background: hsl(210 5.2632% 14.902% / 0.35);
+    --bolt-elements-loader-background: hsl(210 5.2632% 14.902% / 0.45);
     --bolt-elements-loader-progress: var(--primary);
 
     --bolt-elements-artifacts-background: var(--card);
@@ -283,9 +283,9 @@
 
     --bolt-elements-prompt-background: hsl(228 9.8039% 10% / 0.8);
 
-    --bolt-elements-sidebar-dropdownShadow: hsl(210 5.2632% 14.902% / 0.45);
-    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.7736 87.6033% 52.549% / 0.3);
-    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.7736 87.6033% 52.549% / 0.45);
+    --bolt-elements-sidebar-dropdownShadow: hsl(210 5.2632% 14.902% / 0.55);
+    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.7736 87.6033% 52.549% / 0.35);
+    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.7736 87.6033% 52.549% / 0.50);
     --bolt-elements-sidebar-buttonText: var(--primary);
 
     --bolt-elements-preview-addressBar-background: var(--card);
@@ -359,16 +359,16 @@
     --shadow-y: 2px;
     --shadow-blur: 0px;
     --shadow-spread: 0px;
-    --shadow-opacity: 0;
+    --shadow-opacity: 0.15;
     --shadow-color: rgba(29, 161, 242, 0.25);
-    --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+    --shadow-2xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.10);
+    --shadow-xs: 0px 1px 3px 0px hsl(0 0% 0% / 0.15);
+    --shadow-sm: 0px 2px 4px 0px hsl(0 0% 0% / 0.15), 0px 1px 2px -1px hsl(0 0% 0% / 0.12);
+    --shadow: 0px 2px 4px 0px hsl(0 0% 0% / 0.18), 0px 1px 3px -1px hsl(0 0% 0% / 0.15);
+    --shadow-md: 0px 4px 6px 0px hsl(0 0% 0% / 0.18), 0px 2px 4px -1px hsl(0 0% 0% / 0.15);
+    --shadow-lg: 0px 6px 10px 0px hsl(0 0% 0% / 0.20), 0px 4px 6px -1px hsl(0 0% 0% / 0.18);
+    --shadow-xl: 0px 10px 15px 0px hsl(0 0% 0% / 0.22), 0px 8px 10px -1px hsl(0 0% 0% / 0.20);
+    --shadow-2xl: 0px 20px 25px 0px hsl(0 0% 0% / 0.25);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
 
@@ -379,16 +379,16 @@
     --bolt-elements-code-background: var(--muted);
     --bolt-elements-code-text: var(--foreground);
 
-    --bolt-elements-button-primary-background: hsl(203.7736 87.6033% 52.549% / 0.25);
-    --bolt-elements-button-primary-backgroundHover: hsl(203.7736 87.6033% 52.549% / 0.4);
+    --bolt-elements-button-primary-background: hsl(203.7736 87.6033% 52.549% / 0.30);
+    --bolt-elements-button-primary-backgroundHover: hsl(203.7736 87.6033% 52.549% / 0.45);
     --bolt-elements-button-primary-text: var(--primary);
 
-    --bolt-elements-button-secondary-background: hsl(210 5.2632% 14.902% / 0.35);
-    --bolt-elements-button-secondary-backgroundHover: hsl(210 5.2632% 14.902% / 0.55);
+    --bolt-elements-button-secondary-background: hsl(210 5.2632% 14.902% / 0.50);
+    --bolt-elements-button-secondary-backgroundHover: hsl(210 5.2632% 14.902% / 0.70);
     --bolt-elements-button-secondary-text: var(--secondary-foreground);
 
-    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.2);
-    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.35);
+    --bolt-elements-button-danger-background: hsl(356.3033 90.5579% 54.3137% / 0.30);
+    --bolt-elements-button-danger-backgroundHover: hsl(356.3033 90.5579% 54.3137% / 0.45);
     --bolt-elements-button-danger-text: var(--destructive);
 
     --bolt-elements-item-contentDefault: var(--muted-foreground);
@@ -397,10 +397,10 @@
     --bolt-elements-item-contentDanger: var(--destructive);
     --bolt-elements-item-backgroundDefault: transparent;
     --bolt-elements-item-backgroundActive: hsl(210 5.2632% 14.902% / 0.45);
-    --bolt-elements-item-backgroundAccent: hsl(203.7736 87.6033% 52.549% / 0.3);
-    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.3);
+    --bolt-elements-item-backgroundAccent: hsl(203.7736 87.6033% 52.549% / 0.35);
+    --bolt-elements-item-backgroundDanger: hsl(356.3033 90.5579% 54.3137% / 0.35);
 
-    --bolt-elements-loader-background: hsl(210 5.2632% 14.902% / 0.35);
+    --bolt-elements-loader-background: hsl(210 5.2632% 14.902% / 0.45);
     --bolt-elements-loader-progress: var(--primary);
 
     --bolt-elements-artifacts-background: var(--card);
@@ -428,9 +428,9 @@
 
     --bolt-elements-prompt-background: hsl(228 9.8039% 10% / 0.8);
 
-    --bolt-elements-sidebar-dropdownShadow: hsl(210 5.2632% 14.902% / 0.45);
-    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.7736 87.6033% 52.549% / 0.3);
-    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.7736 87.6033% 52.549% / 0.45);
+    --bolt-elements-sidebar-dropdownShadow: hsl(210 5.2632% 14.902% / 0.55);
+    --bolt-elements-sidebar-buttonBackgroundDefault: hsl(203.7736 87.6033% 52.549% / 0.35);
+    --bolt-elements-sidebar-buttonBackgroundHover: hsl(203.7736 87.6033% 52.549% / 0.50);
     --bolt-elements-sidebar-buttonText: var(--primary);
 
     --bolt-elements-preview-addressBar-background: var(--card);
@@ -613,17 +613,17 @@
 
   /* Glassmorphism Effects */
   .glass {
-    background: rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.15);
   }
 
   .glass-dark {
-    background: rgba(0, 0, 0, 0.2);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
   }
 
   /* Button Ripple Effect */

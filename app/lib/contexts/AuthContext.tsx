@@ -194,14 +194,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       throw new Error('User not authenticated or authentication is not configured.');
     }
 
-    // Note: Account deletion should be handled server-side with proper authorization
-    // For now, we'll sign out the user and they can contact support for account deletion
-    // In production, you should create an API endpoint that uses the service role key
-    
+    /*
+     * Note: Account deletion should be handled server-side with proper authorization
+     * For now, we'll sign out the user and they can contact support for account deletion
+     * In production, you should create an API endpoint that uses the service role key
+     */
+
     throw new Error('Account deletion must be implemented server-side. Please contact support.');
-    
-    // Alternative: Just sign out for now
-    // await signOut();
+
+    /*
+     * Alternative: Just sign out for now
+     * await signOut();
+     */
   };
 
   return (

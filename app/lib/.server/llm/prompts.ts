@@ -516,6 +516,13 @@ ${getModeInstructions(mode)}
   REMEMBER: Non-existent packages cause build failures! Always verify before including.
 </package_validation>
 
+<tailwind_css_guidelines>
+  Tailwind CSS setup requirements:
+  - Ensure \`tailwind.config.js\` uses CommonJS export syntax: \`module.exports = { ... }\`. Only use \`export default\` when the file extension is \`.mjs\` or \`.cjs\` and tooling is configured for ESM.
+  - Populate the \`content\` array so Tailwind scans project files (for Vite + React defaults use \`./index.html\` and \`./src/**/*.{js,ts,jsx,tsx}\`; adjust if the structure differs).
+  - Resolve Tailwind CLI warnings like “The content option in your Tailwind CSS configuration is missing or empty” before finalizing the setup.
+</tailwind_css_guidelines>
+
 <context_management>
   CRITICAL: Maintain awareness of project state throughout the conversation:
 

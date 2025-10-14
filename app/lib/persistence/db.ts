@@ -27,7 +27,7 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
 
   return new Promise((resolve) => {
     // Version 4: Added app_settings store; v3 fixed urlId unique constraint
-    const request = indexedDB.open('boltHistory', 4);
+    const request = indexedDB.open('boltHistory', 5);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       console.log('[DB] Database upgrade needed, current version:', event.oldVersion);
@@ -43,18 +43,26 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
         store.createIndex('id', 'id', { unique: true });
         store.createIndex('urlId', 'urlId', { unique: false });
         store.createIndex('urlId_userId', ['urlId', 'userId'], { unique: true });
-      } else if (currentVersion < 3) {
-        // Version 3: Fix the urlId unique constraint issue
-        const store = (event.target as IDBOpenDBRequest).transaction!.objectStore('chats');
+        store.createIndex('projectId', 'projectId', { unique: false });
+      } else {
+        const chatsStore = (event.target as IDBOpenDBRequest).transaction!.objectStore('chats');
 
-        // Delete the old unique urlId index if it exists
-        if (store.indexNames.contains('urlId')) {
-          store.deleteIndex('urlId');
+        if (currentVersion < 3) {
+          // Version 3: Fix the urlId unique constraint issue
+
+          // Delete the old unique urlId index if it exists
+          if (chatsStore.indexNames.contains('urlId')) {
+            chatsStore.deleteIndex('urlId');
+          }
+
+          // Create new non-unique urlId index and composite unique index
+          chatsStore.createIndex('urlId', 'urlId', { unique: false });
+          chatsStore.createIndex('urlId_userId', ['urlId', 'userId'], { unique: true });
         }
 
-        // Create new non-unique urlId index and composite unique index
-        store.createIndex('urlId', 'urlId', { unique: false });
-        store.createIndex('urlId_userId', ['urlId', 'userId'], { unique: true });
+        if (currentVersion < 5 && !chatsStore.indexNames.contains('projectId')) {
+          chatsStore.createIndex('projectId', 'projectId', { unique: false });
+        }
       }
 
       if (!db.objectStoreNames.contains('usage')) {
@@ -111,6 +119,7 @@ export async function setMessages(
   terminalState?: { isVisible: boolean },
   workbenchState?: { currentView: 'code' | 'preview'; showWorkbench: boolean },
   editorState?: { selectedFile?: string; scrollPositions?: Record<string, { top: number; left: number }> },
+  projectId?: string | null,
 ): Promise<void> {
   console.log('[DB] setMessages called for:', id, 'messages:', messages.length);
 
@@ -191,6 +200,7 @@ export async function setMessages(
       terminalState,
       workbenchState,
       editorState,
+      projectId: projectId ?? null,
     });
 
     request.onsuccess = () => {
@@ -413,8 +423,7 @@ export async function getUrlId(db: IDBDatabase, id: string): Promise<string> {
 
 // getUrlIds function removed - no longer needed with atomic getUrlId implementation
 
-// --- Usage tracking functions ---
-
+// --- Usage tracking functions -
 export async function saveUsage(db: IDBDatabase, usage: SessionUsage): Promise<void> {
   return new Promise((resolve, reject) => {
     if (usage.tokens.input === 0 && usage.tokens.output === 0) {
@@ -662,7 +671,7 @@ export async function getAppSettings(db: IDBDatabase): Promise<any | null> {
       const req = store.get('guest');
       req.onsuccess = () => resolve((req.result as any) ?? null);
       req.onerror = () => reject(req.error);
-    } catch (e) {
+    } catch {
       resolve(null);
     }
   });
@@ -677,7 +686,7 @@ export async function setAppSettings(db: IDBDatabase, settings: any): Promise<vo
       const req = store.put(record);
       req.onsuccess = () => resolve();
       req.onerror = () => reject(req.error);
-    } catch (e) {
+    } catch {
       resolve();
     }
   });

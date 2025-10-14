@@ -212,6 +212,8 @@ export class ActionRunner {
       env: { npm_config_yes: true },
     });
 
+    const sourceLabel = action.normalizedCommand || action.content.split('\n')[0] || 'command';
+
     // If this is a dev server command, store process for external control
     const isDevServerCommand = this.#isDevServerCommand(action.content);
 
@@ -246,7 +248,7 @@ export class ActionRunner {
           write: (data) => {
             const output = String(data);
             logger.debug(output);
-            writeToBoltTerminal(output);
+            writeToBoltTerminal(output, { source: sourceLabel });
             outputBuffer.push(output);
 
             // Maintain a rolling buffer of recent output to match multi-line/chunked errors
@@ -290,7 +292,7 @@ export class ActionRunner {
           write: (data) => {
             const output = String(data);
             logger.debug(output);
-            writeToBoltTerminal(output);
+            writeToBoltTerminal(output, { source: sourceLabel });
 
             // Monitor errors for ALL commands
             this.#monitorForErrors(output);

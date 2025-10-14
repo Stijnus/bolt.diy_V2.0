@@ -86,10 +86,10 @@ export function CreateProjectDialog({ open, onClose, onCreated }: CreateProjectD
     <DialogRoot open={open} onOpenChange={(value) => (!value ? onClose() : undefined)}>
       <Dialog className="max-w-2xl">
         <DialogTitle className="flex-col items-start gap-4">
-          <div className="w-full">
+          <div className="w-full pr-8">
             <div className="mb-4 flex items-center justify-between">
               <div className="text-lg font-semibold text-bolt-elements-textPrimary">Create new project</div>
-              <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-1 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.1em] text-bolt-elements-textTertiary">
+              <div className="flex items-center gap-1.5 rounded-full border border-bolt-elements-borderColor/60 bg-bolt-elements-background-depth-1 px-3 py-1.5 text-xs font-medium uppercase tracking-[0.1em] text-bolt-elements-textTertiary">
                 <Sparkles className="h-3.5 w-3.5" />
                 AI Setup
               </div>

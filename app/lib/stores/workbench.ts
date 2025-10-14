@@ -38,6 +38,7 @@ export class WorkbenchStore {
   unsavedFiles: WritableAtom<Set<string>> = import.meta.hot?.data.unsavedFiles ?? atom(new Set<string>());
   devServerRunning: WritableAtom<boolean> = import.meta.hot?.data.devServerRunning ?? atom(false);
   restartCommand: WritableAtom<string> = import.meta.hot?.data.restartCommand ?? atom('npm run dev');
+  currentProjectId: WritableAtom<string | null> = import.meta.hot?.data.currentProjectId ?? atom<string | null>(null);
   modifiedFiles = new Set<string>();
   artifactIdList: string[] = [];
 
@@ -49,6 +50,7 @@ export class WorkbenchStore {
       import.meta.hot.data.currentView = this.currentView;
       import.meta.hot.data.devServerRunning = this.devServerRunning;
       import.meta.hot.data.restartCommand = this.restartCommand;
+      import.meta.hot.data.currentProjectId = this.currentProjectId;
     }
   }
 
@@ -90,6 +92,10 @@ export class WorkbenchStore {
 
   setRestartCommand(cmd: string) {
     this.restartCommand.set(cmd);
+  }
+
+  setProjectContext(projectId: string | null) {
+    this.currentProjectId.set(projectId);
   }
 
   get showTerminal() {
@@ -233,6 +239,11 @@ export class WorkbenchStore {
   }
 
   getFileModifcations() {
+    return this.#filesStore.getFileModifications();
+  }
+
+  // Alias with correct spelling (preferred going forward)
+  getFileModifications() {
     return this.#filesStore.getFileModifications();
   }
 

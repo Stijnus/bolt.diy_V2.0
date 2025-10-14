@@ -34,12 +34,26 @@ export interface AISettings {
   streamResponse: boolean;
 }
 
+export interface ProjectModelDefaults {
+  defaultModel?: string;
+  planModel?: string;
+}
+
+export type ProjectDefaultsMap = Record<string, ProjectModelDefaults>;
+
+export interface LocalSyncSettings {
+  autoSync: boolean;
+  excludes: string[];
+  lastSyncedAt?: string;
+}
+
 export interface UserPreferences {
   language: string;
   notifications: boolean;
   autoSave: boolean;
   autoSaveDelay: number;
   chatMode?: 'normal' | 'plan' | 'discussion';
+  localSync?: LocalSyncSettings;
 }
 
 export interface Settings {
@@ -47,6 +61,7 @@ export interface Settings {
   editor: EditorSettings;
   ai: AISettings;
   preferences: UserPreferences;
+  projectDefaults: ProjectDefaultsMap;
 }
 
 export const shortcutsStore = map<Shortcuts>({
@@ -82,6 +97,10 @@ export const defaultUserPreferences: UserPreferences = {
   autoSave: true,
   autoSaveDelay: 1000,
   chatMode: 'normal',
+  localSync: {
+    autoSync: false,
+    excludes: ['node_modules', '.vite', '.remix', 'public/build', 'dist'],
+  },
 };
 
 export const settingsStore = map<Settings>({
@@ -89,6 +108,7 @@ export const settingsStore = map<Settings>({
   editor: defaultEditorSettings,
   ai: defaultAISettings,
   preferences: defaultUserPreferences,
+  projectDefaults: {},
 });
 
 // Load and persist settings for guests in IndexedDB
@@ -97,10 +117,13 @@ if (typeof window !== 'undefined') {
     try {
       const { getDatabase, getAppSettings, setAppSettings } = await import('~/lib/persistence/db');
       const db = await getDatabase();
+
       if (db) {
         const stored = await getAppSettings(db);
+
         if (stored?.settings) {
           const current = settingsStore.get();
+
           // Merge stored with defaults to prevent missing keys
           settingsStore.set({
             ...current,
@@ -108,6 +131,10 @@ if (typeof window !== 'undefined') {
             editor: { ...current.editor, ...(stored.settings.editor || {}) },
             ai: { ...current.ai, ...(stored.settings.ai || {}) },
             preferences: { ...current.preferences, ...(stored.settings.preferences || {}) },
+            projectDefaults: {
+              ...current.projectDefaults,
+              ...((stored.settings as Settings | undefined)?.projectDefaults || {}),
+            },
           });
         }
 
@@ -120,11 +147,12 @@ if (typeof window !== 'undefined') {
               editor: value.editor,
               ai: value.ai,
               preferences: value.preferences,
+              projectDefaults: value.projectDefaults,
             }).catch(() => void 0);
           }, 300);
         });
       }
-    } catch (e) {
+    } catch {
       // ignore persistence errors for SSR / no-IDB environments
     }
   })();
@@ -154,6 +182,18 @@ export function updateAISettings(updates: Partial<AISettings>) {
   });
 }
 
+export function updateLocalSyncSettings(updates: Partial<LocalSyncSettings>) {
+  const currentSettings = settingsStore.get();
+  const currentLocal = currentSettings.preferences.localSync ?? defaultUserPreferences.localSync!;
+  settingsStore.set({
+    ...currentSettings,
+    preferences: {
+      ...currentSettings.preferences,
+      localSync: { ...currentLocal, ...updates },
+    },
+  });
+}
+
 export function updateUserPreferences(updates: Partial<UserPreferences>) {
   const currentSettings = settingsStore.get();
   settingsStore.set({
@@ -162,12 +202,69 @@ export function updateUserPreferences(updates: Partial<UserPreferences>) {
   });
 }
 
-export function setSettingsSections(sections: Pick<Settings, 'editor' | 'ai' | 'preferences'>) {
+export function setSettingsSections(
+  sections: Pick<Settings, 'editor' | 'ai' | 'preferences'> & { projectDefaults?: ProjectDefaultsMap },
+) {
   const currentSettings = settingsStore.get();
   settingsStore.set({
     ...currentSettings,
     editor: { ...sections.editor },
     ai: { ...sections.ai },
     preferences: { ...sections.preferences },
+    projectDefaults: { ...(sections.projectDefaults ?? currentSettings.projectDefaults) },
+  });
+}
+
+export function setProjectDefaultsMap(map: ProjectDefaultsMap) {
+  const state = settingsStore.get();
+  settingsStore.set({
+    ...state,
+    projectDefaults: { ...map },
+  });
+}
+
+export function getProjectModelDefaults(projectId: string): ProjectModelDefaults | undefined {
+  if (!projectId) {
+    return undefined;
+  }
+
+  return settingsStore.get().projectDefaults[projectId];
+}
+
+export function setProjectModelDefaults(projectId: string, defaults: ProjectModelDefaults) {
+  if (!projectId) {
+    return;
+  }
+
+  const state = settingsStore.get();
+  settingsStore.set({
+    ...state,
+    projectDefaults: {
+      ...state.projectDefaults,
+      [projectId]: {
+        ...state.projectDefaults[projectId],
+        ...defaults,
+      },
+    },
+  });
+}
+
+export function removeProjectModelDefaults(projectId: string) {
+  if (!projectId) {
+    return;
+  }
+
+  const state = settingsStore.get();
+
+  if (!(projectId in state.projectDefaults)) {
+    return;
+  }
+
+  const next = { ...state.projectDefaults };
+  delete next[projectId];
+
+  settingsStore.set({
+    ...state,
+    projectDefaults: next,
   });
 }

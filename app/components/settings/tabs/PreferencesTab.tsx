@@ -13,7 +13,14 @@ interface PreferencesTabProps {
   errors?: Partial<Record<keyof UserPreferences, string>>;
 }
 
-export function PreferencesTab({ preferences, onPreferenceChange, onReset, onRevert, dirty = false, errors }: PreferencesTabProps) {
+export function PreferencesTab({
+  preferences,
+  onPreferenceChange,
+  onReset,
+  onRevert,
+  dirty = false,
+  errors,
+}: PreferencesTabProps) {
   return (
     <SettingsSection
       title="Preferences"
@@ -56,6 +63,7 @@ export function PreferencesTab({ preferences, onPreferenceChange, onReset, onRev
           value={preferences.autoSaveDelay}
           onChange={(e) => {
             const value = Number.parseInt(e.target.value, 10);
+
             if (!Number.isNaN(value)) {
               onPreferenceChange('autoSaveDelay', value);
             }

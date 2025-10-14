@@ -50,6 +50,7 @@ export interface ChatHistoryItem {
   terminalState?: TerminalState;
   workbenchState?: WorkbenchState;
   editorState?: EditorState;
+  projectId?: string | null;
 }
 
 const persistenceEnabled = !import.meta.env.VITE_DISABLE_PERSISTENCE;
@@ -75,15 +76,24 @@ async function getDatabase() {
 export const chatId = atom<string | undefined>(undefined);
 export const description = atom<string | undefined>(undefined);
 
-export function useChatHistory() {
+export function useChatHistory(activeProjectId?: string | null) {
   const navigate = useNavigate();
-  const { id: mixedId } = useLoaderData<{ id?: string }>();
+  const loaderData = useLoaderData<{ id?: string; projectId?: string }>();
+  const { id: mixedId, projectId: loaderProjectId } = loaderData;
   const { user } = useAuth();
 
   const [initialMessages, setInitialMessages] = useState<UIMessage[]>([]);
   const [ready, setReady] = useState<boolean>(false);
   const [urlId, setUrlId] = useState<string | undefined>();
   const dbRef = useRef<IDBDatabase | undefined>(undefined);
+
+  // Use projectId from URL if provided, otherwise use the one passed as prop
+  const effectiveProjectId = loaderProjectId || activeProjectId;
+  const activeProjectIdRef = useRef<string | null>(effectiveProjectId ?? null);
+
+  useEffect(() => {
+    activeProjectIdRef.current = activeProjectId ?? null;
+  }, [activeProjectId]);
 
   useEffect(() => {
     if (!persistenceEnabled) {
@@ -180,6 +190,8 @@ export function useChatHistory() {
                       }
                     ).editor_state ?? undefined;
 
+                  const remoteProjectId = (data as { project_id?: string | null }).project_id ?? null;
+
                   await setMessages(
                     database,
                     remoteUrlId,
@@ -193,6 +205,7 @@ export function useChatHistory() {
                     remoteTerminalState,
                     remoteWorkbenchState,
                     remoteEditorState,
+                    remoteProjectId,
                   );
 
                   storedMessages = await getMessages(database, mixedId);
@@ -205,6 +218,7 @@ export function useChatHistory() {
           }
 
           if (storedMessages && storedMessages.messages.length > 0) {
+            activeProjectIdRef.current = storedMessages.projectId ?? activeProjectIdRef.current;
             setInitialMessages(storedMessages.messages);
             setUrlId(storedMessages.urlId);
             description.set(storedMessages.description);
@@ -451,12 +465,36 @@ export function useChatHistory() {
                         }
                       }
 
-                      // Auto-install and start dev server if package.json is present
+                      // Auto-install and dev server options (from Import Preview)
                       const hasPkg = restoredPaths.some(
                         (p) => p.endsWith('/package.json') || p === '/package.json' || p === 'package.json',
                       );
 
-                      if (hasPkg) {
+                      // Read per-import options persisted by the Import Preview (once)
+                      let runInstall = true;
+                      let startDev = true;
+
+                      try {
+                        if (typeof window !== 'undefined' && mixedId) {
+                          const raw = window.localStorage.getItem(`importOptions:${mixedId}`);
+
+                          if (raw) {
+                            const parsed = JSON.parse(raw);
+
+                            if (typeof parsed.runInstall === 'boolean') {
+                              runInstall = parsed.runInstall;
+                            }
+
+                            if (typeof parsed.startDevServer === 'boolean') {
+                              startDev = parsed.startDevServer;
+                            }
+
+                            window.localStorage.removeItem(`importOptions:${mixedId}`);
+                          }
+                        }
+                      } catch {}
+
+                      if (hasPkg && (runInstall || startDev)) {
                         if (workbenchStore.getDevServerRunning()) {
                           // Avoid multiple dev servers
                           toast.info('Dev server already running. Skipping auto-start.');
@@ -464,12 +502,12 @@ export function useChatHistory() {
                           workbenchStore.setShowWorkbench(true);
                           workbenchStore.toggleTerminal(true);
                           clearBoltTerminal();
-                          writeToBoltTerminal('\n\x1b[1m=== Import started: installing dependencies ===\x1b[0m\n');
 
                           const runner = new ActionRunner(webcontainer);
                           const baseId = `import_${Date.now()}`;
 
                           const installId = `${baseId}_install`;
+                          const devId = `${baseId}_dev`;
 
                           const installAction: ActionCallbackData = {
                             messageId: baseId,
@@ -478,8 +516,6 @@ export function useChatHistory() {
                             action: { type: 'shell', content: 'npm install' },
                           };
 
-                          const devId = `${baseId}_dev`;
-
                           const devAction: ActionCallbackData = {
                             messageId: baseId,
                             artifactId: baseId,
@@ -487,19 +523,38 @@ export function useChatHistory() {
                             action: { type: 'shell', content: 'npm run dev' },
                           };
 
-                          // Announce install and dev steps in chat instead of toasts
-                          setInitialMessages((prev) => [
-                            ...prev,
-                            {
-                              role: 'assistant',
-                              parts: [{ type: 'text', text: 'Installing dependencies... See Bolt Terminal for logs.' }],
-                            } as any,
-                          ]);
+                          if (runInstall) {
+                            writeToBoltTerminal('\n\x1b[1m=== Import started: installing dependencies ===\x1b[0m\n');
+                            setInitialMessages((prev) => [
+                              ...prev,
+                              {
+                                role: 'assistant',
+                                parts: [
+                                  { type: 'text', text: 'Installing dependencies... See Bolt Terminal for logs.' },
+                                ],
+                              } as any,
+                            ]);
 
-                          runner.addAction(installAction);
-                          await runner.runAction(installAction);
+                            runner.addAction(installAction);
+                            await runner.runAction(installAction);
 
-                          runner.onActionComplete(installId, () => {
+                            if (startDev) {
+                              setInitialMessages((prev) => [
+                                ...prev,
+                                {
+                                  role: 'assistant',
+                                  parts: [
+                                    { type: 'text', text: 'Starting dev server (monitoring in Bolt Terminal)...' },
+                                  ],
+                                } as any,
+                              ]);
+                              runner.addAction(devAction);
+                              runner.runAction(devAction);
+                              workbenchStore.setDevServerRunning(true);
+                            }
+                          } else if (startDev) {
+                            // Skip install, go straight to dev
+                            writeToBoltTerminal('\n\x1b[1m=== Import: starting dev server ===\x1b[0m\n');
                             setInitialMessages((prev) => [
                               ...prev,
                               {
@@ -510,7 +565,7 @@ export function useChatHistory() {
                             runner.addAction(devAction);
                             runner.runAction(devAction);
                             workbenchStore.setDevServerRunning(true);
-                          });
+                          }
                         }
                       }
                     } catch (e) {
@@ -687,6 +742,131 @@ export function useChatHistory() {
         } catch (error) {
           toast.error((error as Error).message);
         }
+      } else if (!mixedId && effectiveProjectId) {
+        // No chat ID but projectId provided - load project files
+        try {
+          logger.info(`Loading project files for project: ${effectiveProjectId}`);
+
+          // Import project service
+          const { projectService } = await import('~/lib/services/projects');
+
+          // Load project files
+          const projectFiles = await projectService.getProjectFiles(effectiveProjectId);
+
+          if (projectFiles && Object.keys(projectFiles).length > 0) {
+            const totalFiles = Object.keys(projectFiles).length;
+            logger.info(`Found ${totalFiles} files in project, starting restoration...`);
+
+            const restorationToast = toast.loading(`Restoring ${totalFiles} project files...`, {
+              autoClose: false,
+              closeOnClick: false,
+              draggable: false,
+            });
+
+            try {
+              // Import decoding utilities
+              const { decodeFileContent } = await import('~/utils/file-encoding');
+
+              const fileMap: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+
+              // Convert project files to workbench format
+              Object.entries(projectFiles).forEach(([path, fileData]) => {
+                if (
+                  path &&
+                  typeof path === 'string' &&
+                  fileData &&
+                  typeof fileData === 'object' &&
+                  'content' in fileData
+                ) {
+                  const encoding = fileData.encoding || 'plain';
+                  const decodedContent = decodeFileContent(fileData.content, encoding);
+
+                  fileMap[path] = {
+                    type: 'file',
+                    content: decodedContent,
+                    isBinary: fileData.isBinary || false,
+                  };
+                }
+              });
+
+              const validFileCount = Object.keys(fileMap).length;
+
+              if (validFileCount > 0) {
+                // Ensure workbench is visible
+                workbenchStore.setShowWorkbench(true);
+
+                // Wait for WebContainer
+                const { waitForWebContainer } = await import('~/lib/webcontainer/utils');
+
+                toast.update(restorationToast, {
+                  render: `Initializing WebContainer...`,
+                  isLoading: true,
+                });
+
+                const wcResult = await waitForWebContainer({ timeout: 30000, throwOnTimeout: false });
+
+                if (!wcResult.ready || !wcResult.container) {
+                  throw new Error(wcResult.error?.message || 'WebContainer failed to initialize');
+                }
+
+                logger.info(`WebContainer ready, restoring ${validFileCount} files...`);
+
+                toast.update(restorationToast, {
+                  render: `Restoring ${validFileCount} files...`,
+                  isLoading: true,
+                });
+
+                await workbenchStore.restoreFiles(fileMap);
+
+                toast.update(restorationToast, {
+                  render: `✅ Successfully restored ${validFileCount} files`,
+                  type: 'success',
+                  isLoading: false,
+                  autoClose: 3000,
+                  closeOnClick: true,
+                  draggable: true,
+                });
+
+                logger.info(`Successfully restored ${validFileCount} project files`);
+
+                // Set initial message to indicate project was opened
+                const intro: UIMessage = {
+                  role: 'user',
+                  parts: [{ type: 'text', text: `Opened project with ${validFileCount} files.` }],
+                } as any;
+
+                setInitialMessages([intro]);
+
+                // Set project context
+                activeProjectIdRef.current = effectiveProjectId;
+              }
+            } catch (error) {
+              logger.error('Failed to restore project files:', error);
+
+              toast.update(restorationToast, {
+                render: `❌ Failed to restore project files: ${(error as Error).message}`,
+                type: 'error',
+                isLoading: false,
+                autoClose: 5000,
+                closeOnClick: true,
+                draggable: true,
+              });
+            }
+          } else {
+            logger.info('No files found in project, starting with empty workspace');
+
+            // No files in project - just open with empty state
+            toast.info('Project has no files yet. Start building!', {
+              autoClose: 3000,
+            });
+
+            // Set project context
+            activeProjectIdRef.current = effectiveProjectId;
+          }
+        } catch (error) {
+          logger.error('Failed to load project:', error);
+          toast.error(`Failed to load project: ${(error as Error).message}`);
+        }
       }
 
       setReady(true);
@@ -759,6 +939,7 @@ export function useChatHistory() {
     }
 
     const selection = modelFullId ?? currentModel.get().fullId;
+    const projectIdToPersist = activeProjectIdRef.current;
 
     /*
      * Wait for any ongoing file operations to complete before capturing state
@@ -883,6 +1064,7 @@ export function useChatHistory() {
       terminalState,
       workbenchState,
       editorState,
+      projectIdToPersist,
     );
 
     // Also save to Supabase if user is logged in
@@ -903,9 +1085,7 @@ export function useChatHistory() {
             description: description.get() || null,
             model: selection,
             file_state: fileState,
-            terminal_state: terminalState,
-            workbench_state: workbenchState,
-            editor_state: editorState,
+            project_id: projectIdToPersist ?? null,
             updated_at: new Date().toISOString(),
           },
           {

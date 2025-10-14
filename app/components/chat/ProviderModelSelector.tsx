@@ -1,12 +1,14 @@
 import { useStore } from '@nanostores/react';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown, Check, Zap, Eye, Wrench, Brain } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { getAllKeys, buildAuthHeaders, type ProviderKey } from '~/lib/client/api-keys';
 import { PROVIDERS, MODELS, getModel } from '~/lib/models.client';
 import { chatId } from '~/lib/persistence';
 import { getProviderConfig } from '~/lib/provider-config';
 import { chatModels, currentModel, setChatModel, setCurrentModel } from '~/lib/stores/model';
+import { projectStore } from '~/lib/stores/project';
+import { settingsStore, defaultAISettings, type ProjectModelDefaults } from '~/lib/stores/settings';
 import type { AIProvider, ModelInfo } from '~/types/model';
 
 // Reusable selector button styles
@@ -35,6 +37,8 @@ export function ProviderModelSelector() {
   const activeChatId = useStore(chatId);
   const chatModelMap = useStore(chatModels);
   const chatSelection = activeChatId ? chatModelMap[activeChatId] : undefined;
+  const projectState = useStore(projectStore);
+  const settings = useStore(settingsStore);
 
   const [selectedProvider, setSelectedProvider] = useState<AIProvider>(model.provider);
 
@@ -81,6 +85,42 @@ export function ProviderModelSelector() {
 
   const selectedModelInfo = getModel(model.provider, model.modelId);
 
+  const activeProjectId = projectState.currentProjectId;
+
+  const projectDefaults = useMemo<ProjectModelDefaults | undefined>(() => {
+    if (!activeProjectId) {
+      return undefined;
+    }
+
+    return settings.projectDefaults?.[activeProjectId];
+  }, [activeProjectId, settings.projectDefaults]);
+
+  const preferredSelection = useMemo(() => {
+    const candidate = projectDefaults?.defaultModel || settings.ai.defaultModel || defaultAISettings.defaultModel;
+
+    if (!candidate || typeof candidate !== 'string') {
+      return null;
+    }
+
+    const [provider, modelId] = candidate.split(':') as [AIProvider | undefined, string | undefined];
+
+    if (!provider || !modelId) {
+      return null;
+    }
+
+    const providerExists = PROVIDERS.some((p) => p.id === provider);
+
+    if (!providerExists) {
+      return null;
+    }
+
+    return {
+      provider: provider as AIProvider,
+      modelId,
+      fullId: `${provider}:${modelId}`,
+    };
+  }, [projectDefaults?.defaultModel, settings.ai.defaultModel]);
+
   useEffect(() => {
     if (!chatSelection) {
       return;
@@ -93,16 +133,30 @@ export function ProviderModelSelector() {
   }, [chatSelection?.fullId, chatSelection?.modelId, chatSelection?.provider, model.fullId]);
 
   useEffect(() => {
-    if (!activeChatId) {
+    if (!preferredSelection) {
       return;
     }
 
-    const chatModel = chatSelection;
+    if (!activeChatId) {
+      if (model.fullId !== preferredSelection.fullId) {
+        setCurrentModel(preferredSelection.provider, preferredSelection.modelId);
+      }
 
-    if (!chatModel) {
-      setChatModel(activeChatId, model.provider, model.modelId);
+      return;
     }
-  }, [activeChatId, chatSelection, model.provider, model.modelId]);
+
+    if (!chatSelection) {
+      setCurrentModel(preferredSelection.provider, preferredSelection.modelId);
+      setChatModel(activeChatId, preferredSelection.provider, preferredSelection.modelId);
+    }
+  }, [
+    preferredSelection?.fullId,
+    preferredSelection?.provider,
+    preferredSelection?.modelId,
+    activeChatId,
+    chatSelection,
+    model.fullId,
+  ]);
 
   useEffect(() => {
     // Update selected provider when model changes from elsewhere

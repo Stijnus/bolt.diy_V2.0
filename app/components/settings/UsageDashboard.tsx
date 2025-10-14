@@ -10,7 +10,13 @@ import { formatNumber } from '~/utils/format';
 
 type DateFilter = 'today' | '7days' | '30days' | 'all';
 
-function UsageRow({ usage, dateTimeFormatter }: { usage: SessionUsageWithTimestamp; dateTimeFormatter: Intl.DateTimeFormat }) {
+function UsageRow({
+  usage,
+  dateTimeFormatter,
+}: {
+  usage: SessionUsageWithTimestamp;
+  dateTimeFormatter: Intl.DateTimeFormat;
+}) {
   const { timestamp, tokens, cost, provider, modelId } = usage;
   const modelInfo = provider && modelId ? getModel(provider as AIProvider, modelId) : undefined;
   const modelName = modelInfo?.name ?? modelId;
@@ -76,48 +82,6 @@ export function UsageDashboard() {
 
     return usageData.filter((usage) => new Date(usage.timestamp) >= cutoffDate);
   }, [usageData, dateFilter]);
-
-  const exportToCSV = () => {
-    if (filteredData.length === 0) {
-      toast.error('No usage data to export');
-      return;
-    }
-
-    // CSV headers
-    const headers = ['Date', 'Provider', 'Model', 'Input Tokens', 'Output Tokens', 'Cost (USD)'];
-
-    // CSV rows
-    const rows = filteredData.map((usage) => {
-      const modelInfo =
-        usage.provider && usage.modelId ? getModel(usage.provider as AIProvider, usage.modelId) : undefined;
-
-      const modelName = modelInfo?.name ?? usage.modelId;
-
-      return [
-        new Date(usage.timestamp).toLocaleString(),
-        usage.provider || 'N/A',
-        modelName || 'N/A',
-        usage.tokens.input,
-        usage.tokens.output,
-        usage.cost.toFixed(4),
-      ];
-    });
-
-    // Combine headers and rows
-    const csvContent = [headers, ...rows].map((row) => row.map((cell) => `"${cell}"`).join(',')).join('\n');
-
-    // Create and download the file
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `boltdiy-usage-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
-    toast.success('Usage data exported successfully');
-  };
 
   const fetchUsage = useCallback(async () => {
     setError(null);
@@ -254,7 +218,9 @@ export function UsageDashboard() {
     }
   }, [filteredData, dateTimeFormatter]);
 
-  const emptyStateMessage = dateFilter === 'all' ? 'No usage data recorded yet.' : 'No usage data for the selected time period.';
+  const emptyStateMessage =
+    dateFilter === 'all' ? 'No usage data recorded yet.' : 'No usage data for the selected time period.';
+
   const hasUsageData = filteredData.length > 0;
 
   if (loading) {

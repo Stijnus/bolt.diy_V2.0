@@ -34,6 +34,7 @@ export const ApiProviderStatus = () => {
   const fetchStatus = useCallback(async () => {
     setError(null);
     setIsRefreshing(true);
+
     const controller = new AbortController();
     setLoading((prev) => (prev ? prev : false));
 
@@ -55,11 +56,13 @@ export const ApiProviderStatus = () => {
       const modelsJson = await modelsRes.json();
 
       const parsedProviders = providersResponseSchema.safeParse(providersJson);
+
       if (!parsedProviders.success) {
         throw new Error('Provider status response was not in the expected format');
       }
 
       const parsedModels = modelsResponseSchema.safeParse(modelsJson);
+
       if (!parsedModels.success) {
         throw new Error('Model counts response was not in the expected format');
       }
@@ -71,29 +74,28 @@ export const ApiProviderStatus = () => {
       if ((err as Error).name === 'AbortError') {
         return;
       }
+
       setError((err as Error).message || 'Failed to load provider status');
       console.error(err);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-
-    return () => controller.abort();
   }, []);
 
   useEffect(() => {
     void fetchStatus();
   }, [fetchStatus]);
 
-  const configuredCount = useMemo(
-    () => Object.values(providerStatus).filter(Boolean).length,
-    [providerStatus],
-  );
+  const configuredCount = useMemo(() => Object.values(providerStatus).filter(Boolean).length, [providerStatus]);
 
   const totalProviders = PROVIDER_CARDS.length;
 
   const lastUpdatedLabel = useMemo(() => {
-    if (!lastUpdated) return null;
+    if (!lastUpdated) {
+      return null;
+    }
+
     try {
       return new Date(lastUpdated).toLocaleString();
     } catch {

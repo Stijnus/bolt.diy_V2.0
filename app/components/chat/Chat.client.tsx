@@ -3,16 +3,18 @@ import { useStore } from '@nanostores/react';
 import type { UIMessage } from 'ai';
 import { useAnimate } from 'framer-motion';
 import { X, Check, AlertTriangle } from 'lucide-react';
-import { memo, useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, ToastContainer, toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
+import { useProjectAutoSave } from '~/lib/hooks/useProjectAutoSave';
 import { useChatHistory, chatId } from '~/lib/persistence';
 import { revertMessagesToIndex } from '~/lib/persistence/chat-actions';
 import { chatStore } from '~/lib/stores/chat';
 import { chatModeStore, setPendingPlan } from '~/lib/stores/chat-mode';
 import { currentModel } from '~/lib/stores/model';
+import { projectStore } from '~/lib/stores/project';
 import { settingsStore } from '~/lib/stores/settings';
 import { workbenchStore } from '~/lib/stores/workbench';
 import type { FullModelId } from '~/types/model';
@@ -29,7 +31,8 @@ const toastAnimation = cssTransition({
 export function Chat() {
   renderLogger.trace('Chat');
 
-  const { ready, initialMessages, storeMessageHistory } = useChatHistory();
+  const { currentProjectId } = useStore(projectStore);
+  const { ready, initialMessages, storeMessageHistory } = useChatHistory(currentProjectId);
 
   return (
     <>
@@ -75,6 +78,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { user } = useAuth();
+  const { currentProjectId } = useStore(projectStore);
+
+  // Enable auto-save for projects
+  useProjectAutoSave({
+    enabled: !!currentProjectId && !!user,
+    onSaveError: (error) => {
+      console.error('Project auto-save failed:', error);
+
+      // Silent failure - we don't want to spam the user with toast notifications
+    },
+  });
 
   const [chatStarted, setChatStarted] = useState(initialMessages.length > 0);
 
@@ -85,14 +99,26 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const [animationScope, animate] = useAnimate();
 
-  const { messages, status, stop, sendMessage } = useChat({
-    messages: initialMessages,
-    body: {
+  const chatBody = useMemo(() => {
+    return {
       model: mode === 'plan' && settings.ai.planModel ? (settings.ai.planModel as FullModelId) : modelSelection.fullId,
       temperature: settings.ai.temperature,
       maxTokens: settings.ai.maxTokens,
-      mode, // Pass current chat mode to API
-    } as Record<string, unknown>,
+      mode,
+      projectId: currentProjectId ?? null,
+    } as Record<string, unknown>;
+  }, [
+    mode,
+    settings.ai.planModel,
+    modelSelection.fullId,
+    settings.ai.temperature,
+    settings.ai.maxTokens,
+    currentProjectId,
+  ]);
+
+  const { messages, status, stop, sendMessage } = useChat({
+    messages: initialMessages,
+    body: chatBody,
   } as any);
 
   const isLoading = status === 'streaming';
@@ -108,8 +134,14 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const lastSavedCountRef = useRef(initialMessages.length);
 
   useEffect(() => {
-    chatStore.setKey('started', initialMessages.length > 0);
-  }, []);
+    const hasMessages = initialMessages.length > 0;
+
+    if (hasMessages && !chatStarted) {
+      setChatStarted(true);
+    }
+
+    chatStore.setKey('started', hasMessages);
+  }, [initialMessages.length, chatStarted]);
 
   // Handle pendingInput from error notifications (optionally auto-send)
   useEffect(() => {
@@ -192,6 +224,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     const hasPlan = /<plan_document[\s>]/i.test(content) || detectMarkdownPlan(content);
     const hasArtifacts = /<(boltArtifact|boltAction)\b/i.test(content);
+
     // Non-compliant if any XML-like tags other than <plan_document> are present
     const extraneousXmlTags = /<(?!\/?plan_document\b)[a-zA-Z][\w:-]*(\s[^>]*)?>/i.test(content);
 
@@ -209,7 +242,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       // Send a lightweight user message asking for compliant plan output
       void sendMessage({ role: 'user', parts: [{ type: 'text', text: reformatRequest }] } as any);
     } else if ((!hasPlan || hasArtifacts || extraneousXmlTags) && planEnforceCountRef.current >= 2) {
-      toast.error('Plan mode response could not be validated after multiple attempts. Please adjust your request or exit plan mode.');
+      toast.error(
+        'Plan mode response could not be validated after multiple attempts. Please adjust your request or exit plan mode.',
+      );
     }
   }, [messages, isLoading, mode]);
 
@@ -232,7 +267,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       : (lastMessage.content ?? '');
 
     if (/<(boltArtifact|boltAction)\b/i.test(content)) {
-      toast.warn('Discussion mode ignores generated actions. Ask for guidance or switch to plan/normal mode to execute.');
+      toast.warn(
+        'Discussion mode ignores generated actions. Ask for guidance or switch to plan/normal mode to execute.',
+      );
     }
   }, [messages, isLoading, mode]);
 
