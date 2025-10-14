@@ -13,6 +13,7 @@ import { binDates } from './date-binning';
 import { LoginModal } from '~/components/auth/LoginModal';
 import { HeaderDateTime } from '~/components/header/HeaderDateTime';
 import { HeaderUserPanel } from '~/components/header/HeaderUserPanel';
+import { SettingsModal } from '~/components/settings/SettingsModal';
 
 import { Button } from '~/components/ui/Button';
 import { Checkbox } from '~/components/ui/Checkbox';
@@ -100,6 +101,7 @@ export function Menu() {
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
   const [authModalOpen, setAuthModalOpen] = useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
   const [isLoadingChats, setIsLoadingChats] = useState(false);
@@ -294,7 +296,9 @@ export function Menu() {
             return {
               id: remoteChat.url_id,
               urlId: remoteChat.url_id,
-              description: remoteChat.description ?? remoteChat.url_id,
+              description: (remoteChat.description && remoteChat.description.trim() !== '') 
+                ? remoteChat.description 
+                : remoteChat.url_id,
               messages: (remoteChat.messages ?? []) as ChatHistoryItem['messages'],
               timestamp: remoteChat.updated_at ?? new Date().toISOString(),
               model: (remoteChat.model as any) ?? undefined,
@@ -371,7 +375,9 @@ export function Menu() {
           })
           .map((item) => ({
             ...item,
-            description: item.description ?? item.urlId,
+            description: (item.description && item.description.trim() !== '') 
+              ? item.description 
+              : item.urlId,
             origin: item.origin ?? 'local',
           }));
 
@@ -634,8 +640,8 @@ export function Menu() {
     void loadEntries();
   }, [currentProjectId, database, loadEntries]);
 
-  // Filter chats based on search query
-  const filteredList = searchQuery
+  // Filter chats based on search query and validity
+  const filteredList = (searchQuery
     ? list.filter((item) => {
         const query = searchQuery.toLowerCase();
         return (
@@ -644,7 +650,16 @@ export function Menu() {
           item.model?.toLowerCase().includes(query)
         );
       })
-    : list;
+    : list
+  ).filter((item) => {
+    // Additional validation: exclude chats with empty or invalid data
+    const hasValidDescription = item.description && item.description.trim() !== '';
+    const hasValidUrlId = item.urlId && item.urlId.trim() !== '';
+    const hasMessages = Array.isArray(item.messages) && item.messages.length > 0;
+    
+    // Only show items that have messages and either a description or urlId
+    return hasMessages && (hasValidDescription || hasValidUrlId);
+  });
 
   // Separate favorites and regular chats
   const favoriteChatsList = filteredList.filter((item) => favorites.has(item.id));
@@ -740,15 +755,15 @@ export function Menu() {
 
               <div className="group relative overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm hover:shadow-md hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
                 <Button
-                  asChild
                   variant="ghost"
                   className="w-full justify-center btn-ripple h-full py-4 hover:bg-transparent border-0"
                   size="md"
+                  onClick={() => setSettingsModalOpen(true)}
                 >
-                  <a href="/settings" className="flex flex-col items-center gap-1.5">
+                  <div className="flex flex-col items-center gap-1.5">
                     <Settings className="h-5 w-5 text-bolt-elements-icon-primary transition-transform group-hover:scale-110" />
                     <span className="text-xs font-semibold text-bolt-elements-textPrimary">Settings</span>
-                  </a>
+                  </div>
                 </Button>
               </div>
 
@@ -986,7 +1001,7 @@ export function Menu() {
                           <label className="flex items-center gap-2 text-xs">
                             <Checkbox
                               checked={importOptions.includeTopFiles}
-                              onCheckedChange={(v) => setImportOptions((o) => ({ ...o, includeTopFiles: Boolean(v) }))}
+                              onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, includeTopFiles: Boolean(v) }))}
                             />
                             Include top-level files
                           </label>
@@ -1029,14 +1044,14 @@ export function Menu() {
                         <label className="flex items-center gap-2 text-xs">
                           <Checkbox
                             checked={importOptions.runInstall}
-                            onCheckedChange={(v) => setImportOptions((o) => ({ ...o, runInstall: Boolean(v) }))}
+                            onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, runInstall: Boolean(v) }))}
                           />
                           Run npm install (if package.json present)
                         </label>
                         <label className="flex items-center gap-2 text-xs">
                           <Checkbox
                             checked={importOptions.startDevServer}
-                            onCheckedChange={(v) => setImportOptions((o) => ({ ...o, startDevServer: Boolean(v) }))}
+                            onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, startDevServer: Boolean(v) }))}
                           />
                           Start dev server after import
                         </label>
@@ -1136,6 +1151,9 @@ export function Menu() {
 
       {/* Login Modal */}
       <LoginModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
+
+      {/* Settings Modal */}
+      <SettingsModal open={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} />
     </>
   );
 }

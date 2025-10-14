@@ -508,6 +508,11 @@ export async function cleanupInvalidChatEntries(db: IDBDatabase): Promise<number
           return true;
         }
 
+        // Check for missing or empty description (when it's not a valid fallback to urlId)
+        if (!chat.description || typeof chat.description !== 'string' || chat.description.trim() === '') {
+          return true;
+        }
+
         return false;
       });
 

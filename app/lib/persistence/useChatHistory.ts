@@ -449,8 +449,9 @@ export function useChatHistory(activeProjectId?: string | null) {
                           postRestoreMd = md;
 
                           const assistantMsg: UIMessage = {
+                            id: `restore_${Date.now()}_files`,
                             role: 'assistant',
-                            parts: [{ type: 'text', text: md }],
+                            content: md,
                           } as any;
 
                           if ((storedMessages?.messages?.length ?? 0) > 0) {
@@ -528,10 +529,9 @@ export function useChatHistory(activeProjectId?: string | null) {
                             setInitialMessages((prev) => [
                               ...prev,
                               {
+                                id: `${baseId}_install_msg`,
                                 role: 'assistant',
-                                parts: [
-                                  { type: 'text', text: 'Installing dependencies... See Bolt Terminal for logs.' },
-                                ],
+                                content: 'Installing dependencies... See Bolt Terminal for logs.',
                               } as any,
                             ]);
 
@@ -542,10 +542,9 @@ export function useChatHistory(activeProjectId?: string | null) {
                               setInitialMessages((prev) => [
                                 ...prev,
                                 {
+                                  id: `${baseId}_dev_msg`,
                                   role: 'assistant',
-                                  parts: [
-                                    { type: 'text', text: 'Starting dev server (monitoring in Bolt Terminal)...' },
-                                  ],
+                                  content: 'Starting dev server (monitoring in Bolt Terminal)...',
                                 } as any,
                               ]);
                               runner.addAction(devAction);
@@ -558,8 +557,9 @@ export function useChatHistory(activeProjectId?: string | null) {
                             setInitialMessages((prev) => [
                               ...prev,
                               {
+                                id: `${baseId}_dev_only_msg`,
                                 role: 'assistant',
-                                parts: [{ type: 'text', text: 'Starting dev server (monitoring in Bolt Terminal)...' }],
+                                content: 'Starting dev server (monitoring in Bolt Terminal)...',
                               } as any,
                             ]);
                             runner.addAction(devAction);
@@ -581,14 +581,16 @@ export function useChatHistory(activeProjectId?: string | null) {
                      */
                     if ((storedMessages?.messages?.length ?? 0) === 0) {
                       const intro: UIMessage = {
+                        id: `intro_${Date.now()}`,
                         role: 'user',
-                        parts: [{ type: 'text', text: `Imported project with ${validFileCount} files.` }],
+                        content: `Imported project with ${validFileCount} files.`,
                       } as any;
 
                       if (postRestoreMessagePushed && postRestoreMd) {
                         const assistantMsg: UIMessage = {
+                          id: `intro_${Date.now()}_response`,
                           role: 'assistant',
-                          parts: [{ type: 'text', text: postRestoreMd }],
+                          content: postRestoreMd,
                         } as any;
                         setInitialMessages([intro, assistantMsg]);
                       } else {
@@ -831,8 +833,9 @@ export function useChatHistory(activeProjectId?: string | null) {
 
                 // Set initial message to indicate project was opened
                 const intro: UIMessage = {
+                  id: `project_open_${Date.now()}`,
                   role: 'user',
-                  parts: [{ type: 'text', text: `Opened project with ${validFileCount} files.` }],
+                  content: `Opened project with ${validFileCount} files.`,
                 } as any;
 
                 setInitialMessages([intro]);
