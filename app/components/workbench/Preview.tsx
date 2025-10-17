@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react';
-import { RotateCw } from 'lucide-react';
+import { ExternalLink, RotateCw } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { PortDropdown } from './PortDropdown';
 import { IconButton } from '~/components/ui/IconButton';
@@ -29,7 +29,7 @@ export const Preview = memo(() => {
 
     setUrl(baseUrl);
     setIframeUrl(baseUrl);
-  }, [activePreview, iframeUrl]);
+  }, [activePreview, activePreview?.baseUrl]);
 
   const validateUrl = useCallback(
     (value: string) => {
@@ -72,6 +72,60 @@ export const Preview = memo(() => {
     }
   };
 
+  function getCookie(name: string): string | null {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const match = document.cookie
+      .split(';')
+      .map((c) => c.trim())
+      .find((c) => c.startsWith(`${name}=`));
+
+    if (!match) {
+      return null;
+    }
+
+    try {
+      return decodeURIComponent(match.substring(name.length + 1));
+    } catch {
+      return match.substring(name.length + 1);
+    }
+  }
+
+  function computeOpenUrl(current: string | undefined): string | null {
+    if (!current) {
+      return null;
+    }
+
+    // If it's already absolute, open as-is
+    try {
+      const u = new URL(current);
+      return u.toString();
+    } catch {}
+
+    // Handle local proxy paths like /webcontainer/connect/:id
+    if (current.startsWith('/webcontainer/')) {
+      const wcHost = getCookie('wc_host');
+
+      if (!wcHost) {
+        return null;
+      }
+
+      const base = new URL(current, window.location.origin);
+      base.searchParams.set('host', wcHost);
+
+      return base.toString();
+    }
+
+    // Fallback: resolve relative to origin
+    try {
+      return new URL(current, window.location.origin).toString();
+    } catch {
+      return null;
+    }
+  }
+
   return (
     <div className="w-full h-full flex flex-col">
       {isPortDropdownOpen && (
@@ -79,6 +133,20 @@ export const Preview = memo(() => {
       )}
       <div className="bg-bolt-elements-background-depth-2 p-2 flex items-center gap-1.5">
         <IconButton icon={RotateCw} onClick={reloadPreview} />
+        <IconButton
+          icon={ExternalLink}
+          disabled={!computeOpenUrl(iframeUrl)}
+          title="Open preview in new tab"
+          onClick={() => {
+            const target = computeOpenUrl(iframeUrl);
+
+            if (!target) {
+              return;
+            }
+
+            window.open(target, '_blank');
+          }}
+        />
         <div className="flex items-center gap-1 flex-grow bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-3 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
           <input
             ref={inputRef}

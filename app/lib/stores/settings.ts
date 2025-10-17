@@ -54,6 +54,10 @@ export interface UserPreferences {
   autoSaveDelay: number;
   chatMode?: 'normal' | 'plan' | 'discussion';
   localSync?: LocalSyncSettings;
+
+  // Usage tracking preferences
+  resetUsageOnModelChange?: boolean;
+  syncUsageToSupabase?: boolean;
 }
 
 export interface Settings {
@@ -101,6 +105,8 @@ export const defaultUserPreferences: UserPreferences = {
     autoSync: false,
     excludes: ['node_modules', '.vite', '.remix', 'public/build', 'dist'],
   },
+  resetUsageOnModelChange: false,
+  syncUsageToSupabase: false,
 };
 
 export const settingsStore = map<Settings>({
@@ -120,12 +126,15 @@ if (typeof window !== 'undefined') {
 
       if (db) {
         const stored = await getAppSettings(db);
+        console.log('[Settings] Loaded from IndexedDB:', stored);
 
         if (stored?.settings) {
           const current = settingsStore.get();
+          console.log('[Settings] Current store state:', current);
+          console.log('[Settings] Merging with stored settings:', stored.settings);
 
           // Merge stored with defaults to prevent missing keys
-          settingsStore.set({
+          const merged = {
             ...current,
             ...stored.settings,
             editor: { ...current.editor, ...(stored.settings.editor || {}) },
@@ -135,24 +144,78 @@ if (typeof window !== 'undefined') {
               ...current.projectDefaults,
               ...((stored.settings as Settings | undefined)?.projectDefaults || {}),
             },
-          });
+          };
+
+          console.log('[Settings] Final merged settings:', merged);
+          settingsStore.set(merged);
         }
 
         // Persist on changes (debounced minimal)
         let timeout: number | undefined;
+        let lastSavedSignature: string | undefined;
+        let pendingSignature: string | undefined;
+
+        const getPersistPayload = (settings: Settings) => ({
+          editor: settings.editor,
+          ai: settings.ai,
+          preferences: settings.preferences,
+          projectDefaults: settings.projectDefaults,
+        });
+
+        const serializePayload = (settings: Settings) => JSON.stringify(getPersistPayload(settings));
+
         settingsStore.subscribe((value) => {
+          console.log('[Settings] Store changed, scheduling save:', value);
+
+          const payload = getPersistPayload(value);
+          const signature = JSON.stringify(payload);
+
+          if (signature === lastSavedSignature || signature === pendingSignature) {
+            return;
+          }
+
           window.clearTimeout(timeout);
-          timeout = window.setTimeout(() => {
-            void setAppSettings(db, {
-              editor: value.editor,
-              ai: value.ai,
-              preferences: value.preferences,
-              projectDefaults: value.projectDefaults,
-            }).catch(() => void 0);
+          timeout = window.setTimeout(async () => {
+            try {
+              const latestState = settingsStore.get();
+              const latestSignature = serializePayload(latestState);
+
+              if (latestSignature !== signature) {
+                console.log('[Settings] Detected newer settings state, skipping stale save');
+                return;
+              }
+
+              console.log('[Settings] Saving to IndexedDB:', payload);
+              pendingSignature = signature;
+              await setAppSettings(db, payload);
+              lastSavedSignature = signature;
+              pendingSignature = undefined;
+              console.log('[Settings] Successfully saved to IndexedDB');
+
+              const currentState = settingsStore.get();
+
+              if (currentState === value) {
+                // Clone sections so subscribers see a fresh reference that matches what we saved.
+                settingsStore.set({
+                  ...value,
+                  editor: { ...value.editor },
+                  ai: { ...value.ai },
+                  preferences: { ...value.preferences },
+                  projectDefaults: { ...value.projectDefaults },
+                });
+              }
+            } catch (error) {
+              console.error('[Settings] Failed to save to IndexedDB:', error);
+              pendingSignature = undefined;
+            }
           }, 300);
         });
+      } else {
+        console.warn('[Settings] IndexedDB not available');
       }
-    } catch {
+    } catch (error) {
+      console.error('[Settings] Error initializing IndexedDB persistence:', error);
+
       // ignore persistence errors for SSR / no-IDB environments
     }
   })();

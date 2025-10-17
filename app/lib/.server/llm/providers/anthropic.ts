@@ -27,6 +27,23 @@ export const anthropicConfig: ProviderConfig = {
       isDefault: true,
     },
     {
+      id: 'claude-haiku-4-5-20251001',
+      name: 'Claude Haiku 4.5',
+      description: 'Fastest model with near-frontier intelligence, ideal for quick tasks.',
+      provider: 'anthropic',
+      maxTokens: 8192,
+      contextWindow: 200000,
+      capabilities: {
+        vision: true,
+        tools: true,
+        coding: true,
+      },
+      pricing: {
+        input: 1,
+        output: 5,
+      },
+    },
+    {
       id: 'claude-sonnet-4-20250514',
       name: 'Claude Sonnet 4',
       description: 'Previous generation model, still highly capable for coding tasks.',
@@ -41,6 +58,24 @@ export const anthropicConfig: ProviderConfig = {
       pricing: {
         input: 3,
         output: 15,
+      },
+    },
+    {
+      id: 'claude-opus-4-1-20250805',
+      name: 'Claude Opus 4.1',
+      description: 'Exceptional model for specialized reasoning tasks.',
+      provider: 'anthropic',
+      maxTokens: 8192,
+      contextWindow: 200000,
+      capabilities: {
+        vision: true,
+        tools: true,
+        reasoning: true,
+        coding: true,
+      },
+      pricing: {
+        input: 15,
+        output: 75,
       },
     },
     {

@@ -25,8 +25,6 @@ const DEFAULT_HIDDEN_PATTERNS = [
   /\/\.cache/,
   /\/coverage/,
   /\/\.nyc_output/,
-  /\/\.env/,
-  /\/\.env\./,
   /\/\.DS_Store/,
   /\/Thumbs\.db/,
 ];
@@ -107,15 +105,16 @@ export class FilesStore {
     const webcontainer = await this.#webcontainer;
 
     try {
-      const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+      const relativePath = this.#toRelativePath(webcontainer.workdir, filePath);
 
       if (!relativePath) {
         throw new Error(`EINVAL: invalid file path, write '${relativePath}'`);
       }
 
-      const oldContent = this.getFile(filePath)?.content;
+      const oldFile = this.getFile(filePath);
+      const oldContent = oldFile?.content;
 
-      if (!oldContent) {
+      if (oldContent === undefined) {
         unreachable('Expected content to be defined');
       }
 
@@ -133,6 +132,152 @@ export class FilesStore {
       logger.error('Failed to update file content\n\n', error);
 
       throw error;
+    }
+  }
+
+  async createFile(filePath: string, content = '') {
+    const webcontainer = await this.#webcontainer;
+
+    const relativePath = this.#toRelativePath(webcontainer.workdir, filePath);
+
+    if (!relativePath) {
+      throw new Error(`EINVAL: invalid file path, create '${relativePath}'`);
+    }
+
+    await this.#ensureParentFolder(webcontainer, relativePath);
+
+    try {
+      await webcontainer.fs.writeFile(relativePath, content);
+    } catch (error) {
+      logger.error('Failed to create file\n\n', error);
+      throw error;
+    }
+
+    this.files.setKey(filePath, { type: 'file', content, isBinary: false });
+    this.#size++;
+  }
+
+  async createFolder(folderPath: string) {
+    const webcontainer = await this.#webcontainer;
+
+    const relativePath = this.#toRelativePath(webcontainer.workdir, folderPath);
+
+    if (!relativePath) {
+      throw new Error(`EINVAL: invalid folder path, mkdir '${relativePath}'`);
+    }
+
+    try {
+      await webcontainer.fs.mkdir(relativePath, { recursive: true });
+    } catch (error) {
+      logger.error('Failed to create folder\n\n', error);
+      throw error;
+    }
+
+    this.files.setKey(folderPath, { type: 'folder' });
+  }
+
+  async renamePath(oldPath: string, newPath: string) {
+    const webcontainer = await this.#webcontainer;
+
+    const oldRelative = this.#toRelativePath(webcontainer.workdir, oldPath);
+    const newRelative = this.#toRelativePath(webcontainer.workdir, newPath);
+
+    if (!oldRelative || !newRelative) {
+      throw new Error(`EINVAL: invalid rename '${oldRelative}' -> '${newRelative}'`);
+    }
+
+    await this.#ensureParentFolder(webcontainer, newRelative);
+
+    try {
+      await webcontainer.fs.rename(oldRelative, newRelative);
+    } catch (error) {
+      logger.error('Failed to rename path\n\n', error);
+      throw error;
+    }
+
+    const current = this.files.get();
+    const entries = Object.entries(current);
+
+    const updated: FileMap = { ...current };
+
+    for (const [path, dirent] of entries) {
+      if (!path.startsWith(oldPath)) {
+        continue;
+      }
+
+      const suffix = path.slice(oldPath.length);
+      const nextPath = `${newPath}${suffix}`;
+
+      updated[nextPath] = dirent;
+      delete updated[path];
+    }
+
+    this.files.set(updated);
+  }
+
+  async deletePath(path: string) {
+    const webcontainer = await this.#webcontainer;
+
+    const relativePath = this.#toRelativePath(webcontainer.workdir, path);
+
+    if (!relativePath) {
+      throw new Error(`EINVAL: invalid delete path '${relativePath}'`);
+    }
+
+    const current = this.files.get();
+    const dirent = current[path];
+
+    try {
+      if (dirent?.type === 'folder') {
+        await webcontainer.fs.rm(relativePath, { recursive: true, force: true });
+      } else {
+        await webcontainer.fs.rm(relativePath, { force: true });
+      }
+    } catch (error) {
+      logger.error('Failed to delete path\n\n', error);
+      throw error;
+    }
+
+    let removedFiles = 0;
+
+    const updated: FileMap = { ...current };
+
+    for (const [filePath, entry] of Object.entries(current)) {
+      if (filePath === path || filePath.startsWith(`${path}/`)) {
+        if (entry?.type === 'file') {
+          removedFiles++;
+        }
+
+        delete updated[filePath];
+      }
+    }
+
+    if (dirent?.type === 'file' && removedFiles === 0) {
+      removedFiles = 1;
+    }
+
+    this.#size = Math.max(0, this.#size - removedFiles);
+
+    this.files.set(updated);
+  }
+
+  #toRelativePath(workdir: string, fullPath: string) {
+    let relativePath = nodePath.relative(workdir, fullPath);
+
+    if (!relativePath || relativePath.startsWith('..')) {
+      if (fullPath.startsWith(WORK_DIR)) {
+        relativePath = fullPath.slice(WORK_DIR.length).replace(/^\//, '');
+      }
+    }
+
+    return relativePath;
+  }
+
+  async #ensureParentFolder(webcontainer: WebContainer, relativePath: string) {
+    const parentDir = nodePath.dirname(relativePath);
+
+    if (parentDir && parentDir !== '.') {
+      await webcontainer.fs.mkdir(parentDir, { recursive: true });
     }
   }
 
@@ -254,9 +399,16 @@ export class FilesStore {
    */
   async restoreFiles(fileMap: FileMap): Promise<void> {
     const webcontainer = await this.#webcontainer;
-    const filesToRestore = Object.entries(fileMap).filter(([, file]) => file?.type === 'file');
+    const entries = Object.entries(fileMap);
 
-    if (filesToRestore.length === 0) {
+    const foldersToRestore = entries
+      .filter(([, file]) => file?.type === 'folder')
+      .map(([path]) => path)
+      .filter((path) => !this.#shouldHideFile(path));
+
+    const filesToRestore = entries.filter(([, file]) => file?.type === 'file');
+
+    if (filesToRestore.length === 0 && foldersToRestore.length === 0) {
       logger.debug('No files to restore');
       return;
     }
@@ -274,12 +426,34 @@ export class FilesStore {
       return;
     }
 
-    logger.info(`Restoring ${filteredFiles.length} files to WebContainer`);
+    logger.info(`Restoring ${filteredFiles.length} files and ${foldersToRestore.length} folders to WebContainer`);
 
     // Prevent file watcher from interfering during restoration
     this.#isRestoring = true;
 
     try {
+      // First, ensure folders exist (so empty folders persist and file parents are present)
+      await Promise.allSettled(
+        foldersToRestore
+          .sort((a, b) => a.length - b.length) // create parents first
+          .map(async (folderPath) => {
+            try {
+              const relativeDir = this.#toRelativePath(webcontainer.workdir, folderPath);
+
+              if (!relativeDir) {
+                throw new Error(`Invalid relative dir for ${folderPath}`);
+              }
+
+              await webcontainer.fs.mkdir(relativeDir, { recursive: true });
+
+              return { success: true, folderPath };
+            } catch (error) {
+              logger.error(`Failed to ensure folder ${folderPath}:`, error);
+              return { success: false, folderPath, error };
+            }
+          }),
+      );
+
       const results = await Promise.allSettled(
         filteredFiles.map(async ([filePath, file]) => {
           if (!file || file.type !== 'file') {
@@ -296,10 +470,10 @@ export class FilesStore {
               throw new Error('Invalid file content');
             }
 
-            const relativePath = nodePath.relative(webcontainer.workdir, filePath);
+            const relativePath = this.#toRelativePath(webcontainer.workdir, filePath);
 
-            if (!relativePath || relativePath.startsWith('..')) {
-              throw new Error(`Invalid relative path: ${relativePath}`);
+            if (!relativePath) {
+              throw new Error(`Invalid relative path for ${filePath}`);
             }
 
             // Ensure parent directories exist

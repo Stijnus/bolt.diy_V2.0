@@ -43,7 +43,59 @@ export class PreviewsStore {
       previewInfo.ready = type === 'open';
       previewInfo.baseUrl = url;
 
+      // Store host hint for proxy routing as cookie
+      try {
+        const host = new URL(url).hostname;
+
+        if (host.endsWith('webcontainer-api.io')) {
+          document.cookie = `wc_host=${encodeURIComponent(host)}; path=/`;
+
+          // Try to extract instance id from host like: <hash>--<port>--<instance>.local-corp.webcontainer-api.io
+          const m = host.match(/--(\d+)--([a-z0-9]+)\.local-corp\.webcontainer-api\.io$/i);
+          const instance = m?.[2];
+
+          if (instance) {
+            document.cookie = `wc_host_${instance}=${encodeURIComponent(host)}; path=/`;
+          }
+        }
+      } catch {}
+
       this.previews.set([...previews]);
+    });
+
+    /*
+     * Prefer absolute preview URLs when the dev server is ready.
+     * This helps avoid relying on local proxy paths like /webcontainer/connect/*.
+     */
+    webcontainer.on('server-ready', (port: number, url: string) => {
+      let previewInfo = this.#availablePreviews.get(port);
+
+      if (!previewInfo) {
+        previewInfo = { port, ready: true, baseUrl: url };
+        this.#availablePreviews.set(port, previewInfo);
+      }
+
+      previewInfo.ready = true;
+      previewInfo.baseUrl = url;
+
+      // Store host hint for proxy routing as cookie
+      try {
+        const host = new URL(url).hostname;
+
+        if (host.endsWith('webcontainer-api.io')) {
+          document.cookie = `wc_host=${encodeURIComponent(host)}; path=/`;
+        }
+      } catch {}
+
+      const previews = this.previews.get();
+      const idx = previews.findIndex((p) => p.port === port);
+
+      if (idx >= 0) {
+        previews[idx] = previewInfo;
+        this.previews.set([...previews]);
+      } else {
+        this.previews.set([...previews, previewInfo]);
+      }
     });
   }
 }

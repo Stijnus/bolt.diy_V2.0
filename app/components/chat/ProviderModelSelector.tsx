@@ -2,13 +2,10 @@ import { useStore } from '@nanostores/react';
 import * as Select from '@radix-ui/react-select';
 import { ChevronDown, Check, Zap, Eye, Wrench, Brain } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
-import { getAllKeys, buildAuthHeaders, type ProviderKey } from '~/lib/client/api-keys';
 import { PROVIDERS, MODELS, getModel } from '~/lib/models.client';
 import { chatId } from '~/lib/persistence';
 import { getProviderConfig } from '~/lib/provider-config';
 import { chatModels, currentModel, setChatModel, setCurrentModel } from '~/lib/stores/model';
-import { projectStore } from '~/lib/stores/project';
-import { settingsStore, defaultAISettings, type ProjectModelDefaults } from '~/lib/stores/settings';
 import type { AIProvider, ModelInfo } from '~/types/model';
 
 // Reusable selector button styles
@@ -16,7 +13,7 @@ const SELECTOR_BUTTON_CLASS = `
   group inline-flex items-center gap-2 px-4 py-3 text-sm
   bg-gradient-to-br from-bolt-elements-bg-depth-2 to-bolt-elements-bg-depth-3
   border-2 border-bolt-elements-borderColor rounded-xl shadow-sm
-  hover:shadow-md hover:border-bolt-elements-borderColorActive
+  hover:shadow-md hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-button-primary-text
   transition-all duration-200
   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-borderColorActive
   flex-1
@@ -37,135 +34,69 @@ export function ProviderModelSelector() {
   const activeChatId = useStore(chatId);
   const chatModelMap = useStore(chatModels);
   const chatSelection = activeChatId ? chatModelMap[activeChatId] : undefined;
-  const projectState = useStore(projectStore);
-  const settings = useStore(settingsStore);
 
-  const [selectedProvider, setSelectedProvider] = useState<AIProvider>(model.provider);
+  const [availableProviders, setAvailableProviders] = useState<Set<string> | null>(null);
 
-  // Runtime models: prefer dynamic lists from /api/models/full when available
-  const [runtimeModels, setRuntimeModels] = useState<Record<AIProvider, ModelInfo[]>>({ ...(MODELS as any) });
+  // Runtime models: fallback to static models
+  const [runtimeModels] = useState<Record<AIProvider, ModelInfo[]>>({ ...(MODELS as any) });
 
-  // Fetch dynamic model lists using any locally stored API keys (sent via headers)
+  // Fetch which providers are configured
   useEffect(() => {
-    const run = async () => {
-      const keys = getAllKeys();
-      const headers = buildAuthHeaders(keys as Partial<Record<ProviderKey, string>>);
+    let active = true;
 
+    (async () => {
       try {
-        const res = await fetch('/api/models/full', { headers });
+        const res = await fetch('/api/providers');
 
         if (!res.ok) {
-          return;
+          throw new Error('Failed to fetch');
         }
 
-        const data = (await res.json()) as { modelsByProvider?: Partial<Record<AIProvider, ModelInfo[]>> };
+        const data: any = await res.json();
+        const set = new Set<string>();
 
-        if (!data || !data.modelsByProvider) {
-          return;
-        }
-
-        const next = { ...(MODELS as any) } as Record<AIProvider, ModelInfo[]>;
-
-        for (const [p, list] of Object.entries(data.modelsByProvider)) {
-          const provider = p as AIProvider;
-
-          if (Array.isArray(list) && list.length > 0) {
-            next[provider] = list.map((m) => ({ ...m, provider }));
+        if (data?.providers) {
+          for (const [k, v] of Object.entries<boolean>(data.providers)) {
+            if (v) {
+              set.add(k);
+            }
           }
         }
 
-        setRuntimeModels(next);
+        if (active) {
+          setAvailableProviders(set.size > 0 ? set : null);
+        }
       } catch {
-        // ignore; fallback to static MODELS
+        if (active) {
+          setAvailableProviders(null);
+        }
       }
-    };
+    })();
 
-    void run();
+    return () => {
+      active = false;
+    };
   }, []);
+
+  // Simple filtered providers - show all if null, filter if loaded
+  const filteredProviders = useMemo(() => {
+    if (availableProviders === null) {
+      return PROVIDERS;
+    }
+
+    return PROVIDERS.filter((p) => availableProviders.has(p.id));
+  }, [availableProviders]);
+
+  // Handle chat selection changes
+  useEffect(() => {
+    if (chatSelection && chatSelection.fullId !== model.fullId) {
+      setCurrentModel(chatSelection.provider, chatSelection.modelId);
+    }
+  }, [chatSelection, model.fullId]);
 
   const selectedModelInfo = getModel(model.provider, model.modelId);
 
-  const activeProjectId = projectState.currentProjectId;
-
-  const projectDefaults = useMemo<ProjectModelDefaults | undefined>(() => {
-    if (!activeProjectId) {
-      return undefined;
-    }
-
-    return settings.projectDefaults?.[activeProjectId];
-  }, [activeProjectId, settings.projectDefaults]);
-
-  const preferredSelection = useMemo(() => {
-    const candidate = projectDefaults?.defaultModel || settings.ai.defaultModel || defaultAISettings.defaultModel;
-
-    if (!candidate || typeof candidate !== 'string') {
-      return null;
-    }
-
-    const [provider, modelId] = candidate.split(':') as [AIProvider | undefined, string | undefined];
-
-    if (!provider || !modelId) {
-      return null;
-    }
-
-    const providerExists = PROVIDERS.some((p) => p.id === provider);
-
-    if (!providerExists) {
-      return null;
-    }
-
-    return {
-      provider: provider as AIProvider,
-      modelId,
-      fullId: `${provider}:${modelId}`,
-    };
-  }, [projectDefaults?.defaultModel, settings.ai.defaultModel]);
-
-  useEffect(() => {
-    if (!chatSelection) {
-      return;
-    }
-
-    if (chatSelection.fullId !== model.fullId) {
-      setCurrentModel(chatSelection.provider, chatSelection.modelId);
-      setSelectedProvider(chatSelection.provider);
-    }
-  }, [chatSelection?.fullId, chatSelection?.modelId, chatSelection?.provider, model.fullId]);
-
-  useEffect(() => {
-    if (!preferredSelection) {
-      return;
-    }
-
-    if (!activeChatId) {
-      if (model.fullId !== preferredSelection.fullId) {
-        setCurrentModel(preferredSelection.provider, preferredSelection.modelId);
-      }
-
-      return;
-    }
-
-    if (!chatSelection) {
-      setCurrentModel(preferredSelection.provider, preferredSelection.modelId);
-      setChatModel(activeChatId, preferredSelection.provider, preferredSelection.modelId);
-    }
-  }, [
-    preferredSelection?.fullId,
-    preferredSelection?.provider,
-    preferredSelection?.modelId,
-    activeChatId,
-    chatSelection,
-    model.fullId,
-  ]);
-
-  useEffect(() => {
-    // Update selected provider when model changes from elsewhere
-    setSelectedProvider(model.provider);
-  }, [model.provider]);
-
   const handleProviderChange = (newProvider: AIProvider) => {
-    setSelectedProvider(newProvider);
-
     // Select the default model for this provider
     const list = runtimeModels[newProvider] || MODELS[newProvider];
     const defaultModel = list.find((m) => m.isDefault) || list[0];
@@ -188,14 +119,14 @@ export function ProviderModelSelector() {
     }
   };
 
-  const providerConfig = getProviderConfig(selectedProvider);
+  const providerConfig = getProviderConfig(model.provider);
   const ProviderIcon = providerConfig.icon;
-  const modelCount = runtimeModels[selectedProvider]?.length ?? MODELS[selectedProvider]?.length ?? 0;
+  const modelCount = runtimeModels[model.provider]?.length ?? MODELS[model.provider]?.length ?? 0;
 
   return (
     <div className="flex gap-3 items-center w-full">
       {/* Provider Selector */}
-      <Select.Root value={selectedProvider} onValueChange={handleProviderChange}>
+      <Select.Root value={model.provider} onValueChange={handleProviderChange}>
         <Select.Trigger className={SELECTOR_BUTTON_CLASS}>
           <div className="w-6 h-6 rounded-lg bg-bolt-elements-background-depth-3 flex items-center justify-center flex-shrink-0">
             <ProviderIcon className="w-4 h-4 text-bolt-elements-textSecondary" />
@@ -213,15 +144,16 @@ export function ProviderModelSelector() {
           <Select.Content className={`${DROPDOWN_CONTENT_CLASS} min-w-[240px]`} position="popper" sideOffset={8}>
             <Select.ScrollUpButton className={SCROLL_BUTTON_CLASS}>▲</Select.ScrollUpButton>
             <Select.Viewport className="p-2 max-h-[400px]">
-              {PROVIDERS.map((provider) => (
-                <ProviderOption
-                  key={provider.id}
-                  provider={provider.id as AIProvider}
-                  modelCount={
-                    runtimeModels[provider.id as AIProvider]?.length ?? MODELS[provider.id as AIProvider]?.length ?? 0
-                  }
-                />
-              ))}
+              {filteredProviders.length > 0 ? (
+                filteredProviders.map((provider) => {
+                  const prov = provider.id as AIProvider;
+                  const modelCount = runtimeModels[prov]?.length ?? MODELS[prov]?.length ?? 0;
+
+                  return <ProviderOption key={provider.id} provider={prov} modelCount={modelCount} />;
+                })
+              ) : (
+                <div className="px-3 py-2 text-sm text-bolt-elements-textSecondary">No providers configured</div>
+              )}
             </Select.Viewport>
             <Select.ScrollDownButton className={SCROLL_BUTTON_CLASS}>▼</Select.ScrollDownButton>
           </Select.Content>
@@ -250,8 +182,8 @@ export function ProviderModelSelector() {
           <Select.Content className={`${DROPDOWN_CONTENT_CLASS} min-w-[480px]`} position="popper" sideOffset={8}>
             <Select.ScrollUpButton className={SCROLL_BUTTON_CLASS}>▲</Select.ScrollUpButton>
             <Select.Viewport className="p-2 max-h-[400px]">
-              {(runtimeModels[selectedProvider] || MODELS[selectedProvider])?.map((modelInfo) => (
-                <ModelOption key={`${selectedProvider}:${modelInfo.id}`} model={modelInfo} />
+              {(runtimeModels[model.provider] || MODELS[model.provider])?.map((modelInfo) => (
+                <ModelOption key={`${model.provider}:${modelInfo.id}`} model={modelInfo} />
               ))}
             </Select.Viewport>
             <Select.ScrollDownButton className={SCROLL_BUTTON_CLASS}>▼</Select.ScrollDownButton>
@@ -274,13 +206,17 @@ function ProviderOption({ provider, modelCount }: { provider: AIProvider; modelC
       className="relative flex items-center gap-3 px-3 py-3 rounded-lg cursor-pointer select-none hover:bg-bolt-elements-background-depth-3 focus:bg-bolt-elements-background-depth-3 outline-none transition-all duration-200 group"
     >
       <div className="w-10 h-10 rounded-lg bg-bolt-elements-background-depth-3 flex items-center justify-center group-hover:scale-110 transition-transform">
-        <ProviderIcon className="w-5 h-5 text-bolt-elements-textSecondary" />
+        <ProviderIcon className="w-5 h-5 text-bolt-elements-textSecondary group-data-[highlighted]:text-bolt-elements-button-primary-text" />
       </div>
 
       <Select.ItemText asChild>
         <div className="flex-1">
-          <div className="font-semibold text-bolt-elements-textPrimary">{config.name}</div>
-          <div className="text-xs text-bolt-elements-textSecondary">{modelCount} models available</div>
+          <div className="font-semibold text-bolt-elements-textPrimary group-data-[highlighted]:text-bolt-elements-button-primary-text">
+            {config.name}
+          </div>
+          <div className="text-xs text-bolt-elements-textTertiary group-data-[highlighted]:text-bolt-elements-button-primary-text">
+            {modelCount} models available
+          </div>
         </div>
       </Select.ItemText>
 
@@ -307,7 +243,7 @@ function ModelOption({ model }: { model: ModelInfo }) {
         hover:border-bolt-elements-borderColorActive hover:shadow-md
         focus:border-bolt-elements-borderColorActive focus:shadow-md
         outline-none transition-all duration-200 group
-        hover:scale-[1.005] focus:scale-[1.005]"
+        hover:scale-[1.005] focus:scale-[1.005] data-[highlighted]:text-bolt-elements-button-primary-text data-[highlighted] [&>div]:data-[highlighted]:text-bolt-elements-button-primary-text"
     >
       {/* Check Indicator - Top Right Badge */}
       <Select.ItemIndicator className="absolute top-1.5 right-1.5 flex-shrink-0 animate-scaleIn">

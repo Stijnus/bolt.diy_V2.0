@@ -82,7 +82,7 @@ export async function refreshProjects(force = false) {
   if (force && loadPromise) {
     try {
       await loadPromise;
-    } catch (_error) {
+    } catch {
       // ignore previous failure, we'll retry below
     }
   }

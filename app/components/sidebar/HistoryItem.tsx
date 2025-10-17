@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from '@remix-run/react';
 import { formatDistanceToNow } from 'date-fns';
 import { motion } from 'framer-motion';
-import { MessageSquare, Star, Clock, Sparkles } from 'lucide-react';
+import { MessageSquare, Star } from 'lucide-react';
 import { useState } from 'react';
 import { ChatActionsMenu } from './ChatActionsMenu';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
@@ -83,10 +83,10 @@ export function HistoryItem({ item, onDelete, onUpdate, isFavorite = false, onTo
         <a
           href={`/chat/${item.urlId}`}
           className={cn(
-            'flex items-center gap-3 rounded-xl border px-3 py-3 text-sm transition-all duration-200',
+            'flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition-all duration-200',
             isActive
-              ? 'border-bolt-elements-button-primary-background/40 bg-bolt-elements-background-depth-1 text-bolt-elements-textPrimary shadow-lg ring-2 ring-bolt-elements-button-primary-background/30'
-              : 'border-transparent bg-bolt-elements-background-depth-1/50 text-bolt-elements-textSecondary hover:border-bolt-elements-borderColor/60 hover:bg-bolt-elements-background-depth-1 hover:text-bolt-elements-textPrimary hover:shadow-md hover:scale-[1.01]',
+              ? 'bg-bolt-elements-background-depth-3 text-bolt-elements-textPrimary'
+              : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3/50 hover:text-bolt-elements-textPrimary',
           )}
         >
           {/* Icon */}
@@ -102,21 +102,15 @@ export function HistoryItem({ item, onDelete, onUpdate, isFavorite = false, onTo
           {/* Content */}
           <div className="min-w-0 flex-1">
             <Tooltip content={item.description || item.urlId} side="right" delayDuration={300}>
-              <div className="truncate font-semibold text-[13px] leading-snug">{item.description || item.urlId}</div>
+              <div className="truncate font-medium text-[13px] leading-snug">{item.description || item.urlId}</div>
             </Tooltip>
-            {/* Metadata row */}
-            <div className="mt-1 flex items-center gap-2 text-[11px] text-bolt-elements-textTertiary">
-              <span className="flex items-center gap-1.5">
-                <Clock className="h-3.5 w-3.5 flex-shrink-0" />
-                <span className="truncate">{timeAgo}</span>
-              </span>
+            {/* Metadata row - simplified */}
+            <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-bolt-elements-textTertiary">
+              <span className="truncate">{timeAgo}</span>
               {modelDisplay && (
                 <>
                   <span className="text-bolt-elements-borderColor/50">•</span>
-                  <span className="flex items-center gap-1 rounded-md bg-bolt-elements-background-depth-3/80 px-2 py-0.5 text-[10px] font-medium backdrop-blur-sm ring-1 ring-bolt-elements-borderColor/20">
-                    <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
-                    <span className="truncate">{modelDisplay}</span>
-                  </span>
+                  <span className="truncate">{modelDisplay}</span>
                 </>
               )}
             </div>
@@ -129,14 +123,14 @@ export function HistoryItem({ item, onDelete, onUpdate, isFavorite = false, onTo
               <button
                 onClick={handleToggleFavorite}
                 className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-lg transition-all',
+                  'flex h-6 w-6 items-center justify-center rounded-md transition-all',
                   isFavorite
                     ? 'text-yellow-500 hover:bg-yellow-500/10'
                     : 'text-bolt-elements-textTertiary opacity-0 group-hover:opacity-100 hover:bg-bolt-elements-background-depth-3 hover:text-yellow-500',
                 )}
                 aria-label={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
               >
-                <Star className={cn('h-4 w-4', isFavorite && 'fill-current')} />
+                <Star className={cn('h-3.5 w-3.5', isFavorite && 'fill-current')} />
               </button>
             )}
 

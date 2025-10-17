@@ -224,7 +224,12 @@ export function ProjectDetailPage({ projectId }: ProjectDetailPageProps) {
           handleEditSuccess();
         }}
       />
-      <EditProjectDialog project={project} open={editOpen} onOpenChange={handleEditChange} onSuccess={handleEditSuccess} />
+      <EditProjectDialog
+        project={project}
+        open={editOpen}
+        onOpenChange={handleEditChange}
+        onSuccess={handleEditSuccess}
+      />
     </div>
   );
 }

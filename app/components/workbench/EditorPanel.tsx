@@ -10,6 +10,8 @@ import {
   RefreshCcw,
   ChevronDown,
   Check,
+  FilePlus,
+  FolderPlus,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Panel, PanelGroup, PanelResizeHandle, type ImperativePanelHandle } from 'react-resizable-panels';
@@ -105,6 +107,9 @@ export const EditorPanel = memo(
       runInstall: boolean;
       startDevServer: boolean;
     }>({ title: '', includeTopFiles: true, selected: {}, runInstall: true, startDevServer: true });
+
+    const [createDialog, setCreateDialog] = useState<{ type: 'file' | 'folder'; parentPath: string } | null>(null);
+    const [createName, setCreateName] = useState('');
 
     useEffect(() => {
       if (importPreviewState) {
@@ -205,6 +210,127 @@ export const EditorPanel = memo(
 
     // Keep internal ref arrays bounded to the number of terminals
 
+    const normalizePath = useCallback((parentPath: string, name: string) => {
+      const trimmed = name.trim();
+
+      if (!trimmed) {
+        return null;
+      }
+
+      const trimmedParent = parentPath.endsWith('/') ? parentPath.slice(0, -1) : parentPath;
+
+      return `${trimmedParent}/${trimmed}`.replace(/\/+/g, '/');
+    }, []);
+
+    const handleCreate = useCallback((type: 'file' | 'folder', parentPath: string) => {
+      setCreateDialog({ type, parentPath });
+      setCreateName('');
+    }, []);
+
+    const handleCreateFile = useCallback(
+      (parentPath: string) => {
+        handleCreate('file', parentPath);
+      },
+      [handleCreate],
+    );
+
+    const handleCreateFolder = useCallback(
+      (parentPath: string) => {
+        handleCreate('folder', parentPath);
+      },
+      [handleCreate],
+    );
+
+    const closeCreateDialog = useCallback(() => {
+      setCreateDialog(null);
+      setCreateName('');
+    }, []);
+
+    const handleCreateConfirm = useCallback(async () => {
+      if (!createDialog) {
+        return;
+      }
+
+      const normalizedPath = normalizePath(createDialog.parentPath, createName);
+
+      if (!normalizedPath) {
+        toast.warn('Please enter a name');
+        return;
+      }
+
+      if (Boolean(files?.[normalizedPath])) {
+        toast.warn('An item with that name already exists');
+        return;
+      }
+
+      try {
+        if (createDialog.type === 'file') {
+          await workbenchStore.createFile(normalizedPath);
+        } else {
+          await workbenchStore.createFolder(normalizedPath);
+        }
+
+        workbenchStore.setSelectedFile(normalizedPath);
+        closeCreateDialog();
+      } catch (error) {
+        console.error(error);
+        toast.error(`Failed to create ${createDialog.type}`);
+      }
+    }, [closeCreateDialog, createDialog, createName, files, normalizePath]);
+
+    const handleRename = useCallback(
+      async (oldPath: string, newName: string) => {
+        if (!newName) {
+          return;
+        }
+
+        const parentDir = oldPath.replace(/\/(?:[^/]+)$/, '');
+        const newPath = normalizePath(parentDir || oldPath, newName);
+
+        if (!newPath) {
+          return;
+        }
+
+        if (newPath === oldPath) {
+          return;
+        }
+
+        if (Boolean(files?.[newPath])) {
+          toast.warn('An item with that name already exists');
+          return;
+        }
+
+        try {
+          await workbenchStore.renamePath(oldPath, newPath);
+
+          if (workbenchStore.selectedFile.get() === oldPath) {
+            workbenchStore.setSelectedFile(newPath);
+          }
+        } catch (error) {
+          console.error(error);
+          toast.error('Failed to rename');
+        }
+      },
+      [files, normalizePath],
+    );
+
+    const handleDelete = useCallback(async (targetPath: string) => {
+      if (!window.confirm('Delete this item?')) {
+        return;
+      }
+
+      try {
+        await workbenchStore.deletePath(targetPath);
+
+        if (workbenchStore.selectedFile.get() === targetPath) {
+          workbenchStore.setSelectedFile(undefined);
+        }
+      } catch (error) {
+        console.error(error);
+        toast.error('Failed to delete');
+      }
+    }, []);
+
     return (
       <DirectionProvider dir="ltr">
         <PanelGroup direction="vertical">
@@ -215,6 +341,27 @@ export const EditorPanel = memo(
                   <PanelHeader>
                     <FolderTree className="w-4 h-4 shrink-0" />
                     Files
+                    <div className="flex-1" />
+                    <IconButton
+                      size="md"
+                      icon={FilePlus}
+                      title="New file"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleCreateFile(WORK_DIR);
+                      }}
+                    />
+                    <IconButton
+                      size="md"
+                      icon={FolderPlus}
+                      title="New folder"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        handleCreateFolder(WORK_DIR);
+                      }}
+                    />
                   </PanelHeader>
                   <div className="flex-1 overflow-hidden">
                     <FileTree
@@ -224,6 +371,10 @@ export const EditorPanel = memo(
                       rootFolder={WORK_DIR}
                       selectedFile={selectedFile}
                       onFileSelect={onFileSelect}
+                      onCreateFile={handleCreateFile}
+                      onCreateFolder={handleCreateFolder}
+                      onRename={handleRename}
+                      onDelete={handleDelete}
                     />
                   </div>
                 </div>
@@ -687,7 +838,7 @@ export const EditorPanel = memo(
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <PanelHeaderButton>
-                          <span className="text-sm font-medium text-bolt-elements-textSecondary">
+                          <span className="text-sm font-medium text-bolt-elements-textSecondary hover:text-bolt-elements-button-primary-text">
                             {workbenchStore.getRestartCommand()}
                           </span>
                           <ChevronDown className="w-4 h-4" />
@@ -781,6 +932,48 @@ export const EditorPanel = memo(
             </div>
           </Panel>
         </PanelGroup>
+
+        <DialogRoot open={createDialog !== null}>
+          <Dialog onBackdrop={closeCreateDialog} onClose={closeCreateDialog}>
+            {createDialog ? (
+              <>
+                <DialogTitle>{createDialog.type === 'file' ? 'Create new file' : 'Create new folder'}</DialogTitle>
+                <DialogDescription className="px-5 py-4 text-sm">
+                  <label
+                    className="mb-1 block text-xs font-medium text-bolt-elements-textSecondary"
+                    htmlFor="create-item-name"
+                  >
+                    Name
+                  </label>
+                  <Input
+                    id="create-item-name"
+                    autoFocus
+                    value={createName}
+                    placeholder={createDialog.type === 'file' ? 'index.tsx' : 'components'}
+                    onChange={(event) => {
+                      setCreateName(event.target.value);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter') {
+                        handleCreateConfirm();
+                      } else if (event.key === 'Escape') {
+                        closeCreateDialog();
+                      }
+                    }}
+                  />
+                </DialogDescription>
+                <div className="flex justify-end gap-2 bg-bolt-elements-background-depth-2 px-5 pb-5">
+                  <DialogButton type="secondary" onClick={closeCreateDialog}>
+                    Cancel
+                  </DialogButton>
+                  <DialogButton type="primary" onClick={handleCreateConfirm} disabled={!createName.trim()}>
+                    Create
+                  </DialogButton>
+                </div>
+              </>
+            ) : null}
+          </Dialog>
+        </DialogRoot>
       </DirectionProvider>
     );
   },

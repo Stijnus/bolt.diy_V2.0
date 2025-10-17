@@ -4,6 +4,7 @@ import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
+import { loadWorkspaceState, saveWorkspaceState } from '~/lib/persistence/db';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { webcontainer } from '~/lib/webcontainer';
@@ -30,6 +31,9 @@ export class WorkbenchStore {
   #filesStore = new FilesStore(webcontainer);
   #editorStore = new EditorStore(this.#filesStore);
   #terminalStore = new TerminalStore(webcontainer);
+  #persistenceReady = false;
+  #persistenceTimer: ReturnType<typeof setTimeout> | null = null;
+  #filesStoreUnsubscribe: (() => void) | null = null;
 
   artifacts: Artifacts = import.meta.hot?.data.artifacts ?? map({});
 
@@ -51,6 +55,27 @@ export class WorkbenchStore {
       import.meta.hot.data.devServerRunning = this.devServerRunning;
       import.meta.hot.data.restartCommand = this.restartCommand;
       import.meta.hot.data.currentProjectId = this.currentProjectId;
+    }
+
+    if (typeof window !== 'undefined') {
+      this.#filesStoreUnsubscribe = this.#filesStore.files.subscribe(() => {
+        if (!this.#persistenceReady) {
+          return;
+        }
+
+        this.#scheduleWorkspacePersist();
+      });
+
+      void this.#restoreWorkspaceState();
+    } else {
+      this.#persistenceReady = true;
+    }
+
+    if (import.meta.hot) {
+      import.meta.hot.dispose(() => {
+        this.#filesStoreUnsubscribe?.();
+        this.#filesStoreUnsubscribe = null;
+      });
     }
   }
 
@@ -238,6 +263,26 @@ export class WorkbenchStore {
     }
   }
 
+  async createFile(filePath: string, content = '') {
+    await this.#filesStore.createFile(filePath, content);
+    this.setDocuments(this.#filesStore.files.get());
+  }
+
+  async createFolder(folderPath: string) {
+    await this.#filesStore.createFolder(folderPath);
+    this.setDocuments(this.#filesStore.files.get());
+  }
+
+  async renamePath(oldPath: string, newPath: string) {
+    await this.#filesStore.renamePath(oldPath, newPath);
+    this.setDocuments(this.#filesStore.files.get());
+  }
+
+  async deletePath(path: string) {
+    await this.#filesStore.deletePath(path);
+    this.setDocuments(this.#filesStore.files.get());
+  }
+
   getFileModifcations() {
     return this.#filesStore.getFileModifications();
   }
@@ -308,6 +353,46 @@ export class WorkbenchStore {
     }
 
     artifact.runner.runAction(data);
+  }
+
+  #scheduleWorkspacePersist() {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    if (this.#persistenceTimer) {
+      clearTimeout(this.#persistenceTimer);
+    }
+
+    this.#persistenceTimer = setTimeout(() => {
+      this.#persistenceTimer = null;
+
+      saveWorkspaceState(this.#filesStore.files.get()).catch((error) => {
+        logger.error('Failed to persist workspace state', error);
+      });
+    }, 500);
+  }
+
+  async #restoreWorkspaceState() {
+    if (typeof window === 'undefined') {
+      this.#persistenceReady = true;
+      return;
+    }
+
+    try {
+      const saved = await loadWorkspaceState();
+
+      if (saved && Object.keys(saved).length > 0) {
+        logger.info('Restoring workspace from saved state');
+        await this.#filesStore.restoreFiles(saved);
+        this.setDocuments(this.#filesStore.files.get());
+      }
+    } catch (error) {
+      logger.error('Failed to restore workspace state', error);
+    } finally {
+      this.#persistenceReady = true;
+      this.#scheduleWorkspacePersist();
+    }
   }
 
   #getArtifact(id: string) {

@@ -1,7 +1,7 @@
 import { useStore } from '@nanostores/react';
 import { useNavigate } from '@remix-run/react';
 import { motion, type Variants } from 'framer-motion';
-import { MessageSquarePlus, FolderKanban, Upload, Settings, FolderUp } from 'lucide-react';
+import { MessageSquarePlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -9,10 +9,10 @@ import { ConnectionStatusBanner } from './ConnectionStatusBanner';
 import { HistoryItem } from './HistoryItem';
 import { HistoryItemSkeleton } from './HistoryItemSkeleton';
 import { SearchBar } from './SearchBar';
+import { SidebarFooter } from './SidebarFooter';
+import { SidebarLogo } from './SidebarLogo';
 import { binDates } from './date-binning';
-import { LoginModal } from '~/components/auth/LoginModal';
 import { HeaderDateTime } from '~/components/header/HeaderDateTime';
-import { HeaderUserPanel } from '~/components/header/HeaderUserPanel';
 import { SettingsModal } from '~/components/settings/SettingsModal';
 
 import { Button } from '~/components/ui/Button';
@@ -20,7 +20,6 @@ import { Checkbox } from '~/components/ui/Checkbox';
 import { Dialog, DialogButton, DialogDescription, DialogRoot, DialogTitle } from '~/components/ui/Dialog';
 import { Input } from '~/components/ui/Input';
 import { Separator } from '~/components/ui/Separator';
-import { ThemeSwitch } from '~/components/ui/ThemeSwitch';
 import { useKeyboardShortcuts, shortcuts } from '~/hooks/useKeyboardShortcuts';
 
 import { useAuth } from '~/lib/contexts/AuthContext';
@@ -100,7 +99,6 @@ export function Menu() {
   const [list, setList] = useState<ChatHistoryItem[]>([]);
   const [open, setOpen] = useState(false);
   const [dialogContent, setDialogContent] = useState<DialogContent>(null);
-  const [authModalOpen, setAuthModalOpen] = useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [favorites, setFavorites] = useState<Set<string>>(new Set());
@@ -296,9 +294,10 @@ export function Menu() {
             return {
               id: remoteChat.url_id,
               urlId: remoteChat.url_id,
-              description: (remoteChat.description && remoteChat.description.trim() !== '') 
-                ? remoteChat.description 
-                : remoteChat.url_id,
+              description:
+                remoteChat.description && remoteChat.description.trim() !== ''
+                  ? remoteChat.description
+                  : remoteChat.url_id,
               messages: (remoteChat.messages ?? []) as ChatHistoryItem['messages'],
               timestamp: remoteChat.updated_at ?? new Date().toISOString(),
               model: (remoteChat.model as any) ?? undefined,
@@ -375,9 +374,7 @@ export function Menu() {
           })
           .map((item) => ({
             ...item,
-            description: (item.description && item.description.trim() !== '') 
-              ? item.description 
-              : item.urlId,
+            description: item.description && item.description.trim() !== '' ? item.description : item.urlId,
             origin: item.origin ?? 'local',
           }));
 
@@ -641,22 +638,23 @@ export function Menu() {
   }, [currentProjectId, database, loadEntries]);
 
   // Filter chats based on search query and validity
-  const filteredList = (searchQuery
-    ? list.filter((item) => {
-        const query = searchQuery.toLowerCase();
-        return (
-          item.description?.toLowerCase().includes(query) ||
-          item.urlId?.toLowerCase().includes(query) ||
-          item.model?.toLowerCase().includes(query)
-        );
-      })
-    : list
+  const filteredList = (
+    searchQuery
+      ? list.filter((item) => {
+          const query = searchQuery.toLowerCase();
+          return (
+            item.description?.toLowerCase().includes(query) ||
+            item.urlId?.toLowerCase().includes(query) ||
+            item.model?.toLowerCase().includes(query)
+          );
+        })
+      : list
   ).filter((item) => {
     // Additional validation: exclude chats with empty or invalid data
     const hasValidDescription = item.description && item.description.trim() !== '';
     const hasValidUrlId = item.urlId && item.urlId.trim() !== '';
     const hasMessages = Array.isArray(item.messages) && item.messages.length > 0;
-    
+
     // Only show items that have messages and either a description or urlId
     return hasMessages && (hasValidDescription || hasValidUrlId);
   });
@@ -675,20 +673,13 @@ export function Menu() {
         className="side-menu pointer-events-auto fixed top-0 z-[997] flex h-full w-[360px] flex-col border-r border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 shadow-2xl"
       >
         {/* Header */}
-        <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-6 py-4 shadow-sm">
-          {/* Top Row: Date/Time & Theme */}
-          <div className="mb-4 flex items-center justify-between gap-3">
-            <div className="flex-shrink-0 animate-fadeIn">
-              <HeaderDateTime />
-            </div>
-            <div className="flex items-center justify-center rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 p-1.5 shadow-sm transition-all hover:shadow-md hover:border-bolt-elements-borderColorActive">
-              <ThemeSwitch className="rounded-full p-0 text-bolt-elements-textSecondary transition-all hover:text-bolt-elements-textPrimary hover:scale-110 scale-75" />
-            </div>
-          </div>
+        <div className="border-b border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm">
+          {/* Logo */}
+          <SidebarLogo />
 
-          {/* Bottom Row: Auth Panel */}
-          <div className="flex items-center justify-between animate-fadeIn">
-            <HeaderUserPanel onRequestAuth={() => setAuthModalOpen(true)} />
+          {/* Date/Time */}
+          <div className="px-6 pb-4">
+            <HeaderDateTime />
           </div>
         </div>
 
@@ -698,91 +689,30 @@ export function Menu() {
         {/* Main Content */}
         <div className="flex h-full w-full flex-1 flex-col overflow-hidden text-[13px]">
           <div className="space-y-4 px-6 py-5">
-            {/* New Chat Button - Primary CTA */}
-            <div className="gradient-border rounded-xl p-[2px] shadow-md hover:shadow-xl transition-all animate-scaleIn">
-              <Button
-                asChild
-                className="w-full justify-center bg-gradient-to-r from-primary/90 to-primary text-primary-foreground hover:from-primary hover:to-primary/90 btn-ripple transition-all hover:scale-[1.02] border-0 shadow-none active:scale-[0.98]"
-                size="lg"
-              >
-                <a href="/" className="flex items-center gap-2.5 text-sm font-semibold text-primary-foreground">
-                  <MessageSquarePlus className="h-5 w-5" />
-                  Start new chat
-                </a>
-              </Button>
-            </div>
+            {/* New Chat Button - Simplified */}
+            <Button
+              asChild
+              className="w-full justify-start gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2 hover:border-bolt-elements-borderColorActive transition-all"
+              size="md"
+            >
+              <a href="/" className="flex items-center text-sm font-medium text-bolt-elements-textPrimary">
+                <MessageSquarePlus className="h-5 w-5" />
+                Start new chat
+              </a>
+            </Button>
 
             {/* Search Bar */}
             <SearchBar value={searchQuery} onChange={setSearchQuery} placeholder="Search conversations..." />
 
-            {/* Quick Actions - Compact Grid */}
-            <div className="grid grid-cols-2 gap-3 animate-slideInFromBottom">
-              <div className="group relative overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm hover:shadow-md hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center btn-ripple h-full py-4 hover:bg-transparent border-0"
-                  size="md"
-                  onClick={handleImportClick}
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <Upload className="h-5 w-5 text-bolt-elements-icon-primary transition-transform group-hover:scale-110" />
-                    <span className="text-xs font-semibold text-bolt-elements-textPrimary">Import</span>
-                  </div>
-                </Button>
-              </div>
-              <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" />
-
-              <div className="group relative overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm hover:shadow-md hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center btn-ripple h-full py-4 hover:bg-transparent border-0"
-                  size="md"
-                  onClick={handleImportFolderClick}
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <FolderUp className="h-5 w-5 text-bolt-elements-icon-primary transition-transform group-hover:scale-110" />
-                    <span className="text-xs font-semibold text-bolt-elements-textPrimary">Folder</span>
-                  </div>
-                </Button>
-              </div>
-              <input
-                ref={dirInputRef}
-                type="file"
-                onChange={handleDirInputChange}
-                className="hidden"
-                {...({ webkitdirectory: '' } as any)}
-              />
-
-              <div className="group relative overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm hover:shadow-md hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                <Button
-                  variant="ghost"
-                  className="w-full justify-center btn-ripple h-full py-4 hover:bg-transparent border-0"
-                  size="md"
-                  onClick={() => setSettingsModalOpen(true)}
-                >
-                  <div className="flex flex-col items-center gap-1.5">
-                    <Settings className="h-5 w-5 text-bolt-elements-icon-primary transition-transform group-hover:scale-110" />
-                    <span className="text-xs font-semibold text-bolt-elements-textPrimary">Settings</span>
-                  </div>
-                </Button>
-              </div>
-
-              {user && (
-                <div className="group relative overflow-hidden rounded-xl border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 shadow-sm hover:shadow-md hover:border-bolt-elements-borderColorActive hover:bg-bolt-elements-background-depth-2 transition-all hover:scale-[1.02] active:scale-[0.98]">
-                  <Button
-                    asChild
-                    variant="ghost"
-                    className="w-full justify-center btn-ripple h-full py-4 hover:bg-transparent border-0"
-                    size="md"
-                  >
-                    <a href="/projects" className="flex flex-col items-center gap-1.5">
-                      <FolderKanban className="h-5 w-5 text-bolt-elements-icon-primary transition-transform group-hover:scale-110" />
-                      <span className="text-xs font-semibold text-bolt-elements-textPrimary">Projects</span>
-                    </a>
-                  </Button>
-                </div>
-              )}
-            </div>
+            {/* Hidden file inputs for import functionality */}
+            <input ref={fileInputRef} type="file" accept=".json" onChange={handleFileChange} className="hidden" />
+            <input
+              ref={dirInputRef}
+              type="file"
+              onChange={handleDirInputChange}
+              className="hidden"
+              {...({ webkitdirectory: '' } as any)}
+            />
           </div>
 
           {/* History Section Header */}
@@ -891,6 +821,36 @@ export function Menu() {
             )}
           </div>
         </div>
+
+        {/* Footer Section */}
+        <SidebarFooter
+          user={user}
+          onImportClick={handleImportClick}
+          onImportFolderClick={handleImportFolderClick}
+          onSettingsClick={() => setSettingsModalOpen(true)}
+          onSignOut={() => {
+            // Sign out logic - placeholder for now
+            console.log('Sign out clicked');
+          }}
+          userPanel={
+            <div className="flex items-center gap-3 px-2 py-2">
+              <img
+                src={
+                  user?.user_metadata?.avatar_url ||
+                  `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email || 'user'}`
+                }
+                alt="User avatar"
+                className="h-8 w-8 rounded-full border border-bolt-elements-borderColor"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-medium text-bolt-elements-textPrimary">
+                  {user?.user_metadata?.name || user?.email?.split('@')[0] || 'User'}
+                </div>
+                <div className="truncate text-xs text-bolt-elements-textSecondary">{user?.email}</div>
+              </div>
+            </div>
+          }
+        />
       </motion.div>
       {/* Import Preview Dialog */}
       <DialogRoot open={!!importPreview}>
@@ -1001,7 +961,9 @@ export function Menu() {
                           <label className="flex items-center gap-2 text-xs">
                             <Checkbox
                               checked={importOptions.includeTopFiles}
-                              onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, includeTopFiles: Boolean(v) }))}
+                              onCheckedChange={(v: boolean | 'indeterminate') =>
+                                setImportOptions((o) => ({ ...o, includeTopFiles: Boolean(v) }))
+                              }
                             />
                             Include top-level files
                           </label>
@@ -1044,14 +1006,18 @@ export function Menu() {
                         <label className="flex items-center gap-2 text-xs">
                           <Checkbox
                             checked={importOptions.runInstall}
-                            onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, runInstall: Boolean(v) }))}
+                            onCheckedChange={(v: boolean | 'indeterminate') =>
+                              setImportOptions((o) => ({ ...o, runInstall: Boolean(v) }))
+                            }
                           />
                           Run npm install (if package.json present)
                         </label>
                         <label className="flex items-center gap-2 text-xs">
                           <Checkbox
                             checked={importOptions.startDevServer}
-                            onCheckedChange={(v: boolean | 'indeterminate') => setImportOptions((o) => ({ ...o, startDevServer: Boolean(v) }))}
+                            onCheckedChange={(v: boolean | 'indeterminate') =>
+                              setImportOptions((o) => ({ ...o, startDevServer: Boolean(v) }))
+                            }
                           />
                           Start dev server after import
                         </label>
@@ -1148,9 +1114,6 @@ export function Menu() {
           ) : null}
         </Dialog>
       </DialogRoot>
-
-      {/* Login Modal */}
-      <LoginModal open={authModalOpen} onClose={() => setAuthModalOpen(false)} />
 
       {/* Settings Modal */}
       <SettingsModal open={settingsModalOpen} onClose={() => setSettingsModalOpen(false)} />

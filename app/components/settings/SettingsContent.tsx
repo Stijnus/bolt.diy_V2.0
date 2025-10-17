@@ -53,12 +53,13 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
   const canonicalDisplayName = user?.user_metadata?.name || '';
   const trimmedDisplayName = displayName.trim();
 
-  const displayNameError =
-    trimmedDisplayName.length === 0
+  const displayNameError = user
+    ? trimmedDisplayName.length === 0
       ? 'Display name is required.'
       : trimmedDisplayName.length > 64
         ? 'Display name must be 64 characters or fewer.'
-        : null;
+        : null
+    : null;
 
   const displayNameDirty = trimmedDisplayName !== canonicalDisplayName;
   const hasPendingChanges = settingsDirty || displayNameDirty;
@@ -239,18 +240,24 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
 
         await response.json();
       } else {
+        console.log('[Settings] Saving as guest user, validatedSettings:', validatedSettings);
+
         const { getDatabase, setAppSettings } = await import('~/lib/persistence/db');
         const db = await getDatabase();
+        console.log('[Settings] Got database:', !!db);
 
         if (!db) {
           throw new Error('IndexedDB unavailable');
         }
 
         await setAppSettings(db, validatedSettings);
+        console.log('[Settings] Successfully saved to IndexedDB');
         setPersistenceUnavailable(false);
       }
 
+      console.log('[Settings] About to mark as saved');
       markSaved(validatedSettings);
+      console.log('[Settings] Marked as saved, hasUnsavedChanges should be false now');
 
       if (displayNameDirty) {
         setDisplayName(trimmedDisplayName);
@@ -413,7 +420,18 @@ export function SettingsContent({ showBackButton = false }: { showBackButton?: b
         />
       ),
     },
-    { value: 'usage', label: renderTabLabel('Usage', false), ariaLabel: 'Usage', content: <UsageTab /> },
+    {
+      value: 'usage',
+      label: renderTabLabel('Usage', false),
+      ariaLabel: 'Usage',
+      content: (
+        <UsageTab
+          preferences={draft.preferences}
+          onPreferenceChange={handlePreferenceChange}
+          isAuthenticated={Boolean(user)}
+        />
+      ),
+    },
     {
       value: 'account',
       label: renderTabLabel('Account', false),

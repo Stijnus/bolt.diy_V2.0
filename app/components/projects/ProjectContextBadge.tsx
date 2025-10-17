@@ -32,7 +32,10 @@ export function ProjectContextBadge({ lastAutoSaveTime = 0, onManualSave }: Proj
   useEffect(() => {
     if (!lastAutoSaveTime) {
       setLastSaveText('Never');
-      return;
+
+      return () => {
+        // no interval to clear
+      };
     }
 
     const updateText = () => {

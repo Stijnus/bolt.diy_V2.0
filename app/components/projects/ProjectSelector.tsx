@@ -42,7 +42,7 @@ export function ProjectSelector() {
         }}
         disabled={state.loading || !hasProjects}
       >
-        <SelectTrigger className="h-9 min-w-[220px] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary focus:ring-bolt-elements-borderColorActive">
+        <SelectTrigger className="h-9 min-w-[220px] rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 px-3 text-sm text-bolt-elements-textPrimary hover:text-bolt-elements-button-primary-text focus:ring-bolt-elements-borderColorActive">
           <div className="flex items-center gap-2">
             {state.loading ? (
               <Loader2 className="h-4 w-4 animate-spin text-bolt-elements-textSecondary" />

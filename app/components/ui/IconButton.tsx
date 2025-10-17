@@ -1,5 +1,6 @@
 import type { LucideIcon } from 'lucide-react';
-import { memo } from 'react';
+import { forwardRef, memo } from 'react';
+import type React from 'react';
 import { cn } from '~/lib/utils';
 
 type IconSize = 'sm' | 'md' | 'lg' | 'xl' | 'xxl';
@@ -26,8 +27,11 @@ type IconButtonWithChildrenProps = {
 
 type IconButtonProps = IconButtonWithIconProps | IconButtonWithChildrenProps;
 
-export const IconButton = memo(
-  ({
+// Allow passing through any standard button attributes (e.g. aria-*, data-*, onPointerDown) from wrappers like Radix
+type IconButtonAllProps = IconButtonProps & React.ButtonHTMLAttributes<HTMLButtonElement>;
+
+const IconButtonBase = (
+  {
     icon: iconComponent,
     size = 'xl',
     className,
@@ -37,31 +41,39 @@ export const IconButton = memo(
     title,
     onClick,
     children,
-  }: IconButtonProps) => {
-    const IconComponent = iconComponent;
+    ...rest
+  }: IconButtonAllProps,
+  ref: React.Ref<HTMLButtonElement>,
+) => {
+  const IconComponent = iconComponent;
 
-    return (
-      <button
-        className={cn(
-          'flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-item-contentActive rounded-md p-1 enabled:hover:bg-bolt-elements-item-backgroundActive disabled:cursor-not-allowed',
-          disabled && cn('opacity-30', disabledClassName),
-          className,
-        )}
-        title={title}
-        disabled={disabled}
-        onClick={(event) => {
-          if (disabled) {
-            return;
-          }
+  return (
+    <button
+      ref={ref}
+      className={cn(
+        'flex items-center text-bolt-elements-item-contentDefault bg-transparent enabled:hover:text-bolt-elements-button-primary-text enabled:hover:font-bold p-1 disabled:cursor-not-allowed',
+        disabled && cn('opacity-30', disabledClassName),
+        className,
+      )}
+      title={title}
+      disabled={disabled}
+      {...rest}
+      onClick={(event) => {
+        if (disabled) {
+          return;
+        }
 
-          onClick?.(event);
-        }}
-      >
-        {children ? children : IconComponent && <IconComponent className={cn(getIconSize(size), iconClassName)} />}
-      </button>
-    );
-  },
-);
+        onClick?.(event);
+      }}
+    >
+      {children ? children : IconComponent && <IconComponent className={cn(getIconSize(size), iconClassName)} />}
+    </button>
+  );
+};
+
+const ForwardedIconButton = forwardRef<HTMLButtonElement, IconButtonAllProps>(IconButtonBase);
+
+export const IconButton = memo(ForwardedIconButton);
 
 function getIconSize(size: IconSize) {
   const sizeMap = {

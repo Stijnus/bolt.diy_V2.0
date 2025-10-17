@@ -21,7 +21,7 @@ export const ThemeSwitch = memo(({ className }: ThemeSwitchProps) => {
       <IconButton
         className={className}
         icon={theme === 'dark' ? Sun : Moon}
-        size="lg"
+        size="sm"
         title="Toggle Theme"
         onClick={toggleTheme}
       />

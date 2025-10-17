@@ -29,7 +29,7 @@ export function ChatActionsMenu({ onExport, onRename, onDuplicate, onDelete }: C
     <DropdownMenu open={open} onOpenChange={setOpen}>
       <DropdownMenuTrigger asChild>
         <button
-          className="flex h-7 w-7 items-center justify-center rounded-lg text-bolt-elements-textTertiary transition-all hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary"
+          className="flex h-7 w-7 items-center justify-center rounded-lg text-bolt-elements-textTertiary transition-all hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-button-primary-text"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();

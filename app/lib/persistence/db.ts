@@ -1,5 +1,6 @@
 import type { UIMessage } from 'ai';
 import type { ChatHistoryItem } from './useChatHistory';
+import type { FileMap } from '~/lib/stores/files';
 import type { SessionUsage } from '~/lib/stores/usage';
 import { createScopedLogger } from '~/utils/logger';
 
@@ -8,6 +9,14 @@ const logger = createScopedLogger('ChatHistory');
 export type SessionUsageWithTimestamp = SessionUsage & { timestamp: string };
 
 let dbPromise: Promise<IDBDatabase | undefined> | undefined;
+
+type WorkspaceStateRecord = {
+  id: string;
+  files: FileMap;
+  updatedAt: string;
+};
+
+const WORKSPACE_STATE_ID = 'default';
 
 export async function getDatabase(): Promise<IDBDatabase | undefined> {
   if (typeof window === 'undefined') {
@@ -21,13 +30,61 @@ export async function getDatabase(): Promise<IDBDatabase | undefined> {
   return dbPromise;
 }
 
+export async function saveWorkspaceState(files: FileMap): Promise<void> {
+  const db = await getDatabase();
+
+  if (!db) {
+    return;
+  }
+
+  const sanitizedEntries = Object.entries(files).filter(([, value]) => value !== undefined);
+  const sanitizedFiles = Object.fromEntries(sanitizedEntries) as FileMap;
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('workspace_state', 'readwrite');
+    const store = transaction.objectStore('workspace_state');
+
+    const record: WorkspaceStateRecord = {
+      id: WORKSPACE_STATE_ID,
+      files: sanitizedFiles,
+      updatedAt: new Date().toISOString(),
+    };
+
+    const request = store.put(record);
+
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function loadWorkspaceState(): Promise<FileMap | undefined> {
+  const db = await getDatabase();
+
+  if (!db) {
+    return undefined;
+  }
+
+  return await new Promise<FileMap | undefined>((resolve, reject) => {
+    const transaction = db.transaction('workspace_state', 'readonly');
+    const store = transaction.objectStore('workspace_state');
+    const request = store.get(WORKSPACE_STATE_ID);
+
+    request.onsuccess = () => {
+      const record = request.result as WorkspaceStateRecord | undefined;
+      resolve(record?.files);
+    };
+
+    request.onerror = () => reject(request.error);
+  });
+}
+
 // this is used at the top level and never rejects
 export async function openDatabase(): Promise<IDBDatabase | undefined> {
   console.log('[DB] openDatabase called');
 
   return new Promise((resolve) => {
     // Version 4: Added app_settings store; v3 fixed urlId unique constraint
-    const request = indexedDB.open('boltHistory', 5);
+    const request = indexedDB.open('boltHistory', 6);
 
     request.onupgradeneeded = (event: IDBVersionChangeEvent) => {
       console.log('[DB] Database upgrade needed, current version:', event.oldVersion);
@@ -79,6 +136,11 @@ export async function openDatabase(): Promise<IDBDatabase | undefined> {
       if (!db.objectStoreNames.contains('app_settings')) {
         const settingsStore = db.createObjectStore('app_settings', { keyPath: 'id' });
         settingsStore.createIndex('id', 'id', { unique: true });
+      }
+
+      if (!db.objectStoreNames.contains('workspace_state')) {
+        const workspaceStore = db.createObjectStore('workspace_state', { keyPath: 'id' });
+        workspaceStore.createIndex('id', 'id', { unique: true });
       }
     };
 
@@ -671,12 +733,23 @@ export async function repairDatabase(db: IDBDatabase): Promise<{
 export async function getAppSettings(db: IDBDatabase): Promise<any | null> {
   return new Promise((resolve, reject) => {
     try {
+      console.log('[DB] getAppSettings: Starting transaction');
+
       const tx = db.transaction('app_settings', 'readonly');
       const store = tx.objectStore('app_settings');
       const req = store.get('guest');
-      req.onsuccess = () => resolve((req.result as any) ?? null);
-      req.onerror = () => reject(req.error);
-    } catch {
+
+      req.onsuccess = () => {
+        console.log('[DB] getAppSettings: Success, result:', req.result);
+        resolve((req.result as any) ?? null);
+      };
+
+      req.onerror = () => {
+        console.error('[DB] getAppSettings: Error', req.error);
+        reject(req.error);
+      };
+    } catch (error) {
+      console.error('[DB] getAppSettings: Exception', error);
       resolve(null);
     }
   });
@@ -685,13 +758,26 @@ export async function getAppSettings(db: IDBDatabase): Promise<any | null> {
 export async function setAppSettings(db: IDBDatabase, settings: any): Promise<void> {
   return new Promise((resolve, reject) => {
     try {
+      console.log('[DB] setAppSettings: Starting transaction with settings:', settings);
+
       const tx = db.transaction('app_settings', 'readwrite');
       const store = tx.objectStore('app_settings');
       const record = { id: 'guest', settings, updatedAt: new Date().toISOString() };
+      console.log('[DB] setAppSettings: Putting record:', record);
+
       const req = store.put(record);
-      req.onsuccess = () => resolve();
-      req.onerror = () => reject(req.error);
-    } catch {
+
+      req.onsuccess = () => {
+        console.log('[DB] setAppSettings: Success');
+        resolve();
+      };
+
+      req.onerror = () => {
+        console.error('[DB] setAppSettings: Error', req.error);
+        reject(req.error);
+      };
+    } catch (error) {
+      console.error('[DB] setAppSettings: Exception', error);
       resolve();
     }
   });

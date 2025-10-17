@@ -82,7 +82,7 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
     counts.deepseek = 2; // deepseek-chat, deepseek-reasoner
   }
 
-  // xAI (Grok)
+  // xAI (Grok) - dynamically fetch model count
   const XAI_API_KEY = getHeaderKey(request, 'xai') || getEnvVar(env, 'XAI_API_KEY');
 
   if (XAI_API_KEY) {
@@ -121,11 +121,11 @@ export async function loader({ context, request }: LoaderFunctionArgs) {
    * static counts based on our known model configurations when API keys are present.
    */
 
-  // Anthropic - return static count of 3 models (Claude 3.5 Sonnet New, Haiku, Opus)
+  // Anthropic - return static count of 5 models (Claude Sonnet 4.5, Haiku 4.5, Opus 4.1, Sonnet 4, 3.5 Sonnet Legacy)
   const ANTHROPIC_API_KEY = getHeaderKey(request, 'anthropic') || getEnvVar(env, 'ANTHROPIC_API_KEY');
 
   if (ANTHROPIC_API_KEY) {
-    counts.anthropic = 3;
+    counts.anthropic = 5;
   }
 
   // OpenAI - return static count of 6 models (GPT-5, GPT-5 Mini, GPT-4.1, o3, o4-mini, GPT-4o)

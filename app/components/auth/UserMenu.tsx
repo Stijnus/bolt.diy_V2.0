@@ -57,7 +57,7 @@ export function UserMenu() {
           <button
             type="button"
             className={classNames(
-              'group flex items-center gap-2.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 pr-3 shadow-sm transition-all hover:border-bolt-elements-borderColorActive hover:shadow-md hover:bg-bolt-elements-background-depth-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
+              'group flex items-center gap-2.5 rounded-full border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 px-2 py-1.5 pr-3 shadow-sm transition-all hover:border-bolt-elements-borderColorActive hover:shadow-md hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-button-primary-text focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background',
               {
                 'border-bolt-elements-borderColorActive ring-2 ring-primary ring-offset-2 ring-offset-background bg-bolt-elements-background-depth-3':
                   menuOpen,

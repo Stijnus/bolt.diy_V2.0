@@ -1,5 +1,17 @@
-import { ChevronRight, ChevronDown, File as FileIcon, Circle } from 'lucide-react';
-import { memo, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  ChevronRight,
+  ChevronDown,
+  File as FileIcon,
+  Circle,
+  Pencil,
+  Trash2,
+  FolderPlus,
+  FilePlus,
+  MoreVertical,
+} from 'lucide-react';
+import { memo, useEffect, useMemo, useState, useCallback, useRef, type ReactNode } from 'react';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '~/components/ui/DropdownMenu';
+import { IconButton } from '~/components/ui/IconButton';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { createScopedLogger, renderLogger } from '~/utils/logger';
@@ -20,6 +32,10 @@ interface Props {
   hiddenFiles?: Array<string | RegExp>;
   unsavedFiles?: Set<string>;
   className?: string;
+  onCreateFile?: (parentPath: string) => void;
+  onCreateFolder?: (parentPath: string) => void;
+  onRename?: (oldPath: string, newName: string) => void;
+  onDelete?: (path: string) => void;
 }
 
 export const FileTree = memo(
@@ -34,6 +50,10 @@ export const FileTree = memo(
     hiddenFiles,
     className,
     unsavedFiles,
+    onCreateFile,
+    onCreateFolder,
+    onRename,
+    onDelete,
   }: Props) => {
     renderLogger.trace('FileTree');
 
@@ -135,6 +155,8 @@ export const FileTree = memo(
                   onClick={() => {
                     onFileSelect?.(fileOrFolder.fullPath);
                   }}
+                  onRename={onRename}
+                  onDelete={onDelete}
                 />
               );
             }
@@ -148,6 +170,10 @@ export const FileTree = memo(
                   onClick={() => {
                     toggleCollapseState(fileOrFolder.fullPath);
                   }}
+                  onCreateFile={onCreateFile}
+                  onCreateFolder={onCreateFolder}
+                  onRename={onRename}
+                  onDelete={onDelete}
                 />
               );
             }
@@ -168,21 +194,48 @@ interface FolderProps {
   collapsed: boolean;
   selected?: boolean;
   onClick: () => void;
+  onCreateFile?: (parentPath: string) => void;
+  onCreateFolder?: (parentPath: string) => void;
+  onRename?: (oldPath: string, newName: string) => void;
+  onDelete?: (path: string) => void;
 }
 
-function Folder({ folder: { depth, name }, collapsed, selected = false, onClick }: FolderProps) {
+function Folder({
+  folder: { depth, name, fullPath },
+  collapsed,
+  selected = false,
+  onClick,
+  onCreateFile,
+  onCreateFolder,
+  onRename,
+  onDelete,
+}: FolderProps) {
+  const { actionMenu, editing, inputHandlers } = useNodeActions({
+    type: 'folder',
+    name,
+    fullPath,
+    onCreateFile,
+    onCreateFolder,
+    onRename,
+    onDelete,
+  });
+
+  const label = editing ? <InlineRenameInput {...inputHandlers} /> : <NodeLabel name={name} />;
+
   return (
     <NodeButton
       className={classNames('group', {
-        'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover:bg-bolt-elements-item-backgroundActive':
+        'bg-transparent text-bolt-elements-item-contentDefault hover:text-bolt-elements-item-contentActive hover-bg-bolt-elements-item-backgroundActive':
           !selected,
         'bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent': selected,
       })}
       depth={depth}
       icon={collapsed ? <ChevronRight className="w-4 h-4 scale-98" /> : <ChevronDown className="w-4 h-4 scale-98" />}
-      onClick={onClick}
+      onClick={editing ? undefined : onClick}
+      interactive={!editing}
+      actionMenu={editing ? null : actionMenu}
     >
-      {name}
+      {label}
     </NodeButton>
   );
 }
@@ -192,9 +245,35 @@ interface FileProps {
   selected: boolean;
   unsavedChanges?: boolean;
   onClick: () => void;
+  onRename?: (oldPath: string, newName: string) => void;
+  onDelete?: (path: string) => void;
 }
 
-function File({ file: { depth, name }, onClick, selected, unsavedChanges = false }: FileProps) {
+function File({
+  file: { depth, name, fullPath },
+  onClick,
+  selected,
+  unsavedChanges = false,
+  onRename,
+  onDelete,
+}: FileProps) {
+  const { actionMenu, editing, inputHandlers } = useNodeActions({
+    type: 'file',
+    name,
+    fullPath,
+    onRename,
+    onDelete,
+  });
+
+  const label = editing ? (
+    <InlineRenameInput {...inputHandlers} />
+  ) : (
+    <NodeLabel
+      name={name}
+      trailingIcon={unsavedChanges ? <Circle className="w-2 h-2 shrink-0 text-orange-500 fill-current" /> : null}
+    />
+  );
+
   return (
     <NodeButton
       className={classNames('group', {
@@ -209,16 +288,11 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
           })}
         />
       }
-      onClick={onClick}
+      onClick={editing ? undefined : onClick}
+      interactive={!editing}
+      actionMenu={editing ? null : actionMenu}
     >
-      <div
-        className={classNames('flex items-center', {
-          'group-hover:text-bolt-elements-item-contentActive': !selected,
-        })}
-      >
-        <div className="flex-1 truncate pr-2">{name}</div>
-        {unsavedChanges && <Circle className="w-2 h-2 shrink-0 text-orange-500 fill-current" />}
-      </div>
+      {label}
     </NodeButton>
   );
 }
@@ -228,22 +302,221 @@ interface ButtonProps {
   icon: ReactNode;
   children: ReactNode;
   className?: string;
+  actionMenu?: ReactNode;
   onClick?: () => void;
+  interactive?: boolean;
 }
 
-function NodeButton({ depth, icon, onClick, className, children }: ButtonProps) {
+function NodeButton({ depth, icon, onClick, className, children, actionMenu, interactive = true }: ButtonProps) {
   return (
-    <button
-      className={classNames(
-        'flex items-center gap-1.5 w-full pr-2 border-2 border-transparent text-faded py-0.5',
-        className,
-      )}
-      style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
-      onClick={() => onClick?.()}
+    <div
+      className={classNames('flex items-center w-full pr-2 border-2 border-transparent text-faded py-0.5', className)}
     >
-      <div className="scale-120 shrink-0">{icon}</div>
-      <div className="truncate w-full text-left">{children}</div>
-    </button>
+      {interactive ? (
+        <button
+          type="button"
+          className="flex items-center gap-1.5 flex-1 text-left"
+          style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+          onClick={() => onClick?.()}
+        >
+          <div className="scale-120 shrink-0">{icon}</div>
+          <div className="truncate w-full text-left">{children}</div>
+        </button>
+      ) : (
+        <div
+          className="flex items-center gap-1.5 flex-1 text-left"
+          style={{ paddingLeft: `${6 + depth * NODE_PADDING_LEFT}px` }}
+        >
+          <div className="scale-120 shrink-0">{icon}</div>
+          <div className="truncate w-full text-left">{children}</div>
+        </div>
+      )}
+      {actionMenu ? <div className="ml-1 shrink-0">{actionMenu}</div> : null}
+    </div>
+  );
+}
+
+interface UseNodeActionsArgs {
+  type: 'file' | 'folder';
+  name: string;
+  fullPath: string;
+  onCreateFile?: (parentPath: string) => void;
+  onCreateFolder?: (parentPath: string) => void;
+  onRename?: (oldPath: string, newName: string) => void;
+  onDelete?: (path: string) => void;
+}
+
+function useNodeActions({
+  type,
+  name,
+  fullPath,
+  onCreateFile,
+  onCreateFolder,
+  onRename,
+  onDelete,
+}: UseNodeActionsArgs) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+
+  const handleRenameSubmit = useCallback(
+    (newName: string) => {
+      const trimmed = newName.trim();
+
+      if (!trimmed || trimmed === name || !onRename) {
+        setIsEditing(false);
+        setIsOpen(false);
+
+        return;
+      }
+
+      onRename(fullPath, trimmed);
+      setIsEditing(false);
+      setIsOpen(false);
+    },
+    [fullPath, name, onRename],
+  );
+
+  const handleRenameCancel = useCallback(() => {
+    setIsEditing(false);
+    setIsOpen(false);
+  }, []);
+
+  const actionMenu = (
+    <DropdownMenu
+      open={isOpen}
+      onOpenChange={(open) => {
+        setIsOpen(open);
+      }}
+      modal={false}
+    >
+      <DropdownMenuTrigger asChild>
+        <IconButton
+          icon={MoreVertical}
+          size="md"
+          className="opacity-70 transition-opacity group-hover:opacity-100 hover:opacity-100 focus:opacity-100"
+          title="Open actions"
+        />
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" sideOffset={4} className="min-w-[160px]">
+        <DropdownMenuItem
+          className="gap-2"
+          onClick={() => {
+            if (!onRename) {
+              return;
+            }
+
+            setIsEditing(true);
+            setIsOpen(false);
+          }}
+        >
+          <Pencil className="w-4 h-4" /> Rename
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          className="gap-2"
+          onClick={() => {
+            onDelete?.(fullPath);
+            setIsOpen(false);
+          }}
+        >
+          <Trash2 className="w-4 h-4" /> Delete
+        </DropdownMenuItem>
+        {type === 'folder' ? (
+          <>
+            <DropdownMenuItem
+              className="gap-2"
+              onClick={() => {
+                onCreateFile?.(fullPath);
+                setIsOpen(false);
+              }}
+            >
+              <FilePlus className="w-4 h-4" /> New file
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="gap-2"
+              onClick={() => {
+                onCreateFolder?.(fullPath);
+                setIsOpen(false);
+              }}
+            >
+              <FolderPlus className="w-4 h-4" /> New folder
+            </DropdownMenuItem>
+          </>
+        ) : null}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+
+  return {
+    actionMenu,
+    editing: isEditing,
+    inputHandlers: {
+      name,
+      onSubmit: handleRenameSubmit,
+      onCancel: handleRenameCancel,
+    },
+  };
+}
+
+interface InlineRenameInputProps {
+  name: string;
+  onSubmit: (value: string) => void;
+  onCancel: () => void;
+}
+
+function InlineRenameInput({ name, onSubmit, onCancel }: InlineRenameInputProps) {
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [value, setValue] = useState(name);
+  const actionRef = useRef<'none' | 'submit' | 'cancel'>('none');
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      inputRef.current?.focus();
+      inputRef.current?.select();
+    });
+  }, []);
+
+  return (
+    <div
+      className="flex items-center gap-2"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') {
+          event.preventDefault();
+          actionRef.current = 'cancel';
+          onCancel();
+        } else if (event.key === 'Enter') {
+          event.preventDefault();
+          actionRef.current = 'submit';
+          onSubmit(value);
+        }
+      }}
+    >
+      <input
+        ref={inputRef}
+        className="w-full rounded bg-bolt-elements-background-depth-3 px-2 py-1 text-sm text-bolt-elements-textPrimary outline-none"
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+        onBlur={() => {
+          if (actionRef.current === 'none') {
+            actionRef.current = 'submit';
+            onSubmit(value);
+          }
+        }}
+      />
+    </div>
+  );
+}
+
+interface NodeLabelProps {
+  name: string;
+  trailingIcon?: ReactNode;
+}
+
+function NodeLabel({ name, trailingIcon }: NodeLabelProps) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      <div className="flex-1 truncate pr-2">{name}</div>
+      {trailingIcon}
+    </div>
   );
 }
 

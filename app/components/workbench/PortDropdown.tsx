@@ -69,7 +69,7 @@ export const PortDropdown = memo(
                   className={
                     activePreviewIndex === preview.index
                       ? 'text-bolt-elements-item-contentAccent'
-                      : 'text-bolt-elements-item-contentDefault group-hover:text-bolt-elements-item-contentActive'
+                      : 'text-bolt-elements-item-contentDefault hover:text-bolt-elements-button-primary-text'
                   }
                 >
                   {preview.port}

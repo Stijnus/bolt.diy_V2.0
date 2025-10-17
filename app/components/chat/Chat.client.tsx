@@ -11,12 +11,15 @@ import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from
 import { useProjectAutoSave } from '~/lib/hooks/useProjectAutoSave';
 import { useChatHistory, chatId } from '~/lib/persistence';
 import { revertMessagesToIndex } from '~/lib/persistence/chat-actions';
+import { getDatabase, saveUsage } from '~/lib/persistence/db';
 import { chatStore } from '~/lib/stores/chat';
 import { chatModeStore, setPendingPlan } from '~/lib/stores/chat-mode';
 import { currentModel } from '~/lib/stores/model';
 import { projectStore } from '~/lib/stores/project';
 import { settingsStore } from '~/lib/stores/settings';
+import { addUsage, resetSessionUsage } from '~/lib/stores/usage';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { supabase } from '~/lib/supabase/client';
 import type { FullModelId } from '~/types/model';
 import { fileModificationsToHTML } from '~/utils/diff';
 import { cubicEasingFn } from '~/utils/easings';
@@ -94,8 +97,33 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const { showChat, pendingInput } = useStore(chatStore);
   const { mode, pendingPlan } = useStore(chatModeStore);
-  const modelSelection = useStore(currentModel);
   const settings = useStore(settingsStore);
+
+  const modelSelection = useStore(currentModel);
+
+  // Reset per-conversation usage when active chat changes
+  const activeChatId = useStore(chatId);
+  useEffect(() => {
+    resetSessionUsage();
+  }, [activeChatId]);
+
+  // Optionally reset usage when model changes (preference-controlled)
+  const prevModelRef = useRef<string | null>(null);
+  useEffect(() => {
+    const enabled = Boolean(settings?.preferences?.resetUsageOnModelChange);
+
+    if (!modelSelection?.fullId) {
+      return;
+    }
+
+    if (enabled) {
+      if (prevModelRef.current && prevModelRef.current !== modelSelection.fullId) {
+        resetSessionUsage();
+      }
+    }
+
+    prevModelRef.current = modelSelection.fullId;
+  }, [modelSelection.fullId, settings?.preferences?.resetUsageOnModelChange]);
 
   const [animationScope, animate] = useAnimate();
 
@@ -128,6 +156,98 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
   const { parsedMessages, parseMessages } = useMessageParser();
 
+  // Track and persist token usage per assistant message
+  const lastUsageAppliedIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (isLoading || messages.length === 0) {
+      return;
+    }
+
+    const last = messages[messages.length - 1] as any;
+
+    if (!last || last.role !== 'assistant') {
+      return;
+    }
+
+    if (lastUsageAppliedIdRef.current === last.id) {
+      return;
+    }
+
+    const usage = (last?.metadata?.usage ?? (last as any).usage) as
+      | {
+          inputTokens?: number | null;
+          outputTokens?: number | null;
+          totalTokens?: number | null;
+          cost?: number | null;
+          provider?: string;
+          modelId?: string;
+        }
+      | undefined;
+
+    if (!usage) {
+      return;
+    }
+
+    const inputTokens = usage.inputTokens ?? 0;
+    const outputTokens = usage.outputTokens ?? 0;
+    const cost = usage.cost ?? null;
+
+    // Update UI session usage
+    addUsage({
+      inputTokens,
+      outputTokens,
+      cost,
+      provider: usage.provider,
+      modelId: usage.modelId,
+    });
+
+    // Persist to IndexedDB for Usage Dashboard
+    (async () => {
+      try {
+        const db = await getDatabase();
+
+        if (db) {
+          await saveUsage(db, {
+            tokens: { input: inputTokens, output: outputTokens },
+            cost: typeof cost === 'number' ? cost : 0,
+            provider: usage.provider,
+            modelId: usage.modelId,
+          });
+        }
+      } catch (err) {
+        console.warn('Usage persistence failed:', err);
+      }
+    })();
+
+    // Optionally sync to Supabase when enabled and authenticated
+    (async () => {
+      try {
+        const shouldSync = Boolean(settings?.preferences?.syncUsageToSupabase);
+
+        if (shouldSync && user && (supabase as any)) {
+          const sb: any = supabase;
+          await sb.from('usage').insert({
+            user_id: user.id,
+            chat_id: activeChatId,
+            message_id: last.id,
+            provider: usage.provider ?? null,
+            model_id: usage.modelId ?? null,
+            input_tokens: inputTokens,
+            output_tokens: outputTokens,
+            total_tokens: typeof usage.totalTokens === 'number' ? usage.totalTokens : inputTokens + outputTokens,
+            cost: typeof cost === 'number' ? cost : null,
+            created_at: new Date().toISOString(),
+          });
+        }
+      } catch (e) {
+        console.warn('Supabase usage sync failed:', e);
+      }
+    })();
+
+    lastUsageAppliedIdRef.current = last.id as string;
+  }, [isLoading, messages]);
+
   const TEXTAREA_MAX_HEIGHT = chatStarted ? 400 : 200;
 
   // Track the last saved message count to avoid re-saving and to ensure we capture all new messages
@@ -148,7 +268,6 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     if (pendingInput) {
       const messageToSend = pendingInput;
       const shouldAutoSend = (chatStore.get() as any).autoSendPending === true;
-
       setInput(messageToSend);
       chatStore.setKey('pendingInput', undefined);
       chatStore.setKey('autoSendPending', false);

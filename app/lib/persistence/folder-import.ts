@@ -21,8 +21,6 @@ const IGNORE_PATTERNS: RegExp[] = [
   /\/\.cache/,
   /\/coverage/,
   /\/\.nyc_output/,
-  /\/\.env/,
-  /\/\.env\./,
   /\/\.DS_Store/,
   /\/Thumbs\.db/,
 ];

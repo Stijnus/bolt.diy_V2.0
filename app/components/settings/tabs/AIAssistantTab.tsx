@@ -1,7 +1,16 @@
+import { ChevronDown, Check } from 'lucide-react';
 import { useEffect, useMemo, useState } from 'react';
 import { ApiProviderStatus } from '~/components/settings/ApiProviderStatus';
 import { SettingItem } from '~/components/settings/SettingItem';
 import { SettingsSection } from '~/components/settings/SettingsSection';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '~/components/ui/DropdownMenu';
 import { Input } from '~/components/ui/Input';
 import { Switch } from '~/components/ui/Switch';
 import { PROVIDERS } from '~/lib/models.client';
@@ -74,8 +83,7 @@ export function AiAssistantTab({
     return PROVIDERS.filter((p) => enabledProviders.has(p.id));
   }, [enabledProviders]);
 
-  const defaultModel = settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929';
-  const planModel = settings.planModel || defaultModel;
+  const planModel = settings.planModel || 'anthropic:claude-sonnet-4-5-20250929';
 
   // Ensure current selection remains visible even if provider disabled
   const ensureCurrentOption = (value: string) => {
@@ -89,13 +97,12 @@ export function AiAssistantTab({
     return value;
   };
 
-  const currentDefaultIfHidden = ensureCurrentOption(defaultModel);
   const currentPlanIfHidden = ensureCurrentOption(planModel);
 
   return (
     <SettingsSection
       title="AI Assistant"
-      description="Configure AI model and behavior"
+      description="Configure AI behavior and model preferences. Choose models directly in the chat interface."
       status="implemented"
       onReset={onReset}
       onRevert={onRevert}
@@ -155,62 +162,68 @@ export function AiAssistantTab({
         <Switch checked={settings.streamResponse} onChange={(checked) => onSettingChange('streamResponse', checked)} />
       </SettingItem>
       <SettingItem
-        label="Default Model"
-        description="Model to use for new chats"
-        tooltip="Select which AI model to use by default when starting a new chat. You can always change the model for individual chats."
-        error={errors?.defaultModel}
-      >
-        <select
-          className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
-          value={settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
-          onChange={(e) => onSettingChange('defaultModel', e.target.value)}
-          aria-invalid={Boolean(errors?.defaultModel)}
-        >
-          {/* Show current value even if provider is not configured */}
-          {currentDefaultIfHidden && (
-            <optgroup label="Current (not configured)">
-              <option value={currentDefaultIfHidden}>{currentDefaultIfHidden}</option>
-            </optgroup>
-          )}
-          {filteredProviders.map((provider) => (
-            <optgroup key={provider.id} label={provider.name}>
-              {provider.models.map((model) => (
-                <option key={`${provider.id}:${model.id}`} value={`${provider.id}:${model.id}`}>
-                  {model.name} {model.isDefault && '(Default)'}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
-      </SettingItem>
-      <SettingItem
         label="Plan Agent (Plan Mode Model)"
         description="Model used when Plan mode is enabled"
         tooltip="Choose the model used to generate structured plans. A strong planner like Claude Sonnet 4.5 is ideal."
         error={errors?.planModel}
       >
-        <select
-          className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background"
-          value={settings.planModel || settings.defaultModel || 'anthropic:claude-sonnet-4-5-20250929'}
-          onChange={(e) => onSettingChange('planModel', e.target.value)}
-          aria-invalid={Boolean(errors?.planModel)}
-        >
-          {/* Show current value even if provider is not configured */}
-          {currentPlanIfHidden && (
-            <optgroup label="Current (not configured)">
-              <option value={currentPlanIfHidden}>{currentPlanIfHidden}</option>
-            </optgroup>
-          )}
-          {filteredProviders.map((provider) => (
-            <optgroup key={provider.id} label={provider.name}>
-              {provider.models.map((model) => (
-                <option key={`${provider.id}:${model.id}`} value={`${provider.id}:${model.id}`}>
-                  {model.name} {model.isDefault && '(Default)'}
-                </option>
-              ))}
-            </optgroup>
-          ))}
-        </select>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="w-full max-w-xs rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-3 px-3 py-2 text-sm text-bolt-elements-textPrimary hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-button-primary-text focus:outline-none focus:ring-2 focus:ring-bolt-elements-button-primary-background flex items-center justify-between"
+              aria-invalid={Boolean(errors?.planModel)}
+            >
+              <span className="truncate">
+                {(() => {
+                  const value = settings.planModel || 'anthropic:claude-sonnet-4-5-20250929';
+                  const [prov, modelId] = value.split(':');
+                  const provider = PROVIDERS.find((p) => p.id === prov);
+                  const model = provider?.models.find((m) => m.id === modelId);
+
+                  return model ? `${model.name}${model.isDefault ? ' (Default)' : ''}` : value;
+                })()}
+              </span>
+              <ChevronDown className="w-4 h-4 ml-2 flex-shrink-0" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-80">
+            {/* Show current value even if provider is not configured */}
+            {currentPlanIfHidden && (
+              <>
+                <DropdownMenuLabel>Current (not configured)</DropdownMenuLabel>
+                <DropdownMenuItem
+                  onSelect={() => onSettingChange('planModel', currentPlanIfHidden)}
+                  className="flex items-center"
+                >
+                  {settings.planModel === currentPlanIfHidden && <Check className="w-4 h-4 mr-2" />}
+                  {currentPlanIfHidden}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+              </>
+            )}
+            {filteredProviders.map((provider) => (
+              <div key={provider.id}>
+                <DropdownMenuLabel>{provider.name}</DropdownMenuLabel>
+                {provider.models.map((model) => {
+                  const value = `${provider.id}:${model.id}`;
+                  const isSelected = settings.planModel === value;
+
+                  return (
+                    <DropdownMenuItem
+                      key={value}
+                      onSelect={() => onSettingChange('planModel', value)}
+                      className="flex items-center"
+                    >
+                      {isSelected && <Check className="w-4 h-4 mr-2" />}
+                      {model.name} {model.isDefault && '(Default)'}
+                    </DropdownMenuItem>
+                  );
+                })}
+                {provider !== filteredProviders[filteredProviders.length - 1] && <DropdownMenuSeparator />}
+              </div>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
       </SettingItem>
 
       {/* API Provider Status */}

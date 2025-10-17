@@ -50,7 +50,7 @@ export function HeaderUserPanel({ onRequestAuth }: HeaderUserPanelProps) {
           'flex items-center gap-3 rounded-xl border-2 px-3 py-2 transition-all',
           menuOpen
             ? 'border-bolt-elements-button-primary-background bg-bolt-elements-background-depth-2 shadow-md'
-            : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:border-bolt-elements-borderColorActive hover:shadow-sm',
+            : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:border-bolt-elements-borderColorActive hover:text-bolt-elements-button-primary-text hover:shadow-sm',
         )}
         aria-expanded={menuOpen}
         aria-label="User menu"

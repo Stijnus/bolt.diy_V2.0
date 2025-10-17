@@ -35,6 +35,10 @@ const preferencesSchema = z.object({
   autoSave: z.boolean(),
   autoSaveDelay: z.number().int().min(200).max(10000),
   chatMode: z.enum(['normal', 'plan', 'discussion']).optional(),
+
+  // Usage tracking preferences
+  resetUsageOnModelChange: z.boolean().optional(),
+  syncUsageToSupabase: z.boolean().optional(),
 });
 
 const projectDefaultsSchema = z.record(
@@ -298,6 +302,7 @@ export function useSettingsManager() {
         return;
       }
 
+      console.log('[SettingsManager] Marking as saved:', validation.data);
       setInitial(validation.data);
       setDraft(validation.data);
       setErrors({});

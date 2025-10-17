@@ -546,7 +546,7 @@ export class ActionRunner {
       : null;
 
     for (const [existingId, existingAction] of Object.entries(existingActions)) {
-      if (existingAction.status === 'aborted' || existingAction.status === 'failed') {
+      if (existingAction.status !== 'pending' && existingAction.status !== 'running') {
         continue;
       }
 

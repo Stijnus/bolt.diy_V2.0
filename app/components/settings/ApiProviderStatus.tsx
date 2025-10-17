@@ -147,7 +147,7 @@ export const ApiProviderStatus = () => {
             'flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors',
             isRefreshing
               ? 'text-bolt-elements-textSecondary cursor-wait'
-              : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-textPrimary',
+              : 'text-bolt-elements-textSecondary hover:bg-bolt-elements-background-depth-3 hover:text-bolt-elements-button-primary-text',
           )}
           title="Refresh status"
           disabled={isRefreshing}

@@ -1,9 +1,13 @@
+import { useStore } from '@nanostores/react';
 import { Info, Download, Calendar, RefreshCw, Loader2, AlertCircle } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { toast } from 'react-toastify';
 import { Button } from '~/components/ui/Button';
+import { useAuth } from '~/lib/contexts/AuthContext';
 import { getModel } from '~/lib/models.client';
 import { getAllUsage, getDatabase, type SessionUsageWithTimestamp } from '~/lib/persistence/db';
+import { settingsStore } from '~/lib/stores/settings';
+import { createClient as createSupabaseClient } from '~/lib/supabase/client';
 import type { AIProvider } from '~/types/model';
 import { classNames } from '~/utils/classNames';
 import { formatNumber } from '~/utils/format';
@@ -34,6 +38,8 @@ function UsageRow({
 }
 
 export function UsageDashboard() {
+  const auth = useAuth();
+  const settings = useStore(settingsStore);
   const [usageData, setUsageData] = useState<SessionUsageWithTimestamp[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -90,22 +96,51 @@ export function UsageDashboard() {
     try {
       const db = await getDatabase();
 
-      if (!db) {
-        throw new Error('Database not available. Usage metrics require browser storage access.');
+      let combined: SessionUsageWithTimestamp[] = [];
+
+      if (db) {
+        const localData = await getAllUsage(db);
+        combined = combined.concat(localData);
       }
 
-      const data = await getAllUsage(db);
+      // Optionally fetch from Supabase when authenticated and preference enabled
+      const supabase = createSupabaseClient();
+      const { user } = auth;
+      const syncEnabled = Boolean(settings?.preferences?.syncUsageToSupabase);
 
-      setUsageData(data.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()));
+      if (supabase && user && syncEnabled) {
+        const { data, error } = await supabase
+          .from('usage')
+          .select('created_at, provider, model_id, input_tokens, output_tokens, cost')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.warn('UsageDashboard: Supabase fetch error', error);
+        } else if (data) {
+          const cloudRecords: SessionUsageWithTimestamp[] = data.map((row: any) => ({
+            timestamp: row.created_at,
+            tokens: { input: row.input_tokens ?? 0, output: row.output_tokens ?? 0 },
+            cost: typeof row.cost === 'number' ? row.cost : 0,
+            provider: row.provider ?? undefined,
+            modelId: row.model_id ?? undefined,
+          }));
+          combined = combined.concat(cloudRecords);
+        }
+      }
+
+      // Sort newest first
+      combined.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      setUsageData(combined);
     } catch (err) {
-      const message = err instanceof Error ? err.message : 'Failed to load usage data from the database.';
+      const message = err instanceof Error ? err.message : 'Failed to load usage data.';
       setError(message);
       console.error('UsageDashboard: failed to load usage data', err);
     } finally {
       setLoading(false);
       setIsRefreshing(false);
     }
-  }, []);
+  }, [auth, settings]);
 
   useEffect(() => {
     void fetchUsage();
