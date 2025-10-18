@@ -6,6 +6,10 @@ import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('ChatHistory');
 
+// Workspace persistence disabled by default - causes file pollution across projects/chats
+// Set VITE_ENABLE_WORKSPACE_PERSISTENCE=true to enable (not recommended)
+export const workspacePersistenceEnabled = import.meta.env.VITE_ENABLE_WORKSPACE_PERSISTENCE === 'true';
+
 export type SessionUsageWithTimestamp = SessionUsage & { timestamp: string };
 
 let dbPromise: Promise<IDBDatabase | undefined> | undefined;
@@ -31,6 +35,11 @@ export async function getDatabase(): Promise<IDBDatabase | undefined> {
 }
 
 export async function saveWorkspaceState(files: FileMap): Promise<void> {
+  if (!workspacePersistenceEnabled) {
+    logger.debug('Workspace persistence disabled; skipping save');
+    return;
+  }
+
   const db = await getDatabase();
 
   if (!db) {
@@ -38,6 +47,11 @@ export async function saveWorkspaceState(files: FileMap): Promise<void> {
   }
 
   const sanitizedEntries = Object.entries(files).filter(([, value]) => value !== undefined);
+  if (sanitizedEntries.length === 0) {
+    await clearWorkspaceState();
+    return;
+  }
+
   const sanitizedFiles = Object.fromEntries(sanitizedEntries) as FileMap;
 
   await new Promise<void>((resolve, reject) => {
@@ -58,6 +72,11 @@ export async function saveWorkspaceState(files: FileMap): Promise<void> {
 }
 
 export async function loadWorkspaceState(): Promise<FileMap | undefined> {
+  if (!workspacePersistenceEnabled) {
+    logger.debug('Workspace persistence disabled; skipping load');
+    return undefined;
+  }
+
   const db = await getDatabase();
 
   if (!db) {
@@ -74,6 +93,27 @@ export async function loadWorkspaceState(): Promise<FileMap | undefined> {
       resolve(record?.files);
     };
 
+    request.onerror = () => reject(request.error);
+  });
+}
+
+export async function clearWorkspaceState(): Promise<void> {
+  if (!workspacePersistenceEnabled) {
+    return;
+  }
+
+  const db = await getDatabase();
+
+  if (!db) {
+    return;
+  }
+
+  await new Promise<void>((resolve, reject) => {
+    const transaction = db.transaction('workspace_state', 'readwrite');
+    const store = transaction.objectStore('workspace_state');
+    const request = store.delete(WORKSPACE_STATE_ID);
+
+    request.onsuccess = () => resolve();
     request.onerror = () => reject(request.error);
   });
 }

@@ -4,7 +4,7 @@ import { FilesStore, type FileMap } from './files';
 import { PreviewsStore } from './previews';
 import { TerminalStore } from './terminal';
 import type { EditorDocument, ScrollPosition } from '~/components/editor/codemirror/CodeMirrorEditor';
-import { loadWorkspaceState, saveWorkspaceState } from '~/lib/persistence/db';
+import { loadWorkspaceState, saveWorkspaceState, workspacePersistenceEnabled } from '~/lib/persistence/db';
 import { ActionRunner } from '~/lib/runtime/action-runner';
 import type { ActionCallbackData, ArtifactCallbackData } from '~/lib/runtime/message-parser';
 import { webcontainer } from '~/lib/webcontainer';
@@ -380,16 +380,30 @@ export class WorkbenchStore {
     }
 
     try {
-      const saved = await loadWorkspaceState();
+      const skipRestore =
+        !workspacePersistenceEnabled || sessionStorage.getItem('bolt:startNewChat') === 'true';
 
-      if (saved && Object.keys(saved).length > 0) {
-        logger.info('Restoring workspace from saved state');
-        await this.#filesStore.restoreFiles(saved);
-        this.setDocuments(this.#filesStore.files.get());
+      if (!workspacePersistenceEnabled) {
+        logger.info('Workspace persistence is disabled - files will be restored from chat history only');
+      } else if (sessionStorage.getItem('bolt:startNewChat') === 'true') {
+        logger.info('New chat started - skipping workspace restore');
+      }
+
+      if (!skipRestore) {
+        const saved = await loadWorkspaceState();
+
+        if (saved && Object.keys(saved).length > 0) {
+          logger.info('Restoring workspace from saved state');
+          await this.#filesStore.restoreFiles(saved);
+          this.setDocuments(this.#filesStore.files.get());
+        } else {
+          logger.debug('No workspace state to restore');
+        }
       }
     } catch (error) {
       logger.error('Failed to restore workspace state', error);
     } finally {
+      sessionStorage.removeItem('bolt:startNewChat');
       this.#persistenceReady = true;
       this.#scheduleWorkspacePersist();
     }

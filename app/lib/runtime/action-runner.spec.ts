@@ -117,7 +117,7 @@ describe('ActionRunner', () => {
       expect(actions.action2).toBeDefined();
     });
 
-    it('should update file actions with same filePath (last write wins)', () => {
+    it('should keep separate file actions even when filePath matches (execute sequentially)', () => {
       const runner = new ActionRunner(mockWebContainerPromise);
 
       const action1: ActionCallbackData = {
@@ -146,10 +146,11 @@ describe('ActionRunner', () => {
       runner.addAction(action2);
 
       const actions = runner.actions.get();
-      expect(Object.keys(actions)).toHaveLength(1);
+      expect(Object.keys(actions)).toHaveLength(2);
       expect(actions.action1).toBeDefined();
-      expect(actions.action1.content).toBe('{"name": "new"}'); // Should have new content
-      expect(actions.action2).toBeUndefined();
+      expect(actions.action1?.content).toBe('{"name": "old"}');
+      expect(actions.action2).toBeDefined();
+      expect(actions.action2?.content).toBe('{"name": "new"}');
     });
 
     it('should not deduplicate file actions with different filePaths', () => {

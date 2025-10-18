@@ -98,29 +98,16 @@ export const Preview = memo(() => {
       return null;
     }
 
-    // If it's already absolute, open as-is
     try {
-      const u = new URL(current);
-      return u.toString();
-    } catch {}
+      const url = new URL('/preview', window.location.origin);
+      url.searchParams.set('src', current);
+      const hostHint = getCookie('wc_host');
 
-    // Handle local proxy paths like /webcontainer/connect/:id
-    if (current.startsWith('/webcontainer/')) {
-      const wcHost = getCookie('wc_host');
-
-      if (!wcHost) {
-        return null;
+      if (hostHint) {
+        url.searchParams.set('host', hostHint);
       }
 
-      const base = new URL(current, window.location.origin);
-      base.searchParams.set('host', wcHost);
-
-      return base.toString();
-    }
-
-    // Fallback: resolve relative to origin
-    try {
-      return new URL(current, window.location.origin).toString();
+      return url.toString();
     } catch {
       return null;
     }

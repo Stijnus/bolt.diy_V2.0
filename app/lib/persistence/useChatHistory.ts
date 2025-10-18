@@ -20,6 +20,25 @@ import { waitForFileOperations } from '~/utils/sync-helpers';
 
 const logger = createScopedLogger('ChatHistory');
 
+/**
+ * Chat History Persistence Strategy:
+ * 
+ * GUEST MODE (no user logged in):
+ * - All chat history stored in IndexedDB (local browser storage)
+ * - File states saved per-chat in IndexedDB
+ * - No cloud sync, data persists only on this device/browser
+ * 
+ * USER MODE (authenticated with Supabase):
+ * - Chat history synced to Supabase (cloud)
+ * - Local IndexedDB used as cache/fallback
+ * - File states stored in Supabase per-chat
+ * - Data accessible across devices
+ * 
+ * IMPORTANT: Workspace persistence (separate feature) is DISABLED by default
+ * to prevent file pollution across projects/chats. Files are restored from
+ * chat history only, ensuring clean project separation.
+ */
+
 export interface TerminalState {
   isVisible: boolean;
   boltBuffer?: string;

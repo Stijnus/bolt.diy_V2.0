@@ -691,14 +691,16 @@ export function Menu() {
           <div className="space-y-4 px-6 py-5">
             {/* New Chat Button - Simplified */}
             <Button
-              asChild
               className="w-full justify-start gap-3 rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-1 hover:bg-bolt-elements-background-depth-2 hover:border-bolt-elements-borderColorActive transition-all"
               size="md"
+              onClick={() => {
+                // Set flag to skip workspace restore on next page load
+                sessionStorage.setItem('bolt:startNewChat', 'true');
+                window.location.href = '/';
+              }}
             >
-              <a href="/" className="flex items-center text-sm font-medium text-bolt-elements-textPrimary">
-                <MessageSquarePlus className="h-5 w-5" />
-                Start new chat
-              </a>
+              <MessageSquarePlus className="h-5 w-5" />
+              Start new chat
             </Button>
 
             {/* Search Bar */}

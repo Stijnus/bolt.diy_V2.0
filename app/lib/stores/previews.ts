@@ -7,6 +7,8 @@ export interface PreviewInfo {
   baseUrl: string;
 }
 
+const HOST_PARAM_KEYS = ['host', 'targetHost'] as const;
+
 export class PreviewsStore {
   #availablePreviews = new Map<number, PreviewInfo>();
   #webcontainer: Promise<WebContainer>;
@@ -45,7 +47,8 @@ export class PreviewsStore {
 
       // Store host hint for proxy routing as cookie
       try {
-        const host = new URL(url).hostname;
+        const parsedUrl = new URL(url, window.location.origin);
+        const host = parsedUrl.hostname;
 
         if (host.endsWith('webcontainer-api.io')) {
           document.cookie = `wc_host=${encodeURIComponent(host)}; path=/`;
@@ -56,6 +59,14 @@ export class PreviewsStore {
 
           if (instance) {
             document.cookie = `wc_host_${instance}=${encodeURIComponent(host)}; path=/`;
+          }
+        } else {
+          const hostHint = HOST_PARAM_KEYS.map((key) => parsedUrl.searchParams.get(key)).find(
+            (value): value is string => Boolean(value && value.endsWith('webcontainer-api.io')),
+          );
+
+          if (hostHint) {
+            document.cookie = `wc_host=${encodeURIComponent(hostHint)}; path=/`;
           }
         }
       } catch {}
@@ -80,10 +91,19 @@ export class PreviewsStore {
 
       // Store host hint for proxy routing as cookie
       try {
-        const host = new URL(url).hostname;
+        const parsedUrl = new URL(url, window.location.origin);
+        const host = parsedUrl.hostname;
 
         if (host.endsWith('webcontainer-api.io')) {
           document.cookie = `wc_host=${encodeURIComponent(host)}; path=/`;
+        } else {
+          const hostHint = HOST_PARAM_KEYS.map((key) => parsedUrl.searchParams.get(key)).find(
+            (value): value is string => Boolean(value && value.endsWith('webcontainer-api.io')),
+          );
+
+          if (hostHint) {
+            document.cookie = `wc_host=${encodeURIComponent(hostHint)}; path=/`;
+          }
         }
       } catch {}
 

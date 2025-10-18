@@ -15,9 +15,10 @@ Everything you need to get BoltDIY up and running on your system.
 ### 🏗️ [Architecture](./architecture/)
 Technical architecture and design documentation.
 - [Application Flow & Architecture](./architecture/APPLICATION_FLOW_AND_ARCHITECTURE.md) - High-level system design
-- [Current Architecture](./architecture/CURRENT_ARCHITECTURE.md) - Detailed technical architecture
 - [Design System](./architecture/DESIGN_SYSTEM.md) - UI/UX design guidelines
 - [Multi-Model Implementation](./architecture/MULTI_MODEL_IMPLEMENTATION_SUMMARY.md) - AI model integration
+- [Persistence Architecture](./architecture/PERSISTENCE_ARCHITECTURE.md) - Data persistence strategy
+- [Usage Tracking Implementation](./architecture/USAGE_TRACKING_IMPLEMENTATION.md) - Usage tracking system
 
 ### 🔧 [Development](./development/)
 Resources for developers contributing to BoltDIY.
@@ -34,19 +35,8 @@ Project planning, roadmaps, and decision records.
 - [Project Management](./project-management/PROJECT_MANAGEMENT.md) - Development process
 - [Feature Roadmap](./project-management/FEATURE_ROADMAP.md) - Planned features
 - [Quick Wins Plan](./project-management/QUICK_WINS_PLAN.md) - Priority improvements
-- [Current Sprint](./project-management/SPRINT_CURRENT.md) - Active development
-- [TODO](./project-management/TODO.md) - Task tracking
 - [ADRs](./project-management/adr/) - Architecture Decision Records
 
-### 🔧 [Fixes & Issues](./fixes/)
-Bug fixes, patches, and technical solutions.
-- [Authentication Fix Summary](./fixes/AUTHENTICATION_FIX_SUMMARY.md)
-- [Storage Bucket Fix](./fixes/STORAGE_BUCKET_FIX.md)
-- [Settings UX Analysis](./fixes/SETTINGS_UX_ANALYSIS.md)
-- [Settings UX Fixes Implementation](./fixes/SETTINGS_UX_FIXES_IMPLEMENTATION.md)
-- [Supabase Constraint Fix](./fixes/SUPABASE_CONSTRAINT_FIX.md)
-- [Supabase Integration Plan](./fixes/SUPABASE_INTEGRATION_PLAN.md)
-- [Quick Fixes](./fixes/QUICK_FIX.md)
 
 ### 📚 [Archive](./archive/)
 Historical documentation and completed project phases.
@@ -58,6 +48,10 @@ Historical documentation and completed project phases.
 - [Projects Phase 1 Complete](./archive/PROJECTS_PHASE1_COMPLETE.md)
 - [Projects Phase 2 Complete](./archive/PROJECTS_PHASE2_COMPLETE.md)
 - [Projects UX Implementation Status](./archive/PROJECTS_UX_IMPLEMENTATION_STATUS.md)
+- [Completed Fixes](./archive/fixes/) - Historical bug fixes and patches
+- [Sprint Planning](./archive/SPRINT_CURRENT.md) - Historical sprint documentation
+- [TODO Lists](./archive/TODO.md) - Completed development tasks
+- [Previous Architecture](./archive/CURRENT_ARCHITECTURE.md) - Older architecture assessment
 
 ## Quick Reference
 

@@ -154,10 +154,12 @@ export class ActionRunner {
 
   async runAction(data: ActionCallbackData) {
     const { actionId } = data;
-    const action = this.actions.get()[actionId];
+    const actions = this.actions.get();
+    const action = actions[actionId];
 
     if (!action) {
-      unreachable(`Action ${actionId} not found`);
+      logger.warn('runAction skipped: Action not found', { actionId });
+      return;
     }
 
     if (action.executed) {
@@ -539,6 +541,10 @@ export class ActionRunner {
     existingActions: Record<string, ActionState>,
     normalizedShellCommand: string | null,
   ): string | null {
+    if (newAction.type === 'file') {
+      return null;
+    }
+
     const isShellAction = newAction.type === 'shell';
 
     const shellCommand = isShellAction
@@ -555,11 +561,6 @@ export class ActionRunner {
           existingAction.normalizedCommand ?? this.#normalizeShellCommand(existingAction.content);
 
         if (existingNormalized === shellCommand) {
-          return existingId;
-        }
-      } else if (newAction.type === 'file' && existingAction.type === 'file') {
-        // For file actions, deduplicate by file path (last write wins)
-        if (newAction.filePath === existingAction.filePath) {
           return existingId;
         }
       }

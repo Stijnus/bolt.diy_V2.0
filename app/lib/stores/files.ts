@@ -432,6 +432,84 @@ export class FilesStore {
     this.#isRestoring = true;
 
     try {
+      const restorePaths = new Set<string>();
+
+      const addPathAndParents = (path: string) => {
+        if (!path || !path.startsWith(WORK_DIR)) {
+          return;
+        }
+
+        let currentPath = path;
+
+        while (currentPath && currentPath.startsWith(WORK_DIR)) {
+          if (!restorePaths.has(currentPath)) {
+            restorePaths.add(currentPath);
+          }
+
+          const parent = nodePath.dirname(currentPath);
+
+          if (!parent || parent === currentPath) {
+            break;
+          }
+
+          if (parent.length < WORK_DIR.length) {
+            break;
+          }
+
+          currentPath = parent;
+        }
+      };
+
+      restorePaths.add(WORK_DIR);
+
+      foldersToRestore.forEach((folderPath) => {
+        addPathAndParents(folderPath);
+      });
+
+      filteredFiles.forEach(([filePath]) => {
+        addPathAndParents(filePath);
+      });
+
+      const currentEntries = Object.entries(this.files.get());
+
+      const pathsToDelete = currentEntries
+        .filter(([path]) => {
+          if (!path || path === WORK_DIR) {
+            return false;
+          }
+
+          if (this.#shouldHideFile(path)) {
+            return false;
+          }
+
+          if (restorePaths.has(path)) {
+            return false;
+          }
+
+          return path.startsWith(WORK_DIR);
+        })
+        .sort((a, b) => b[0].length - a[0].length);
+
+      for (const [path, dirent] of pathsToDelete) {
+        const relativePath = this.#toRelativePath(webcontainer.workdir, path);
+
+        if (!relativePath) {
+          continue;
+        }
+
+        try {
+          if (dirent?.type === 'folder') {
+            await webcontainer.fs.rm(relativePath, { recursive: true, force: true });
+          } else {
+            await webcontainer.fs.rm(relativePath, { force: true });
+          }
+
+          logger.debug(`Removed stale path during restoration: ${path}`);
+        } catch (deleteError) {
+          logger.warn(`Failed to remove stale path ${path}:`, deleteError);
+        }
+      }
+
       // First, ensure folders exist (so empty folders persist and file parents are present)
       await Promise.allSettled(
         foldersToRestore
@@ -533,9 +611,13 @@ export class FilesStore {
       logger.error('Error restoring files:', error);
       throw error;
     } finally {
-      // Always clear the flag, even if restoration fails
-      this.#isRestoring = false;
-      logger.debug('File restoration completed, watcher re-enabled');
+      try {
+        await new Promise((resolve) => setTimeout(resolve, 250));
+      } finally {
+        // Always clear the flag, even if restoration fails
+        this.#isRestoring = false;
+        logger.debug('File restoration completed, watcher re-enabled');
+      }
     }
   }
 
