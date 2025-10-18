@@ -1,11 +1,12 @@
 import { useState } from 'react';
 
 interface ElementInfo {
+  displayText: string;
   tagName: string;
   className: string;
   id: string;
   textContent: string;
-  styles: Record<string, string>; // Changed from CSSStyleDeclaration
+  styles: Record<string, string>;
   rect: {
     x: number;
     y: number;
@@ -14,6 +15,8 @@ interface ElementInfo {
     top: number;
     left: number;
   };
+  selector?: string;
+  elementPath?: string;
 }
 
 interface InspectorPanelProps {
@@ -23,7 +26,7 @@ interface InspectorPanelProps {
 }
 
 export const InspectorPanel = ({ selectedElement, isVisible, onClose }: InspectorPanelProps) => {
-  const [activeTab, setActiveTab] = useState<'styles' | 'computed' | 'box'>('styles');
+  const [activeTab, setActiveTab] = useState<'summary' | 'styles' | 'box'>('summary');
 
   if (!isVisible || !selectedElement) {
     return null;
@@ -63,7 +66,7 @@ export const InspectorPanel = ({ selectedElement, isVisible, onClose }: Inspecto
   };
 
   return (
-    <div className="fixed right-4 top-20 w-80 bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg z-40 max-h-[calc(100vh-6rem)] overflow-hidden">
+    <div className="fixed right-4 top-20 w-96 bg-bolt-elements-bg-depth-1 border border-bolt-elements-borderColor rounded-lg shadow-lg z-40 max-h-[calc(100vh-6rem)] overflow-hidden">
       {/* Header */}
       <div className="flex items-center justify-between p-3 border-b border-bolt-elements-borderColor">
         <h3 className="font-medium text-bolt-elements-textPrimary">Element Inspector</h3>
@@ -92,7 +95,7 @@ export const InspectorPanel = ({ selectedElement, isVisible, onClose }: Inspecto
 
       {/* Tabs */}
       <div className="flex border-b border-bolt-elements-borderColor">
-        {(['styles', 'computed', 'box'] as const).map((tab) => (
+        {(['summary', 'styles', 'box'] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -109,6 +112,31 @@ export const InspectorPanel = ({ selectedElement, isVisible, onClose }: Inspecto
 
       {/* Content */}
       <div className="p-3 overflow-y-auto max-h-96">
+        {activeTab === 'summary' && (
+          <div className="space-y-2 text-sm">
+            <div>
+              <div className="text-bolt-elements-textSecondary">Selector</div>
+              <div className="font-mono text-bolt-elements-textPrimary">
+                {selectedElement.selector || 'N/A'}
+              </div>
+            </div>
+            <div>
+              <div className="text-bolt-elements-textSecondary">Display</div>
+              <div className="font-mono text-bolt-elements-textPrimary">
+                {selectedElement.displayText}
+              </div>
+            </div>
+            {selectedElement.elementPath && (
+              <div>
+                <div className="text-bolt-elements-textSecondary">Path</div>
+                <div className="font-mono text-bolt-elements-textPrimary break-words">
+                  {selectedElement.elementPath}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'styles' && (
           <div className="space-y-2">
             {Object.entries(getRelevantStyles(selectedElement.styles)).map(([prop, value]) => (

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 
 interface InspectorProps {
   isActive: boolean;
-  iframeRef: React.RefObject<HTMLIFrameElement>;
+  iframeRef: React.RefObject<HTMLIFrameElement | null>;
   onElementSelect: (elementInfo: ElementInfo) => void;
 }
 
@@ -21,6 +21,8 @@ export interface ElementInfo {
     top: number;
     left: number;
   };
+  selector?: string;
+  elementPath?: string;
 }
 
 export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorProps) => {
@@ -34,38 +36,6 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
 
     const iframe = iframeRef.current;
 
-    // Listen for messages from the iframe
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.type === 'INSPECTOR_HOVER') {
-        const elementInfo = event.data.elementInfo;
-
-        // Adjust coordinates relative to iframe position
-        const iframeRect = iframe.getBoundingClientRect();
-        elementInfo.rect.x += iframeRect.x;
-        elementInfo.rect.y += iframeRect.y;
-        elementInfo.rect.top += iframeRect.y;
-        elementInfo.rect.left += iframeRect.x;
-
-        setHoveredElement(elementInfo);
-      } else if (event.data.type === 'INSPECTOR_CLICK') {
-        const elementInfo = event.data.elementInfo;
-
-        // Adjust coordinates relative to iframe position
-        const iframeRect = iframe.getBoundingClientRect();
-        elementInfo.rect.x += iframeRect.x;
-        elementInfo.rect.y += iframeRect.y;
-        elementInfo.rect.top += iframeRect.y;
-        elementInfo.rect.left += iframeRect.x;
-
-        onElementSelect(elementInfo);
-      } else if (event.data.type === 'INSPECTOR_LEAVE') {
-        setHoveredElement(null);
-      }
-    };
-
-    window.addEventListener('message', handleMessage);
-
-    // Send activation message to iframe
     const sendActivationMessage = () => {
       if (iframe.contentWindow) {
         iframe.contentWindow.postMessage(
@@ -78,6 +48,71 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
       }
     };
 
+    // Listen for messages from the iframe
+    const handleMessage = (event: MessageEvent) => {
+      if (!iframe.contentWindow || event.source !== iframe.contentWindow) {
+        return;
+      }
+
+      if (!event.data || typeof event.data !== 'object') {
+        return;
+      }
+
+      if (event.data.type === 'INSPECTOR_READY') {
+        sendActivationMessage();
+        return;
+      }
+
+      if (event.data.type === 'INSPECTOR_HOVER') {
+        const rawElementInfo = event.data.elementInfo as ElementInfo | undefined;
+
+        if (!rawElementInfo || !rawElementInfo.rect) {
+          return;
+        }
+
+        // Adjust coordinates relative to iframe position
+        const iframeRect = iframe.getBoundingClientRect();
+        const elementInfo: ElementInfo = {
+          ...rawElementInfo,
+          rect: {
+            ...rawElementInfo.rect,
+            x: rawElementInfo.rect.x + iframeRect.x,
+            y: rawElementInfo.rect.y + iframeRect.y,
+            top: rawElementInfo.rect.top + iframeRect.y,
+            left: rawElementInfo.rect.left + iframeRect.x,
+          },
+        };
+
+        setHoveredElement(elementInfo);
+      } else if (event.data.type === 'INSPECTOR_CLICK') {
+        const rawElementInfo = event.data.elementInfo as ElementInfo | undefined;
+
+        if (!rawElementInfo || !rawElementInfo.rect) {
+          return;
+        }
+
+        // Adjust coordinates relative to iframe position
+        const iframeRect = iframe.getBoundingClientRect();
+        const elementInfo: ElementInfo = {
+          ...rawElementInfo,
+          rect: {
+            ...rawElementInfo.rect,
+            x: rawElementInfo.rect.x + iframeRect.x,
+            y: rawElementInfo.rect.y + iframeRect.y,
+            top: rawElementInfo.rect.top + iframeRect.y,
+            left: rawElementInfo.rect.left + iframeRect.x,
+          },
+        };
+
+        onElementSelect(elementInfo);
+      } else if (event.data.type === 'INSPECTOR_LEAVE') {
+        setHoveredElement(null);
+      }
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    // Send activation message to iframe
     // Try to send activation message immediately and on load
     sendActivationMessage();
     iframe.addEventListener('load', sendActivationMessage);
@@ -98,6 +133,12 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
       }
     };
   }, [isActive, iframeRef, onElementSelect]);
+
+  useEffect(() => {
+    if (!isActive) {
+      setHoveredElement(null);
+    }
+  }, [isActive]);
 
   // Render overlay for hovered element
   return (

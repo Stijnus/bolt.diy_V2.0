@@ -13,12 +13,40 @@ function uiToModelMessages(uiMessages: UIMessage[]): ModelMessage[] {
   return uiMessages
     .filter((m) => m.role === 'user' || m.role === 'assistant')
     .map((m) => {
-      const text = Array.isArray((m as any).parts)
-        ? (m as any).parts
-            .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
-            .map((p: any) => p.text)
-            .join('')
-        : ((m as any).content ?? '');
+      const parts = (m as any).parts;
+      
+      // If message has parts (multimodal content)
+      if (Array.isArray(parts)) {
+        const hasImages = parts.some((p: any) => p?.type === 'image');
+        
+        // If message contains images, preserve the parts structure
+        if (hasImages) {
+          const content = parts.map((p: any) => {
+            if (p?.type === 'text' && typeof p.text === 'string') {
+              return { type: 'text', text: p.text };
+            } else if (p?.type === 'image') {
+              return { 
+                type: 'image', 
+                image: p.image,
+                mimeType: p.mimeType 
+              };
+            }
+            return null;
+          }).filter(Boolean);
+          
+          return { role: m.role as 'user' | 'assistant', content };
+        }
+        
+        // Text-only parts
+        const text = parts
+          .filter((p: any) => p?.type === 'text' && typeof p.text === 'string')
+          .map((p: any) => p.text)
+          .join('');
+        return { role: m.role as 'user' | 'assistant', content: text };
+      }
+      
+      // Fallback to content field
+      const text = (m as any).content ?? '';
       return { role: m.role as 'user' | 'assistant', content: text };
     });
 }

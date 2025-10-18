@@ -7,6 +7,7 @@ import { ClientOnly } from 'remix-utils/client-only';
 import { ApiKeyStatus } from './ApiKeyStatus';
 import styles from './BaseChat.module.scss';
 import { DiscussionModeButton } from './DiscussionModeButton';
+import { ImageUpload, type ImageAttachment } from './ImageUpload';
 import { Messages } from './Messages.client';
 import { PlanApprovalCard } from './PlanApprovalCard';
 import { PlanModeToggle } from './PlanModeToggle';
@@ -34,12 +35,15 @@ interface BaseChatProps {
   promptEnhanced?: boolean;
   input?: string;
   handleStop?: () => void;
-  sendMessage?: (event: React.UIEvent, messageInput?: string) => void;
+  sendMessage?: (event: React.UIEvent, messageInput?: string, images?: ImageAttachment[]) => void;
   handleInputChange?: (event: React.ChangeEvent<HTMLTextAreaElement>) => void;
   enhancePrompt?: () => void;
   onRevertMessage?: (index: number) => void;
   onPlanApprove?: (planContent: string) => void;
   onPlanReject?: () => void;
+  images?: ImageAttachment[];
+  onImagesChange?: (images: ImageAttachment[]) => void;
+  supportsVision?: boolean;
 }
 
 const TEXTAREA_MIN_HEIGHT = 76;
@@ -64,6 +68,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
       onRevertMessage,
       onPlanApprove,
       onPlanReject,
+      images = [],
+      onImagesChange,
+      supportsVision = false,
     },
     ref,
   ) => {
@@ -221,7 +228,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
 
                         event.preventDefault();
 
-                        sendMessage?.(event);
+                        sendMessage?.(event, undefined, images);
                       }
                     }}
                     value={input}
@@ -239,7 +246,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     <ClientOnly>
                       {() => (
                         <SendButton
-                          show={input.length > 0 || isStreaming}
+                          show={input.length > 0 || isStreaming || images.length > 0}
                           isStreaming={isStreaming}
                           onClick={(event) => {
                             if (isStreaming) {
@@ -247,7 +254,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                               return;
                             }
 
-                            sendMessage?.(event);
+                            sendMessage?.(event, undefined, images);
                           }}
                         />
                       )}
@@ -256,6 +263,13 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   <div className="flex items-center justify-between px-6 pb-5">
                     <div className="flex gap-1 items-center">
                       {/* Icon-only buttons */}
+                      {supportsVision && onImagesChange && (
+                        <ImageUpload
+                          images={images}
+                          onImagesChange={onImagesChange}
+                          disabled={isStreaming}
+                        />
+                      )}
                       <IconButton
                         title="Enhance prompt"
                         disabled={input.length === 0 || enhancingPrompt}

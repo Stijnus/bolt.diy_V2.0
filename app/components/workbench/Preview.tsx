@@ -1,9 +1,13 @@
 import { useStore } from '@nanostores/react';
-import { ExternalLink, RotateCw } from 'lucide-react';
+import { Crosshair, ExternalLink, RotateCw } from 'lucide-react';
 import { memo, useCallback, useEffect, useRef, useState } from 'react';
 import { PortDropdown } from './PortDropdown';
+import { Inspector, type ElementInfo } from './Inspector';
+import { InspectorPanel } from './InspectorPanel';
 import { IconButton } from '~/components/ui/IconButton';
+import inspectorScript from './inspector-script.js?raw';
 import { workbenchStore } from '~/lib/stores/workbench';
+import { chatStore } from '~/lib/stores/chat';
 
 export const Preview = memo(() => {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -16,10 +20,16 @@ export const Preview = memo(() => {
 
   const [url, setUrl] = useState('');
   const [iframeUrl, setIframeUrl] = useState<string | undefined>();
+  const [directPreviewUrl, setDirectPreviewUrl] = useState<string | undefined>();
+  const [isInspectorActive, setIsInspectorActive] = useState(false);
+  const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
+  const [isInspectorPanelVisible, setIsInspectorPanelVisible] = useState(false);
+  const [inspectorError, setInspectorError] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activePreview) {
       setUrl('');
+      setDirectPreviewUrl(undefined);
       setIframeUrl(undefined);
 
       return;
@@ -28,7 +38,7 @@ export const Preview = memo(() => {
     const { baseUrl } = activePreview;
 
     setUrl(baseUrl);
-    setIframeUrl(baseUrl);
+    setDirectPreviewUrl(baseUrl);
   }, [activePreview, activePreview?.baseUrl]);
 
   const validateUrl = useCallback(
@@ -72,6 +82,202 @@ export const Preview = memo(() => {
     }
   };
 
+  const computeBridgeUrl = useCallback(
+    (current: string | undefined) => {
+      if (!current || typeof window === 'undefined') {
+        return null;
+      }
+
+      try {
+        const bridgeUrl = new URL('/preview', window.location.origin);
+        bridgeUrl.searchParams.set('src', current);
+        bridgeUrl.searchParams.set('mode', 'bridge');
+
+        const hostHint = getCookie('wc_host');
+
+        if (hostHint) {
+          bridgeUrl.searchParams.set('host', hostHint);
+        }
+
+        return bridgeUrl.toString();
+      } catch {
+        return null;
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    if (!directPreviewUrl) {
+      setIframeUrl(undefined);
+      return;
+    }
+
+    if (isInspectorActive) {
+      const bridged = computeBridgeUrl(directPreviewUrl);
+
+      if (!bridged) {
+        setInspectorError('Element inspector is unavailable for this preview URL.');
+        setIsInspectorActive(false);
+        setSelectedElement(null);
+        setIsInspectorPanelVisible(false);
+        setIframeUrl(directPreviewUrl);
+
+        return;
+      }
+
+      setInspectorError(null);
+
+      if (bridged !== iframeUrl) {
+        setIframeUrl(bridged);
+      }
+    } else {
+      if (inspectorError) {
+        setInspectorError(null);
+      }
+
+      if (directPreviewUrl !== iframeUrl) {
+        setIframeUrl(directPreviewUrl);
+      }
+    }
+  }, [computeBridgeUrl, directPreviewUrl, iframeUrl, inspectorError, isInspectorActive]);
+
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (!event.data || typeof event.data !== 'object') {
+        return;
+      }
+
+      if (event.data.type !== 'BOLT_PREVIEW_BRIDGE_ERROR') {
+        return;
+      }
+
+      const description = typeof event.data.description === 'string' ? event.data.description : null;
+
+      setInspectorError(description ?? 'Preview inspector bridge failed.');
+      setIsInspectorActive(false);
+      setSelectedElement(null);
+      setIsInspectorPanelVisible(false);
+      setIframeUrl(directPreviewUrl);
+    };
+
+    window.addEventListener('message', handleMessage);
+
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [directPreviewUrl]);
+
+  const injectInspectorScript = useCallback(() => {
+    const iframe = iframeRef.current;
+
+    if (!iframe) {
+      return;
+    }
+
+    try {
+      const doc = iframe.contentDocument;
+
+      if (!doc || !doc.head) {
+        return;
+      }
+
+      if (doc.getElementById('bolt-inspector-script')) {
+        return;
+      }
+
+      const scriptEl = doc.createElement('script');
+      scriptEl.id = 'bolt-inspector-script';
+      scriptEl.type = 'text/javascript';
+      scriptEl.textContent = inspectorScript;
+      doc.head.appendChild(scriptEl);
+    } catch {}
+  }, [iframeUrl]);
+
+  useEffect(() => {
+    if (!isInspectorActive) {
+      return undefined;
+    }
+
+    const iframe = iframeRef.current;
+
+    if (!iframe) {
+      return;
+    }
+
+    const handleLoad = () => {
+      injectInspectorScript();
+    };
+
+    try {
+      if (iframe.contentDocument?.readyState === 'complete') {
+        injectInspectorScript();
+      }
+    } catch {}
+
+    iframe.addEventListener('load', handleLoad);
+
+    return () => {
+      iframe.removeEventListener('load', handleLoad);
+    };
+  }, [iframeUrl, injectInspectorScript, isInspectorActive]);
+
+  useEffect(() => {
+    if (isInspectorActive) {
+      injectInspectorScript();
+    }
+  }, [isInspectorActive, injectInspectorScript]);
+
+  useEffect(() => {
+    if (selectedElement) {
+      setIsInspectorPanelVisible(true);
+    }
+  }, [selectedElement]);
+
+  useEffect(() => {
+    setSelectedElement(null);
+    setIsInspectorPanelVisible(false);
+  }, [directPreviewUrl]);
+
+  const formatElementPrompt = useCallback((element: ElementInfo) => {
+    const lines: string[] = [];
+    lines.push('Please help update this element in the preview.');
+    lines.push(`Selector: ${element.selector || element.tagName.toLowerCase()}`);
+    lines.push(`Element: ${element.displayText}`);
+
+    if (element.textContent) {
+      lines.push(`Text content: "${element.textContent}"`);
+    }
+
+    if (element.elementPath) {
+      lines.push(`Hierarchy: ${element.elementPath}`);
+    }
+
+    const styleEntries = Object.entries(element.styles);
+
+    if (styleEntries.length > 0) {
+      lines.push('Current styles:');
+      styleEntries.slice(0, 12).forEach(([prop, value]) => {
+        lines.push(`- ${prop}: ${value}`);
+      });
+    }
+
+    return lines.join('\n');
+  }, []);
+
+  const handleElementSelect = useCallback(
+    (element: ElementInfo) => {
+      setIsInspectorActive(false);
+      setSelectedElement(element);
+
+      const prompt = formatElementPrompt(element);
+      chatStore.setKey('pendingInput', prompt);
+      chatStore.setKey('autoSendPending', false);
+      chatStore.setKey('showChat', true);
+    },
+    [formatElementPrompt],
+  );
+
   function getCookie(name: string): string | null {
     if (typeof document === 'undefined') {
       return null;
@@ -99,15 +305,12 @@ export const Preview = memo(() => {
     }
 
     try {
-      const url = new URL('/preview', window.location.origin);
-      url.searchParams.set('src', current);
-      const hostHint = getCookie('wc_host');
+      // Validate that the URL is well-formed before returning it directly.
+      // Opening the WebContainer host avoids additional redirects that can fail under inspector bridge mode.
+      // eslint-disable-next-line no-new
+      new URL(current);
 
-      if (hostHint) {
-        url.searchParams.set('host', hostHint);
-      }
-
-      return url.toString();
+      return current;
     } catch {
       return null;
     }
@@ -122,16 +325,40 @@ export const Preview = memo(() => {
         <IconButton icon={RotateCw} onClick={reloadPreview} />
         <IconButton
           icon={ExternalLink}
-          disabled={!computeOpenUrl(iframeUrl)}
+          disabled={!computeOpenUrl(directPreviewUrl)}
           title="Open preview in new tab"
           onClick={() => {
-            const target = computeOpenUrl(iframeUrl);
+            const target = computeOpenUrl(directPreviewUrl);
 
             if (!target) {
               return;
             }
 
             window.open(target, '_blank');
+          }}
+        />
+        <IconButton
+          icon={Crosshair}
+          title="Toggle inspector"
+          disabled={!activePreview}
+          className={isInspectorActive ? 'text-blue-500' : undefined}
+          onClick={() => {
+            if (!activePreview) {
+              return;
+            }
+
+            setIsInspectorActive((value) => {
+              const next = !value;
+
+              if (!next) {
+                setInspectorError(null);
+                setSelectedElement(null);
+                setIsInspectorPanelVisible(false);
+                setIframeUrl(directPreviewUrl);
+              }
+
+              return next;
+            });
           }}
         />
         <div className="flex items-center gap-1 flex-grow bg-bolt-elements-preview-addressBar-background border border-bolt-elements-borderColor text-bolt-elements-preview-addressBar-text rounded-full px-3 py-1 text-sm hover:bg-bolt-elements-preview-addressBar-backgroundHover focus-within:bg-bolt-elements-preview-addressBar-backgroundActive focus-within:border-bolt-elements-borderColorActive focus-within:text-bolt-elements-preview-addressBar-textActive">
@@ -145,7 +372,7 @@ export const Preview = memo(() => {
             }}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && validateUrl(url)) {
-                setIframeUrl(url);
+                setDirectPreviewUrl(url);
 
                 if (inputRef.current) {
                   inputRef.current.blur();
@@ -159,12 +386,15 @@ export const Preview = memo(() => {
             activePreviewIndex={activePreviewIndex}
             setActivePreviewIndex={setActivePreviewIndex}
             isDropdownOpen={isPortDropdownOpen}
-            setHasSelectedPreview={(value) => (hasSelectedPreview.current = value)}
+            setHasSelectedPreview={(value) => {
+              hasSelectedPreview.current = value;
+            }}
             setIsDropdownOpen={setIsPortDropdownOpen}
             previews={previews}
           />
         )}
       </div>
+      {inspectorError && <div className="px-3 pb-2 text-xs text-red-500">{inspectorError}</div>}
       <div className="flex-1 border-t border-bolt-elements-borderColor">
         {activePreview ? (
           <iframe ref={iframeRef} className="border-none w-full h-full bg-white" src={iframeUrl} />
@@ -172,6 +402,15 @@ export const Preview = memo(() => {
           <div className="flex w-full h-full justify-center items-center bg-white">No preview available</div>
         )}
       </div>
+      <Inspector isActive={isInspectorActive && Boolean(activePreview)} iframeRef={iframeRef} onElementSelect={handleElementSelect} />
+      <InspectorPanel
+        selectedElement={selectedElement}
+        isVisible={isInspectorPanelVisible}
+        onClose={() => {
+          setIsInspectorPanelVisible(false);
+          setSelectedElement(null);
+        }}
+      />
     </div>
   );
 });

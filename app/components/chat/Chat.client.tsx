@@ -6,9 +6,11 @@ import { X, Check, AlertTriangle } from 'lucide-react';
 import { memo, useEffect, useMemo, useRef, useState } from 'react';
 import { cssTransition, ToastContainer, toast } from 'react-toastify';
 import { BaseChat } from './BaseChat';
+import type { ImageAttachment } from './ImageUpload';
 import { useAuth } from '~/lib/contexts/AuthContext';
 import { useMessageParser, usePromptEnhancer, useShortcuts, useSnapScroll } from '~/lib/hooks';
 import { useProjectAutoSave } from '~/lib/hooks/useProjectAutoSave';
+import { getModel } from '~/lib/models.client';
 import { useChatHistory, chatId } from '~/lib/persistence';
 import { revertMessagesToIndex } from '~/lib/persistence/chat-actions';
 import { getDatabase, saveUsage } from '~/lib/persistence/db';
@@ -101,6 +103,12 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const modelSelection = useStore(currentModel);
 
+  // Check if current model supports vision
+  const supportsVision = useMemo(() => {
+    const modelInfo = getModel(modelSelection.provider, modelSelection.modelId);
+    return modelInfo?.capabilities?.vision === true;
+  }, [modelSelection]);
+
   // Reset per-conversation usage when active chat changes
   const activeChatId = useStore(chatId);
   useEffect(() => {
@@ -151,6 +159,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
   const isLoading = status === 'streaming';
   const [input, setInput] = useState('');
+  const [images, setImages] = useState<ImageAttachment[]>([]);
   const handleInputChange = (event: React.ChangeEvent<HTMLTextAreaElement>) => setInput(event.target.value);
 
   const { enhancingPrompt, promptEnhanced, enhancePrompt, resetEnhancer } = usePromptEnhancer();
@@ -495,10 +504,17 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
   const containsPlanApprovalTag = (_text: string) => /<approved_plan[\s>]/i.test(_text);
   const containsPlanDocumentTag = (_text: string) => /<plan_document[\s>]/i.test(_text);
 
-  const sendMessageHandler = async (_event: React.UIEvent, messageInput?: string) => {
+  const sendMessageHandler = async (_event: React.UIEvent, messageInput?: string, imageAttachments?: ImageAttachment[]) => {
     const _input = messageInput || input;
+    const _images = imageAttachments || images;
 
     if (_input.length === 0 || isLoading) {
+      return;
+    }
+
+    // Check if images are provided but model doesn't support vision
+    if (_images.length > 0 && !supportsVision) {
+      toast.error('The selected model does not support image uploads. Please select a vision-capable model.');
       return;
     }
 
@@ -514,8 +530,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
     // Reset plan enforcement counter for this new user turn
     planEnforceCountRef.current = 0;
 
-    // Clear input immediately to provide instant feedback
+    // Clear input and images immediately to provide instant feedback
     setInput('');
+    setImages([]);
 
     /**
      * @note (delm) Usually saving files shouldn't take long but it may take longer if there
@@ -536,11 +553,37 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
 
     if (fileModifications !== undefined) {
       const diff = fileModificationsToHTML(fileModifications);
-      newMessage = { role: 'user', parts: [{ type: 'text', text: `${diff}\n\n${_input}` }] };
+      const parts: any[] = [{ type: 'text', text: `${diff}\n\n${_input}` }];
+      
+      // Add images if present
+      if (_images.length > 0) {
+        _images.forEach((img) => {
+          parts.push({
+            type: 'image',
+            image: img.url,
+            mimeType: img.mimeType,
+          });
+        });
+      }
+      
+      newMessage = { role: 'user', parts };
       await sendMessage(newMessage as any);
       workbenchStore.resetAllFileModifications();
     } else {
-      newMessage = { role: 'user', parts: [{ type: 'text', text: _input }] };
+      const parts: any[] = [{ type: 'text', text: _input }];
+      
+      // Add images if present
+      if (_images.length > 0) {
+        _images.forEach((img) => {
+          parts.push({
+            type: 'image',
+            image: img.url,
+            mimeType: img.mimeType,
+          });
+        });
+      }
+      
+      newMessage = { role: 'user', parts };
       await sendMessage(newMessage as any);
     }
 
@@ -598,6 +641,9 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       onRevertMessage={handleRevertMessage}
       onPlanApprove={handlePlanApprove}
       onPlanReject={handlePlanReject}
+      images={images}
+      onImagesChange={setImages}
+      supportsVision={supportsVision}
       messages={(function buildMessages() {
         const base = messages.map((message, i) => {
           if (message.role === 'user') {
