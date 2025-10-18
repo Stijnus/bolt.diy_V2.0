@@ -28,6 +28,7 @@ export interface ElementInfo {
 export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorProps) => {
   const [hoveredElement, setHoveredElement] = useState<ElementInfo | null>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const inspectorSourceRef = useRef<MessageEventSource | null>(null);
 
   useEffect(() => {
     if (!isActive || !iframeRef.current) {
@@ -50,16 +51,21 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
 
     // Listen for messages from the iframe
     const handleMessage = (event: MessageEvent) => {
-      if (!iframe.contentWindow || event.source !== iframe.contentWindow) {
-        return;
-      }
-
       if (!event.data || typeof event.data !== 'object') {
         return;
       }
 
+      // Establish/validate the message source from the iframe
       if (event.data.type === 'INSPECTOR_READY') {
+        inspectorSourceRef.current = event.source ?? null;
         sendActivationMessage();
+        return;
+      }
+
+      const fromCurrentIframe = !!iframe.contentWindow && event.source === iframe.contentWindow;
+      const fromKnownInspector = inspectorSourceRef.current != null && event.source === inspectorSourceRef.current;
+
+      if (!fromCurrentIframe && !fromKnownInspector) {
         return;
       }
 
@@ -115,11 +121,16 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
     // Send activation message to iframe
     // Try to send activation message immediately and on load
     sendActivationMessage();
-    iframe.addEventListener('load', sendActivationMessage);
+    const handleIframeLoad = () => {
+      // Reset known source after navigation and re-handshake
+      inspectorSourceRef.current = null;
+      sendActivationMessage();
+    };
+    iframe.addEventListener('load', handleIframeLoad);
 
     return () => {
       window.removeEventListener('message', handleMessage);
-      iframe.removeEventListener('load', sendActivationMessage);
+      iframe.removeEventListener('load', handleIframeLoad);
 
       // Deactivate inspector in iframe
       if (iframe.contentWindow) {
@@ -131,6 +142,7 @@ export const Inspector = ({ isActive, iframeRef, onElementSelect }: InspectorPro
           '*',
         );
       }
+      inspectorSourceRef.current = null;
     };
   }, [isActive, iframeRef, onElementSelect]);
 

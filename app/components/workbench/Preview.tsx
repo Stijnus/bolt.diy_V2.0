@@ -25,21 +25,35 @@ export const Preview = memo(() => {
   const [selectedElement, setSelectedElement] = useState<ElementInfo | null>(null);
   const [isInspectorPanelVisible, setIsInspectorPanelVisible] = useState(false);
   const [inspectorError, setInspectorError] = useState<string | null>(null);
+  const [inspectorReady, setInspectorReady] = useState(false);
+  const [isBridgeMode, setIsBridgeMode] = useState(false);
+  const inspectorTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inspectorReadyRef = useRef(false);
 
+  useEffect(() => {
+    inspectorReadyRef.current = inspectorReady;
+  }, [inspectorReady]);
+
+  // Update URLs when active preview changes
   useEffect(() => {
     if (!activePreview) {
       setUrl('');
       setDirectPreviewUrl(undefined);
       setIframeUrl(undefined);
-
       return;
     }
 
     const { baseUrl } = activePreview;
-
+    
+    // Always update the base URL
     setUrl(baseUrl);
-    setDirectPreviewUrl(baseUrl);
-  }, [activePreview, activePreview?.baseUrl]);
+    
+    // Only update directPreviewUrl if we're not in inspector mode
+    // or if directPreviewUrl is not set
+    if (!isInspectorActive || !directPreviewUrl) {
+      setDirectPreviewUrl(baseUrl);
+    }
+  }, [activePreview, activePreview?.baseUrl, isInspectorActive]);
 
   const validateUrl = useCallback(
     (value: string) => {
@@ -89,7 +103,8 @@ export const Preview = memo(() => {
       }
 
       try {
-        const bridgeUrl = new URL('/preview', window.location.origin);
+        const bridgeOrigin = window.top?.location?.origin ?? window.location.origin;
+        const bridgeUrl = new URL('/preview', bridgeOrigin);
         bridgeUrl.searchParams.set('src', current);
         bridgeUrl.searchParams.set('mode', 'bridge');
 
@@ -107,13 +122,45 @@ export const Preview = memo(() => {
     [],
   );
 
+  const switchToBridge = useCallback(() => {
+    if (!directPreviewUrl) {
+      return;
+    }
+
+    const bridged = computeBridgeUrl(directPreviewUrl);
+
+    if (!bridged) {
+      setInspectorError('Element inspector is unavailable for this preview URL.');
+      setIsInspectorActive(false);
+      setSelectedElement(null);
+      setIsInspectorPanelVisible(false);
+      setIsBridgeMode(false);
+      setInspectorReady(false);
+      inspectorReadyRef.current = false;
+      setIframeUrl(directPreviewUrl);
+      return;
+    }
+
+    if (inspectorTimeoutRef.current) {
+      clearTimeout(inspectorTimeoutRef.current);
+      inspectorTimeoutRef.current = null;
+    }
+
+    setInspectorError(null);
+    setIsBridgeMode(true);
+
+    if (bridged !== iframeUrl) {
+      setIframeUrl(bridged);
+    }
+  }, [computeBridgeUrl, directPreviewUrl, iframeUrl, setIsInspectorActive]);
+
   useEffect(() => {
     if (!directPreviewUrl) {
       setIframeUrl(undefined);
       return;
     }
 
-    if (isInspectorActive) {
+    if (isInspectorActive && isBridgeMode) {
       const bridged = computeBridgeUrl(directPreviewUrl);
 
       if (!bridged) {
@@ -121,26 +168,32 @@ export const Preview = memo(() => {
         setIsInspectorActive(false);
         setSelectedElement(null);
         setIsInspectorPanelVisible(false);
+        setIsBridgeMode(false);
+        setInspectorReady(false);
+        inspectorReadyRef.current = false;
         setIframeUrl(directPreviewUrl);
-
         return;
       }
-
-      setInspectorError(null);
 
       if (bridged !== iframeUrl) {
         setIframeUrl(bridged);
       }
-    } else {
+
       if (inspectorError) {
         setInspectorError(null);
       }
 
-      if (directPreviewUrl !== iframeUrl) {
-        setIframeUrl(directPreviewUrl);
-      }
+      return;
     }
-  }, [computeBridgeUrl, directPreviewUrl, iframeUrl, inspectorError, isInspectorActive]);
+
+    if (directPreviewUrl !== iframeUrl) {
+      setIframeUrl(directPreviewUrl);
+    }
+
+    if (inspectorError) {
+      setInspectorError(null);
+    }
+  }, [computeBridgeUrl, directPreviewUrl, iframeUrl, inspectorError, isBridgeMode, isInspectorActive, setIsInspectorActive]);
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -148,23 +201,42 @@ export const Preview = memo(() => {
         return;
       }
 
-      if (event.data.type !== 'BOLT_PREVIEW_BRIDGE_ERROR') {
+      if (event.data.type === 'INSPECTOR_READY') {
+        if (!isInspectorActive) {
+          return;
+        }
+
+        setInspectorReady(true);
+        inspectorReadyRef.current = true;
+        if (inspectorTimeoutRef.current) {
+          clearTimeout(inspectorTimeoutRef.current);
+          inspectorTimeoutRef.current = null;
+        }
         return;
       }
 
-      const description = typeof event.data.description === 'string' ? event.data.description : null;
+      if (event.data.type === 'BOLT_PREVIEW_BRIDGE_ERROR') {
+        const description = typeof event.data.description === 'string' ? event.data.description : null;
 
-      setInspectorError(description ?? 'Preview inspector bridge failed.');
-      setIsInspectorActive(false);
-      setSelectedElement(null);
-      setIsInspectorPanelVisible(false);
-      setIframeUrl(directPreviewUrl);
+        setInspectorError(description ?? 'Preview inspector bridge failed.');
+        setIsInspectorActive(false);
+        setSelectedElement(null);
+        setIsInspectorPanelVisible(false);
+        setIsBridgeMode(false);
+        setInspectorReady(false);
+        inspectorReadyRef.current = false;
+        setIframeUrl(directPreviewUrl);
+      }
     };
 
     window.addEventListener('message', handleMessage);
 
     return () => {
       window.removeEventListener('message', handleMessage);
+      if (inspectorTimeoutRef.current) {
+        clearTimeout(inspectorTimeoutRef.current);
+        inspectorTimeoutRef.current = null;
+      }
     };
   }, [directPreviewUrl]);
 
@@ -172,18 +244,18 @@ export const Preview = memo(() => {
     const iframe = iframeRef.current;
 
     if (!iframe) {
-      return;
+      return false;
     }
 
     try {
       const doc = iframe.contentDocument;
 
       if (!doc || !doc.head) {
-        return;
+        return false;
       }
 
       if (doc.getElementById('bolt-inspector-script')) {
-        return;
+        return true;
       }
 
       const scriptEl = doc.createElement('script');
@@ -191,42 +263,77 @@ export const Preview = memo(() => {
       scriptEl.type = 'text/javascript';
       scriptEl.textContent = inspectorScript;
       doc.head.appendChild(scriptEl);
-    } catch {}
-  }, [iframeUrl]);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
 
   useEffect(() => {
     if (!isInspectorActive) {
+      setInspectorReady(false);
+      inspectorReadyRef.current = false;
+      setIsBridgeMode(false);
+
+      if (inspectorTimeoutRef.current) {
+        clearTimeout(inspectorTimeoutRef.current);
+        inspectorTimeoutRef.current = null;
+      }
+
+      if (directPreviewUrl) {
+        setIframeUrl(directPreviewUrl);
+      }
+
       return undefined;
     }
 
     const iframe = iframeRef.current;
 
     if (!iframe) {
+      switchToBridge();
       return;
     }
 
-    const handleLoad = () => {
-      injectInspectorScript();
+    const tryDirectInjection = () => {
+      if (!isInspectorActive) {
+        return;
+      }
+
+      setIsBridgeMode(false);
+      setInspectorReady(false);
+      inspectorReadyRef.current = false;
+
+      const injected = injectInspectorScript();
+
+      if (injected) {
+        if (inspectorTimeoutRef.current) {
+          clearTimeout(inspectorTimeoutRef.current);
+        }
+
+        inspectorTimeoutRef.current = setTimeout(() => {
+          if (!inspectorReadyRef.current) {
+            switchToBridge();
+          }
+        }, 500);
+      } else {
+        switchToBridge();
+      }
     };
 
     try {
       if (iframe.contentDocument?.readyState === 'complete') {
-        injectInspectorScript();
+        tryDirectInjection();
       }
-    } catch {}
+    } catch {
+      switchToBridge();
+    }
 
-    iframe.addEventListener('load', handleLoad);
+    iframe.addEventListener('load', tryDirectInjection);
 
     return () => {
-      iframe.removeEventListener('load', handleLoad);
+      iframe.removeEventListener('load', tryDirectInjection);
     };
-  }, [iframeUrl, injectInspectorScript, isInspectorActive]);
-
-  useEffect(() => {
-    if (isInspectorActive) {
-      injectInspectorScript();
-    }
-  }, [isInspectorActive, injectInspectorScript]);
+  }, [directPreviewUrl, injectInspectorScript, isInspectorActive, switchToBridge]);
 
   useEffect(() => {
     if (selectedElement) {
@@ -299,22 +406,26 @@ export const Preview = memo(() => {
     }
   }
 
-  function computeOpenUrl(current: string | undefined): string | null {
+  const computeOpenUrl = useCallback((current: string | undefined): string | null => {
     if (!current) {
       return null;
     }
 
     try {
-      // Validate that the URL is well-formed before returning it directly.
-      // Opening the WebContainer host avoids additional redirects that can fail under inspector bridge mode.
-      // eslint-disable-next-line no-new
-      new URL(current);
-
-      return current;
-    } catch {
+      // Always open the direct preview URL in new tab
+      const url = new URL(current);
+      
+      // If this is a WebContainer URL, ensure it has the correct protocol
+      if (url.hostname.endsWith('.local-corp.webcontainer-api.io')) {
+        url.protocol = 'https:';
+      }
+      
+      return url.toString();
+    } catch (error) {
+      console.error('Error computing preview URL:', error);
       return null;
     }
-  }
+  }, []);
 
   return (
     <div className="w-full h-full flex flex-col">
@@ -351,11 +462,22 @@ export const Preview = memo(() => {
               const next = !value;
 
               if (!next) {
-                setInspectorError(null);
-                setSelectedElement(null);
-                setIsInspectorPanelVisible(false);
+              setInspectorError(null);
+              setSelectedElement(null);
+              setIsInspectorPanelVisible(false);
+              setInspectorReady(false);
+              inspectorReadyRef.current = false;
+              setIsBridgeMode(false);
+
+              if (inspectorTimeoutRef.current) {
+                clearTimeout(inspectorTimeoutRef.current);
+                inspectorTimeoutRef.current = null;
+              }
+
+              if (directPreviewUrl && directPreviewUrl !== iframeUrl) {
                 setIframeUrl(directPreviewUrl);
               }
+            }
 
               return next;
             });

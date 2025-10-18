@@ -259,7 +259,7 @@ export function useChatHistory(activeProjectId?: string | null) {
                 // Import decoding utilities
                 const { decodeFileContent } = await import('~/utils/file-encoding');
 
-                const fileMap: Record<string, { type: 'file'; content: string; isBinary: boolean }> = {};
+                const fileMap: Record<string, { type: 'file' | 'folder'; content?: string; isBinary?: boolean }> = {};
 
                 // Validate and clean file state before restoration
                 Object.entries(storedMessages.fileState).forEach(([path, fileData]) => {
@@ -272,15 +272,23 @@ export function useChatHistory(activeProjectId?: string | null) {
                     'content' in fileData &&
                     typeof fileData.content === 'string'
                   ) {
-                    // Decode binary files from base64
-                    const encoding = fileData.encoding || 'plain';
-                    const decodedContent = decodeFileContent(fileData.content, encoding);
+                    // Check if this is a folder (empty content and not binary)
+                    if (fileData.content === '' && !fileData.isBinary) {
+                      logger.debug(`[FilePersistence] Restoring folder: ${path}`);
+                      fileMap[path] = {
+                        type: 'folder',
+                      };
+                    } else {
+                      // Decode binary files from base64
+                      const encoding = fileData.encoding || 'plain';
+                      const decodedContent = decodeFileContent(fileData.content, encoding);
 
-                    fileMap[path] = {
-                      type: 'file',
-                      content: decodedContent,
-                      isBinary: fileData.isBinary || false,
-                    };
+                      fileMap[path] = {
+                        type: 'file',
+                        content: decodedContent,
+                        isBinary: fileData.isBinary || false,
+                      };
+                    }
                   } else {
                     logger.warn(`Skipping invalid file data for path: ${path}`);
                   }
@@ -901,6 +909,132 @@ export function useChatHistory(activeProjectId?: string | null) {
     };
   }, [mixedId, navigate, user]);
 
+  // File watcher to trigger persistence when files are manually added
+  useEffect(() => {
+    if (!persistenceEnabled || typeof window === 'undefined') {
+      return;
+    }
+
+    let fileWatcherUnsubscribe: (() => void) | null = null;
+    let saveTimeout: NodeJS.Timeout | null = null;
+    let previousFileCount = 0;
+    let previousFileKeys: string[] = [];
+
+    const scheduleFilePersistence = (currentFiles: Record<string, any>) => {
+      const currentFileKeys = Object.keys(currentFiles);
+      const currentFileCount = currentFileKeys.length;
+      
+      // Only trigger if files were added (not just modified)
+      const filesAdded = currentFileCount > previousFileCount || 
+        currentFileKeys.some(key => !previousFileKeys.includes(key));
+      
+      if (!filesAdded) {
+        previousFileCount = currentFileCount;
+        previousFileKeys = currentFileKeys;
+        return;
+      }
+
+      // Clear existing timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+
+      // Schedule a save after a short delay to batch multiple file changes
+      saveTimeout = setTimeout(async () => {
+        try {
+          // Get current messages to save with updated file state
+          const currentMessages = initialMessages;
+          
+          if (currentMessages.length > 0 && storeMessageHistoryRef.current) {
+            logger.info('New files detected, triggering chat history persistence...');
+            await storeMessageHistoryRef.current(currentMessages);
+            logger.info('Successfully persisted new files to chat history');
+          }
+        } catch (error) {
+          logger.error('Failed to persist new files to chat history:', error);
+        }
+      }, 2000); // 2 second delay to batch changes
+      
+      previousFileCount = currentFileCount;
+      previousFileKeys = currentFileKeys;
+    };
+
+    // Listen for custom events when files are manually added
+    const handleManualFileAdded = (event: CustomEvent) => {
+      const { type, path } = event.detail;
+      logger.info(`[FilePersistence] Manually added ${type}: ${path}, triggering persistence...`);
+      
+      // Clear existing timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+
+      // Schedule immediate save for manually added files
+      saveTimeout = setTimeout(async () => {
+        try {
+          const currentMessages = initialMessages;
+          
+          if (currentMessages.length > 0 && storeMessageHistoryRef.current) {
+            logger.info('[FilePersistence] Manually added file detected, triggering chat history persistence...');
+            await storeMessageHistoryRef.current(currentMessages);
+            logger.info('[FilePersistence] Successfully persisted manually added file to chat history');
+          } else {
+            logger.warn('[FilePersistence] No messages or store function available, skipping persistence');
+          }
+        } catch (error) {
+          logger.error('[FilePersistence] Failed to persist manually added file to chat history:', error);
+        }
+      }, 500); // Shorter delay for manual additions
+    };
+
+    // Listen for general file persistence trigger
+    const handleFilePersistenceTrigger = () => {
+      logger.info('[FilePersistence] File persistence triggered manually...');
+      
+      // Clear existing timeout
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+
+      // Schedule immediate save
+      saveTimeout = setTimeout(async () => {
+        try {
+          const currentMessages = initialMessages;
+          
+          if (currentMessages.length > 0 && storeMessageHistoryRef.current) {
+            logger.info('[FilePersistence] Manual file persistence triggered, saving to chat history...');
+            await storeMessageHistoryRef.current(currentMessages);
+            logger.info('[FilePersistence] Successfully persisted files to chat history');
+          } else {
+            logger.warn('[FilePersistence] No messages or store function available, skipping persistence');
+          }
+        } catch (error) {
+          logger.error('[FilePersistence] Failed to persist files to chat history:', error);
+        }
+      }, 500);
+    };
+
+    // Subscribe to file changes in the workbench store
+    fileWatcherUnsubscribe = workbenchStore.files.subscribe((currentFiles) => {
+      scheduleFilePersistence(currentFiles);
+    });
+
+    // Listen for custom events
+    window.addEventListener('bolt:file-manually-added', handleManualFileAdded as EventListener);
+    window.addEventListener('bolt:trigger-file-persistence', handleFilePersistenceTrigger);
+
+    return () => {
+      if (fileWatcherUnsubscribe) {
+        fileWatcherUnsubscribe();
+      }
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      window.removeEventListener('bolt:file-manually-added', handleManualFileAdded as EventListener);
+      window.removeEventListener('bolt:trigger-file-persistence', handleFilePersistenceTrigger);
+    };
+  }, [persistenceEnabled, initialMessages]);
+
   const storeMessageHistoryRef = useRef<
     ((messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>) | undefined
   >(undefined);
@@ -1028,6 +1162,17 @@ export function useChatHistory(activeProjectId?: string | null) {
                   content: encodedContent,
                   isBinary,
                   encoding,
+                },
+              ];
+            } else if (file && file.type === 'folder') {
+              // Save folders with empty content to preserve folder structure
+              logger.debug(`[FilePersistence] Saving folder: ${path}`);
+              return [
+                path,
+                {
+                  content: '',
+                  isBinary: false,
+                  encoding: 'plain' as const,
                 },
               ];
             }

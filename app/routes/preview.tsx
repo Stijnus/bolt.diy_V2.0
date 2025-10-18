@@ -104,16 +104,164 @@ function escapeScriptContent(content: string) {
   return content.replace(/<\/script>/gi, '<\\/script>');
 }
 
+function escapeHtml(content: string) {
+  return content
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function createBridgeBootstrapScript(targetUrl: string) {
+  const target = new URL(targetUrl);
+  const targetHref = target.toString();
+  const targetOrigin = target.origin;
+
+  const script = `
+    (function () {
+      const targetUrl = ${JSON.stringify(targetHref)};
+      const targetOrigin = ${JSON.stringify(targetOrigin)};
+
+      window.__boltPreviewBridge = { targetUrl, targetOrigin };
+
+      const normalize = (value, kind) => {
+        if (!value || typeof value !== 'string') {
+          return value;
+        }
+
+        const trimmed = value.trim();
+
+        if (!trimmed) {
+          return trimmed;
+        }
+
+        const hasScheme = /^[a-zA-Z][a-zA-Z\d+.-]*:/.test(trimmed);
+
+        if (hasScheme) {
+          if (kind === 'ws' && (trimmed.startsWith('http://') || trimmed.startsWith('https://'))) {
+            return trimmed.replace(/^http/, 'ws').replace(/^https/, 'wss');
+          }
+
+          return trimmed;
+        }
+
+        try {
+          const resolved = new URL(trimmed, targetUrl);
+
+          if (kind === 'ws') {
+            const protocol = resolved.protocol === 'https:' ? 'wss:' : 'ws:';
+            return protocol + '//' + resolved.host + resolved.pathname + resolved.search + resolved.hash;
+          }
+
+          return resolved.toString();
+        } catch (error) {
+          console.warn('Failed to normalize preview bridge URL', { value, kind, error });
+          return value;
+        }
+      };
+
+      const OriginalRequest = window.Request;
+      const OriginalEventSource = window.EventSource;
+      const OriginalWebSocket = window.WebSocket;
+      const originalFetch = typeof window.fetch === 'function' ? window.fetch.bind(window) : null;
+
+      if (originalFetch) {
+        window.fetch = function (input, init) {
+          if (typeof input === 'string') {
+            const rewritten = normalize(input);
+            return originalFetch(rewritten, init);
+          }
+
+          if (input instanceof URL) {
+            const rewritten = normalize(input.toString());
+            return originalFetch(rewritten, init);
+          }
+
+          if (input instanceof OriginalRequest) {
+            const rewritten = normalize(input.url);
+
+            if (rewritten !== input.url) {
+              const cloned = new OriginalRequest(rewritten, input);
+              return originalFetch(cloned, init);
+            }
+          }
+
+          return originalFetch(input, init);
+        };
+      }
+
+      const originalXHROpen = XMLHttpRequest.prototype.open;
+      XMLHttpRequest.prototype.open = function (method, url, async, user, password) {
+        const rewritten = normalize(url);
+        return originalXHROpen.call(this, method, rewritten, async, user, password);
+      };
+
+      if (typeof navigator.sendBeacon === 'function') {
+        const originalSendBeacon = navigator.sendBeacon.bind(navigator);
+        navigator.sendBeacon = function (url, data) {
+          const rewritten = normalize(url);
+          return originalSendBeacon(rewritten, data);
+        };
+      }
+
+      if (OriginalEventSource) {
+        const PatchedEventSource = function (url, config) {
+          const rewritten = normalize(url);
+          return new OriginalEventSource(rewritten, config);
+        };
+
+        PatchedEventSource.prototype = OriginalEventSource.prototype;
+        window.EventSource = PatchedEventSource;
+      }
+
+      if (OriginalWebSocket) {
+        const PatchedWebSocket = function (url, protocols) {
+          const rewritten = normalize(url, 'ws');
+          return new OriginalWebSocket(rewritten, protocols);
+        };
+
+        PatchedWebSocket.prototype = OriginalWebSocket.prototype;
+        window.WebSocket = PatchedWebSocket;
+      }
+    })();
+  `;
+
+  return `<script type="text/javascript" data-bolt-preview-bridge-bootstrap>${escapeScriptContent(script)}</script>`;
+}
+
+// Rewrite absolute-root resource URLs (e.g., /@vite/client) to the upstream origin.
+// This is necessary because absolute paths ignore <base> and would otherwise request
+// our app origin instead of the upstream dev server.
+function rewriteAbsoluteResourceUrls(html: string, targetOrigin: string) {
+  // Matches src|href|action attributes with a single leading slash (not protocol-relative //)
+  const re = /(\s(?:src|href|action)\s*=\s*)(["'])\/(?!\/)([^"']*)(\2)/gi;
+
+  return html.replace(re, (_match, prefix: string, quote: string, path: string, suffixQuote: string) => {
+    return `${prefix}${quote}${targetOrigin}/${path}${suffixQuote}`;
+  });
+}
+
 function injectInspectorIntoHtml(html: string, targetUrl: string) {
   const baseHref = new URL('.', targetUrl).toString();
   const baseTag = `<base href="${baseHref}">`;
-  const scriptTag = `<script type="text/javascript">${escapeScriptContent(inspectorScript)}</script>`;
+  const bridgeBootstrap = createBridgeBootstrapScript(targetUrl);
+  const inspectorTag = `<script type="text/javascript">${escapeScriptContent(inspectorScript)}</script>`;
+  const injection = `${baseTag}\n${bridgeBootstrap}\n${inspectorTag}`;
+  const headOpenPattern = /<head([^>]*)>/i;
+  const targetOrigin = new URL(targetUrl).origin;
+  // First, rewrite absolute-root URLs so assets load from the upstream dev server instead of our origin
+  const rewritten = rewriteAbsoluteResourceUrls(html, targetOrigin);
 
-  if (html.includes('</head>')) {
-    return html.replace('</head>', `${baseTag}\n${scriptTag}\n</head>`);
+  if (headOpenPattern.test(rewritten)) {
+    return rewritten.replace(headOpenPattern, `<head$1>\n${injection}\n`);
   }
 
-  return `${baseTag}\n${scriptTag}\n${html}`;
+  if (rewritten.includes('</head>')) {
+    return rewritten.replace('</head>', `${injection}\n</head>`);
+  }
+
+  return `${injection}\n${rewritten}`;
 }
 
 function renderBridgeErrorHtml(title: string, description: string) {
@@ -132,8 +280,8 @@ function renderBridgeErrorHtml(title: string, description: string) {
   </head>
   <body>
     <div class="container">
-      <h1>${title}</h1>
-      <p>${description}</p>
+      <h1>${escapeHtml(title)}</h1>
+      <p style="white-space: pre-wrap;">${escapeHtml(description)}</p>
       <code>Try disabling the inspector to restore the direct preview.</code>
     </div>
     <script>
@@ -187,16 +335,30 @@ export async function loader({ request }: LoaderFunctionArgs) {
         upstreamHeaders['Accept-Language'] = acceptLanguage;
       }
 
+      if (cookieHeader) {
+        upstreamHeaders['Cookie'] = cookieHeader;
+      }
+
       const upstreamResponse = await fetch(resolved.targetUrl, {
         headers: upstreamHeaders,
         redirect: 'follow',
       });
 
       if (!upstreamResponse.ok) {
-        const detail = `Failed to load preview (HTTP ${upstreamResponse.status}).`;
+        let snippet = '';
+
+        try {
+          const text = await upstreamResponse.text();
+          snippet = text.slice(0, 400);
+        } catch (readError) {
+          snippet = `Unable to read upstream response body: ${(readError as Error).message}`;
+        }
+
+        const detail = `Failed to load preview (HTTP ${upstreamResponse.status}).\n\nUpstream response snippet:\n${snippet}`;
 
         return new Response(renderBridgeErrorHtml('Preview inspector unavailable', detail), {
-          status: upstreamResponse.status,
+          // Use 200 so the iframe renders our error page instead of the browser treating it as a network error
+          status: 200,
           headers: {
             'Content-Type': 'text/html; charset=utf-8',
             'Cache-Control': 'no-store',

@@ -266,11 +266,35 @@ export class WorkbenchStore {
   async createFile(filePath: string, content = '') {
     await this.#filesStore.createFile(filePath, content);
     this.setDocuments(this.#filesStore.files.get());
+    
+    // Emit custom event to trigger persistence for manually added files
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bolt:file-manually-added', {
+        detail: { type: 'file', path: filePath }
+      }));
+    }
   }
 
   async createFolder(folderPath: string) {
     await this.#filesStore.createFolder(folderPath);
     this.setDocuments(this.#filesStore.files.get());
+    
+    // Emit custom event to trigger persistence for manually added folders
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bolt:file-manually-added', {
+        detail: { type: 'folder', path: folderPath }
+      }));
+    }
+  }
+
+  /**
+   * Trigger persistence for manually added files
+   * This can be called to ensure files are saved to chat history
+   */
+  triggerFilePersistence() {
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('bolt:trigger-file-persistence'));
+    }
   }
 
   async renamePath(oldPath: string, newPath: string) {
