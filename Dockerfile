@@ -4,7 +4,7 @@
 # ================================
 # Stage 1: Base Image
 # ================================
-FROM node:20-alpine AS base
+FROM node:25-alpine AS base
 
 # Install pnpm
 ENV PNPM_VERSION=10.18.0
