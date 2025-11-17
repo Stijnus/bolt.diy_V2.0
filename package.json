@@ -89,7 +89,7 @@
     "date-fns": "^4.1.0",
     "diff": "^8.0.2",
     "framer-motion": "^12.23.22",
-    "isbot": "^5.1.31",
+    "isbot": "^5.1.32",
     "istextorbinary": "^9.5.0",
     "jose": "^6.1.0",
     "lucide-react": "^0.544.0",
