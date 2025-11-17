@@ -118,7 +118,7 @@
     "@types/node": "^24.6.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "autoprefixer": "^10.4.21",
+    "autoprefixer": "^10.4.22",
     "eslint": "^9.37.0",
     "fast-glob": "^3.3.3",
     "is-ci": "^4.1.0",
