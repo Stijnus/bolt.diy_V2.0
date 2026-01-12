@@ -41,7 +41,7 @@
     "@ai-sdk/google": "^2.0.17",
     "@ai-sdk/mistral": "^2.0.17",
     "@ai-sdk/openai": "^2.0.42",
-    "@ai-sdk/react": "^2.0.60",
+    "@ai-sdk/react": "^2.0.109",
     "@ai-sdk/xai": "^2.0.23",
     "@codemirror/autocomplete": "^6.19.0",
     "@codemirror/commands": "^6.9.0",
