@@ -1,10 +1,15 @@
 import type { User } from '@supabase/supabase-js';
+import { BRAND_COLORS } from '~/utils/brand-colors';
 
 /**
  * Get avatar URL from Supabase user data, trying multiple sources.
  * Different OAuth providers store avatar data in different places.
  */
-export function getAvatarUrl(user: User, fallbackColor: string = '8b5cf6', useProxy: boolean = false): string {
+export function getAvatarUrl(
+  user: User,
+  fallbackColor: string = BRAND_COLORS.AVATAR.FALLBACK,
+  useProxy: boolean = false,
+): string {
   let avatarUrl: string | null = null;
 
   // try user_metadata first (GitHub usually stores it here)

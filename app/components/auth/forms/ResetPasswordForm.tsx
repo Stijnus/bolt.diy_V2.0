@@ -79,18 +79,18 @@ export function ResetPasswordForm({
         />
 
         {error && (
-          <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-sm dark:border-red-400/40 dark:bg-red-500/15">
+          <div className="rounded-2xl border border-bolt-elements-button-danger-text/25 bg-bolt-elements-button-danger-background px-4 py-3 text-sm shadow-sm">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500 dark:text-red-400" />
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-bolt-elements-button-danger-text" />
               <span className="text-bolt-elements-textPrimary">{error}</span>
             </div>
           </div>
         )}
 
         {success && (
-          <div className="rounded-2xl border border-green-500/30 bg-green-500/10 px-4 py-3 text-sm shadow-sm dark:border-green-400/40 dark:bg-green-500/15">
+          <div className="rounded-2xl border border-bolt-elements-icon-success/30 bg-bolt-elements-icon-success/10 px-4 py-3 text-sm shadow-sm">
             <div className="flex items-start gap-3">
-              <AlertCircle className="h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400" />
+              <AlertCircle className="h-5 w-5 flex-shrink-0 text-bolt-elements-icon-success" />
               <span className="text-bolt-elements-textPrimary">Password reset link sent! Check your email inbox.</span>
             </div>
           </div>

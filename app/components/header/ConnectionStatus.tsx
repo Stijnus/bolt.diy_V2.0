@@ -17,39 +17,48 @@ export function ConnectionStatus() {
     if (error) {
       return {
         icon: CloudOff,
-        color: 'text-red-500',
-        bgColor: 'bg-red-500/10',
+        iconColor: 'text-bolt-elements-button-danger-text',
+        dotColor: 'bg-bolt-elements-button-danger-text',
+        bgColor: 'bg-bolt-elements-button-danger-background',
+        borderColor: 'border-bolt-elements-button-danger-backgroundHover',
         label: 'Connection Error',
         description: error,
       };
     }
 
-    switch (status) {
-      case 'supabase':
-        return {
-          icon: Cloud,
-          color: 'text-green-500',
-          bgColor: 'bg-green-500/10',
-          label: 'Cloud Storage',
-          description: 'Your data is being synced to the cloud',
-        };
-      case 'indexeddb':
-        return {
-          icon: Database,
-          color: 'text-yellow-500',
-          bgColor: 'bg-yellow-500/10',
-          label: 'Local Storage',
-          description: 'Your data is stored locally. Sign in to sync to cloud.',
-        };
-      case 'disconnected':
-        return {
-          icon: CloudOff,
-          color: 'text-gray-500',
-          bgColor: 'bg-gray-500/10',
-          label: 'Disconnected',
-          description: 'No storage available',
-        };
+    if (status === 'supabase') {
+      return {
+        icon: Cloud,
+        iconColor: 'text-bolt-elements-icon-success',
+        dotColor: 'bg-bolt-elements-icon-success',
+        bgColor: 'bg-bolt-elements-item-backgroundActive',
+        borderColor: 'border-bolt-elements-borderColorActive/50',
+        label: 'Cloud Storage',
+        description: 'Your data is being synced to the cloud',
+      };
     }
+
+    if (status === 'indexeddb') {
+      return {
+        icon: Database,
+        iconColor: 'text-bolt-elements-item-contentAccent',
+        dotColor: 'bg-bolt-elements-item-contentAccent',
+        bgColor: 'bg-bolt-elements-item-backgroundAccent',
+        borderColor: 'border-bolt-elements-item-backgroundAccent',
+        label: 'Local Storage',
+        description: 'Your data is stored locally. Sign in to sync to cloud.',
+      };
+    }
+
+    return {
+      icon: CloudOff,
+      iconColor: 'text-bolt-elements-textSecondary',
+      dotColor: 'bg-bolt-elements-textSecondary',
+      bgColor: 'bg-bolt-elements-background-depth-3',
+      borderColor: 'border-bolt-elements-borderColor',
+      label: 'Disconnected',
+      description: 'No storage available',
+    };
   };
 
   const config = getStatusConfig();
@@ -60,17 +69,16 @@ export function ConnectionStatus() {
       <Tooltip.Root>
         <Tooltip.Trigger asChild>
           <div
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.bgColor} border border-bolt-elements-borderColor hover:border-bolt-elements-borderColorActive transition-colors cursor-help`}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg ${config.bgColor} border ${config.borderColor} transition-colors cursor-help`}
           >
             <div className="relative">
               {syncing ? (
-                <Loader2 className={`w-4 h-4 ${config.color} animate-spin`} />
+                <Loader2 className={`w-4 h-4 ${config.iconColor} animate-spin`} />
               ) : (
-                <Icon className={`w-4 h-4 ${config.color}`} />
+                <Icon className={`w-4 h-4 ${config.iconColor}`} />
               )}
-              {/* Status indicator dot */}
               <div
-                className={`absolute -top-0.5 -right-0.5 w-2 h-2 ${config.color.replace('text-', 'bg-')} rounded-full ${syncing ? 'animate-pulse' : ''}`}
+                className={`absolute -top-0.5 -right-0.5 w-2 h-2 ${config.dotColor} rounded-full ${syncing ? 'animate-pulse' : ''}`}
               />
             </div>
             <span className="text-xs font-medium text-bolt-elements-textPrimary">{config.label}</span>

@@ -1,36 +1,34 @@
-import { classNames } from '~/utils/classNames';
+import * as SwitchPrimitives from '@radix-ui/react-switch';
+import * as React from 'react';
 
-interface SwitchProps {
-  checked: boolean;
-  onChange: (checked: boolean) => void;
-  disabled?: boolean;
-  className?: string;
-}
+import { cn } from '~/lib/utils';
 
-export function Switch({ checked, onChange, disabled = false, className }: SwitchProps) {
-  return (
-    <button
-      type="button"
-      role="switch"
-      aria-checked={checked}
-      disabled={disabled}
-      onClick={() => !disabled && onChange(!checked)}
-      className={classNames(
-        'relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-bolt-elements-button-primary-background focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-background-depth-1',
-        {
-          'bg-bolt-elements-button-primary-background': checked && !disabled,
-          'bg-bolt-elements-background-depth-3': !checked && !disabled,
-          'opacity-50 cursor-not-allowed': disabled,
-        },
+type SwitchProps = Omit<React.ComponentPropsWithoutRef<typeof SwitchPrimitives.Root>, 'onChange'> & {
+  onChange?: (checked: boolean) => void;
+};
+
+const Switch = React.forwardRef<React.ElementRef<typeof SwitchPrimitives.Root>, SwitchProps>(
+  ({ className, onChange, onCheckedChange, ...props }, ref) => (
+    <SwitchPrimitives.Root
+      className={cn(
+        'peer inline-flex h-6 w-11 shrink-0 cursor-pointer items-center rounded-full border border-transparent transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-50 data-[state=checked]:bg-bolt-elements-button-primary-background data-[state=unchecked]:bg-bolt-elements-background-depth-3',
         className,
       )}
+      onCheckedChange={(checked) => {
+        onCheckedChange?.(checked);
+        onChange?.(checked);
+      }}
+      {...props}
+      ref={ref}
     >
-      <span
-        className={classNames('inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform', {
-          'translate-x-6': checked,
-          'translate-x-1': !checked,
-        })}
+      <SwitchPrimitives.Thumb
+        className={cn(
+          'pointer-events-none block h-4 w-4 rounded-full bg-bolt-elements-background-depth-1 shadow-sm ring-0 transition-transform data-[state=checked]:translate-x-6 data-[state=unchecked]:translate-x-1',
+        )}
       />
-    </button>
-  );
-}
+    </SwitchPrimitives.Root>
+  ),
+);
+Switch.displayName = SwitchPrimitives.Root.displayName;
+
+export { Switch };

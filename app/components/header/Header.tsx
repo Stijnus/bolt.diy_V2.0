@@ -14,25 +14,22 @@ export function Header() {
   return (
     <header
       className={classNames(
-        'flex items-center justify-between bg-bolt-elements-background-depth-1 px-6 py-3 h-[var(--header-height)] transition-colors',
+        'grid grid-cols-[1fr_auto_1fr] items-center bg-bolt-elements-background-depth-1 px-6 py-3 h-[var(--header-height)] transition-colors gap-4',
         {
           'border-b border-transparent': !chat.started,
           'border-b border-bolt-elements-borderColor shadow-sm': chat.started,
         },
       )}
     >
-      {/* Logo Section */}
-      <div className="flex items-center gap-3 z-[998]">{/* Logo and menu icon removed */}</div>
+      <div aria-hidden="true" />
 
-      {/* Center Section - Chat Description */}
-      <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 max-w-md">
+      <div className="min-w-0 max-w-xl justify-self-center">
         <div className="truncate text-center text-sm font-medium text-bolt-elements-textPrimary">
           <ClientOnly>{() => <ChatDescription />}</ClientOnly>
         </div>
       </div>
 
-      {/* Right Section - Actions */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 justify-self-end">
         <ClientOnly>{() => <ConnectionStatus />}</ClientOnly>
         <ClientOnly>{() => <ModelBadge />}</ClientOnly>
         {chat.started && (

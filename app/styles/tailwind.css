@@ -173,14 +173,14 @@
     --shadow-spread: 0px;
     --shadow-opacity: 0;
     --shadow-color: rgba(29, 161, 242, 0.15);
-    --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+    --shadow-2xs: 0px 1px 1px 0px hsl(210 25% 7.8431% / 0.04);
+    --shadow-xs: 0px 1px 2px 0px hsl(210 25% 7.8431% / 0.06);
+    --shadow-sm: 0px 1px 2px 0px hsl(210 25% 7.8431% / 0.08), 0px 1px 1px -1px hsl(210 25% 7.8431% / 0.06);
+    --shadow: 0px 2px 4px 0px hsl(210 25% 7.8431% / 0.08), 0px 1px 2px -1px hsl(210 25% 7.8431% / 0.06);
+    --shadow-md: 0px 4px 8px -2px hsl(210 25% 7.8431% / 0.1), 0px 2px 4px -2px hsl(210 25% 7.8431% / 0.08);
+    --shadow-lg: 0px 8px 16px -4px hsl(210 25% 7.8431% / 0.12), 0px 4px 8px -4px hsl(210 25% 7.8431% / 0.1);
+    --shadow-xl: 0px 12px 24px -6px hsl(210 25% 7.8431% / 0.14), 0px 6px 12px -6px hsl(210 25% 7.8431% / 0.12);
+    --shadow-2xl: 0px 18px 36px -8px hsl(210 25% 7.8431% / 0.16);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
   }
@@ -353,14 +353,14 @@
     --shadow-spread: 0px;
     --shadow-opacity: 0;
     --shadow-color: rgba(29, 161, 242, 0.25);
-    --shadow-2xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xs: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-sm: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 1px 2px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-md: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 2px 4px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-lg: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 4px 6px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00), 0px 8px 10px -1px hsl(202.8169 89.1213% 53.1373% / 0.00);
-    --shadow-2xl: 0px 2px 0px 0px hsl(202.8169 89.1213% 53.1373% / 0.00);
+    --shadow-2xs: 0px 1px 1px 0px hsl(0 0% 0% / 0.24);
+    --shadow-xs: 0px 1px 2px 0px hsl(0 0% 0% / 0.3);
+    --shadow-sm: 0px 2px 4px -1px hsl(0 0% 0% / 0.32), 0px 1px 2px -1px hsl(0 0% 0% / 0.28);
+    --shadow: 0px 4px 8px -2px hsl(0 0% 0% / 0.36), 0px 2px 4px -2px hsl(0 0% 0% / 0.3);
+    --shadow-md: 0px 8px 16px -4px hsl(0 0% 0% / 0.42), 0px 4px 8px -4px hsl(0 0% 0% / 0.34);
+    --shadow-lg: 0px 12px 24px -6px hsl(0 0% 0% / 0.5), 0px 6px 12px -6px hsl(0 0% 0% / 0.38);
+    --shadow-xl: 0px 16px 32px -8px hsl(0 0% 0% / 0.56), 0px 8px 16px -8px hsl(0 0% 0% / 0.42);
+    --shadow-2xl: 0px 24px 48px -12px hsl(0 0% 0% / 0.62);
     --tracking-normal: 0em;
     --spacing: 0.25rem;
 
@@ -477,25 +477,61 @@
     --cm-panels-borderColor: var(--bolt-elements-editor-panels-borderColor, var(--bolt-elements-borderColor));
     --cm-search-backgroundColor: var(--bolt-elements-editor-search-backgroundColor, var(--cm-backgroundColor));
     --cm-search-textColor: var(--bolt-elements-editor-search-textColor, var(--bolt-elements-textSecondary));
-    --cm-search-closeButton-backgroundColor: var(--bolt-elements-editor-search-closeButton-backgroundColor, transparent);
-    --cm-search-closeButton-backgroundColorHover: var(--bolt-elements-editor-search-closeButton-backgroundColorHover, var(--bolt-elements-item-backgroundActive));
-    --cm-search-closeButton-textColor: var(--bolt-elements-editor-search-closeButton-textColor, var(--bolt-elements-item-contentDefault));
-    --cm-search-closeButton-textColorHover: var(--bolt-elements-editor-search-closeButton-textColorHover, var(--bolt-elements-item-contentActive));
-    --cm-search-button-backgroundColor: var(--bolt-elements-editor-search-button-backgroundColor, var(--bolt-elements-item-backgroundDefault));
-    --cm-search-button-backgroundColorHover: var(--bolt-elements-editor-search-button-backgroundColorHover, var(--bolt-elements-item-backgroundActive));
-    --cm-search-button-textColor: var(--bolt-elements-editor-search-button-textColor, var(--bolt-elements-textSecondary));
-    --cm-search-button-textColorHover: var(--bolt-elements-editor-search-button-textColorHover, var(--bolt-elements-textPrimary));
+    --cm-search-closeButton-backgroundColor: var(
+      --bolt-elements-editor-search-closeButton-backgroundColor,
+      transparent
+    );
+    --cm-search-closeButton-backgroundColorHover: var(
+      --bolt-elements-editor-search-closeButton-backgroundColorHover,
+      var(--bolt-elements-item-backgroundActive)
+    );
+    --cm-search-closeButton-textColor: var(
+      --bolt-elements-editor-search-closeButton-textColor,
+      var(--bolt-elements-item-contentDefault)
+    );
+    --cm-search-closeButton-textColorHover: var(
+      --bolt-elements-editor-search-closeButton-textColorHover,
+      var(--bolt-elements-item-contentActive)
+    );
+    --cm-search-button-backgroundColor: var(
+      --bolt-elements-editor-search-button-backgroundColor,
+      var(--bolt-elements-item-backgroundDefault)
+    );
+    --cm-search-button-backgroundColorHover: var(
+      --bolt-elements-editor-search-button-backgroundColorHover,
+      var(--bolt-elements-item-backgroundActive)
+    );
+    --cm-search-button-textColor: var(
+      --bolt-elements-editor-search-button-textColor,
+      var(--bolt-elements-textSecondary)
+    );
+    --cm-search-button-textColorHover: var(
+      --bolt-elements-editor-search-button-textColorHover,
+      var(--bolt-elements-textPrimary)
+    );
     --cm-search-button-borderColor: var(--bolt-elements-editor-search-button-borderColor, transparent);
     --cm-search-button-borderColorHover: var(--bolt-elements-editor-search-button-borderColorHover, transparent);
-    --cm-search-button-borderColorFocused: var(--bolt-elements-editor-search-button-borderColorFocused, var(--bolt-elements-borderColorActive));
+    --cm-search-button-borderColorFocused: var(
+      --bolt-elements-editor-search-button-borderColorFocused,
+      var(--bolt-elements-borderColorActive)
+    );
     --cm-search-input-backgroundColor: var(--bolt-elements-editor-search-input-backgroundColor, transparent);
     --cm-search-input-textColor: var(--bolt-elements-editor-search-input-textColor, var(--bolt-elements-textPrimary));
-    --cm-search-input-borderColor: var(--bolt-elements-editor-search-input-borderColor, var(--bolt-elements-borderColor));
-    --cm-search-input-borderColorFocused: var(--bolt-elements-editor-search-input-borderColorFocused, var(--bolt-elements-borderColorActive));
+    --cm-search-input-borderColor: var(
+      --bolt-elements-editor-search-input-borderColor,
+      var(--bolt-elements-borderColor)
+    );
+    --cm-search-input-borderColorFocused: var(
+      --bolt-elements-editor-search-input-borderColorFocused,
+      var(--bolt-elements-borderColorActive)
+    );
     --cm-tooltip-backgroundColor: var(--bolt-elements-editor-tooltip-backgroundColor, var(--cm-backgroundColor));
     --cm-tooltip-textColor: var(--bolt-elements-editor-tooltip-textColor, var(--bolt-elements-textPrimary));
-    --cm-tooltip-backgroundColorSelected: var(--bolt-elements-editor-tooltip-backgroundColorSelected, #2BA6FF4D);
-    --cm-tooltip-textColorSelected: var(--bolt-elements-editor-tooltip-textColorSelected, var(--bolt-elements-textPrimary));
+    --cm-tooltip-backgroundColorSelected: var(--bolt-elements-editor-tooltip-backgroundColorSelected, #2ba6ff4d);
+    --cm-tooltip-textColorSelected: var(
+      --bolt-elements-editor-tooltip-textColorSelected,
+      var(--bolt-elements-textPrimary)
+    );
     --cm-tooltip-borderColor: var(--bolt-elements-editor-tooltip-borderColor, var(--bolt-elements-borderColor));
     --cm-searchMatch-backgroundColor: var(--bolt-elements-editor-searchMatch-backgroundColor, rgba(234, 92, 0, 0.33));
   }
@@ -584,8 +620,12 @@
     border-radius: 1rem;
     padding: 2px;
     background: linear-gradient(135deg, hsl(203.8863 88.2845% 53.1373%), hsl(159.7826 100% 36.0784%));
-    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
-    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
+    mask:
+      linear-gradient(#fff 0 0) content-box,
+      linear-gradient(#fff 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
   }
@@ -621,7 +661,9 @@
     border-radius: 50%;
     background: rgba(255, 255, 255, 0.5);
     transform: translate(-50%, -50%);
-    transition: width 0.6s, height 0.6s;
+    transition:
+      width 0.6s,
+      height 0.6s;
   }
 
   .btn-ripple:active::after {
@@ -712,7 +754,8 @@
 
   /* New Modern Animations */
   @keyframes float {
-    0%, 100% {
+    0%,
+    100% {
       transform: translateY(0);
     }
     50% {
@@ -721,7 +764,8 @@
   }
 
   @keyframes glow {
-    0%, 100% {
+    0%,
+    100% {
       box-shadow: 0 0 20px rgba(45, 166, 255, 0.3);
     }
     50% {
@@ -823,7 +867,9 @@
     background-color: var(--bolt-elements-bg-depth-2);
     color: var(--bolt-elements-textPrimary);
     border: 1px solid var(--bolt-elements-borderColor);
-    box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+    box-shadow:
+      0 4px 6px -1px rgb(0 0 0 / 0.1),
+      0 2px 4px -2px rgb(0 0 0 / 0.1);
   }
 
   .Toastify__close-button {

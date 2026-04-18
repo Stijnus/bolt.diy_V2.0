@@ -1,4 +1,6 @@
-export type DebugLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
+import { BRAND_COLORS } from '~/utils/brand-colors';
+
+type DebugLevel = 'trace' | 'debug' | 'info' | 'warn' | 'error';
 
 type LoggerFunction = (...messages: any[]) => void;
 
@@ -107,7 +109,7 @@ function log(level: DebugLevel, scope: string | undefined, messages: any[]) {
   const labelTextColor = level === 'warn' ? 'black' : 'white';
 
   const labelStyles = getLabelStyles(labelBackgroundColor, labelTextColor);
-  const scopeStyles = getLabelStyles('#77828D', 'white');
+  const scopeStyles = getLabelStyles(BRAND_COLORS.LOGGER.DEBUG, 'white');
 
   const styles = [labelStyles];
 
@@ -126,16 +128,16 @@ function getColorForLevel(level: DebugLevel): string {
   switch (level) {
     case 'trace':
     case 'debug': {
-      return '#77828D';
+      return BRAND_COLORS.LOGGER.DEBUG;
     }
     case 'info': {
-      return '#1389FD';
+      return BRAND_COLORS.LOGGER.INFO;
     }
     case 'warn': {
-      return '#FFDB6C';
+      return BRAND_COLORS.LOGGER.WARN;
     }
     case 'error': {
-      return '#EE4744';
+      return BRAND_COLORS.LOGGER.ERROR;
     }
     default: {
       return 'black';

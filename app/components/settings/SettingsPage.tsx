@@ -316,11 +316,11 @@ export function SettingsPage() {
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-8">
         {/* Status Notice */}
-        <div className="mb-6 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
+        <div className="mb-6 rounded-lg border border-bolt-elements-item-backgroundAccent bg-bolt-elements-item-backgroundAccent p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
               <svg
-                className="h-5 w-5 text-blue-600 dark:text-blue-500"
+                className="h-5 w-5 text-bolt-elements-item-contentAccent"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -334,8 +334,8 @@ export function SettingsPage() {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-500">Settings Scope</h3>
-              <p className="mt-1 text-xs text-blue-600/80 dark:text-blue-500/80">
+              <h3 className="text-sm font-semibold text-bolt-elements-item-contentAccent">Settings Scope</h3>
+              <p className="mt-1 text-xs text-bolt-elements-textSecondary">
                 This page is intentionally narrow. Active sections affect the workspace now, session-only sections tune
                 the current browser session, and limited sections are account scaffolding that is not fully built out.
               </p>

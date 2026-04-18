@@ -132,7 +132,7 @@ function ModelCapabilityBadges({ model }: { model: ModelInfo }) {
     badges.push(
       <span
         key="fast"
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-green-500/10 text-green-400"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-bolt-elements-background-depth-3 text-bolt-elements-icon-success"
         title="Fast"
       >
         <Zap className="w-3 h-3" />
@@ -144,7 +144,7 @@ function ModelCapabilityBadges({ model }: { model: ModelInfo }) {
     badges.push(
       <span
         key="reasoning"
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-purple-500/10 text-purple-400"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-bolt-elements-item-backgroundAccent text-bolt-elements-item-contentAccent"
         title="Advanced Reasoning"
       >
         <Brain className="w-3 h-3" />
@@ -156,7 +156,7 @@ function ModelCapabilityBadges({ model }: { model: ModelInfo }) {
     badges.push(
       <span
         key="vision"
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-blue-500/10 text-blue-400"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text"
         title="Vision"
       >
         <Eye className="w-3 h-3" />
@@ -168,7 +168,7 @@ function ModelCapabilityBadges({ model }: { model: ModelInfo }) {
     badges.push(
       <span
         key="tools"
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-orange-500/10 text-orange-400"
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 text-xs rounded bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text"
         title="Tool Use"
       >
         <Wrench className="w-3 h-3" />

@@ -2,6 +2,7 @@ import * as RadixDialog from '@radix-ui/react-dialog';
 import { X } from 'lucide-react';
 import React, { memo, type ReactNode } from 'react';
 
+import { Button } from './Button';
 import { IconButton } from './IconButton';
 import { classNames } from '~/utils/classNames';
 
@@ -10,27 +11,18 @@ export { Root as DialogRoot } from '@radix-ui/react-dialog';
 interface DialogButtonProps {
   type: 'primary' | 'secondary' | 'danger';
   children: ReactNode;
-  onClick?: (event: React.UIEvent) => void;
+  onClick?: React.MouseEventHandler<HTMLButtonElement>;
 }
 
-export const DialogButton = memo(({ type, children, onClick }: DialogButtonProps) => (
-  <button
-    className={classNames(
-      'inline-flex h-[35px] items-center justify-center rounded-lg px-4 text-sm leading-none focus:outline-none',
-      {
-        'bg-bolt-elements-button-primary-background text-bolt-elements-button-primary-text hover:bg-bolt-elements-button-primary-backgroundHover':
-          type === 'primary',
-        'bg-bolt-elements-button-secondary-background text-bolt-elements-button-secondary-text hover:bg-bolt-elements-button-secondary-backgroundHover':
-          type === 'secondary',
-        'bg-bolt-elements-button-danger-background text-bolt-elements-button-danger-text hover:bg-bolt-elements-button-danger-backgroundHover':
-          type === 'danger',
-      },
-    )}
-    onClick={onClick}
-  >
-    {children}
-  </button>
-));
+export const DialogButton = memo(({ type, children, onClick }: DialogButtonProps) => {
+  const variant = type === 'danger' ? 'danger' : type === 'secondary' ? 'secondary' : 'primary';
+
+  return (
+    <Button variant={variant} className="h-[35px] px-4 text-sm leading-none" onClick={onClick}>
+      {children}
+    </Button>
+  );
+});
 
 export const DialogTitle = memo(({ className, children, ...props }: RadixDialog.DialogTitleProps) => (
   <RadixDialog.Title
@@ -63,11 +55,11 @@ interface DialogProps {
 export const Dialog = memo(({ className, children, onBackdrop, onClose }: DialogProps) => {
   return (
     <RadixDialog.Portal>
-      <RadixDialog.Overlay onClick={onBackdrop} className="fixed inset-0 z-[999] bg-black/70 backdrop-blur-sm" />
+      <RadixDialog.Overlay onClick={onBackdrop} className="fixed inset-0 z-[999] bg-black/55 backdrop-blur-sm" />
       <RadixDialog.Content className="fixed inset-0 z-[1000] flex items-center justify-center p-4 sm:p-6">
         <div
           className={classNames(
-            'relative max-h-[85vh] w-full max-w-[450px] overflow-hidden rounded-[var(--radius)] border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 shadow-xl focus:outline-none',
+            'relative max-h-[85vh] w-full max-w-[450px] overflow-hidden rounded-2xl border border-bolt-elements-borderColor bg-bolt-elements-bg-depth-1 shadow-2xl focus:outline-none',
             className,
           )}
           style={{ backgroundColor: 'var(--bolt-elements-bg-depth-1)' }}

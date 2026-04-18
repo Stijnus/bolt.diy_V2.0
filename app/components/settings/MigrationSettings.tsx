@@ -209,17 +209,17 @@ export function MigrationSettings() {
         </div>
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
           <div className="flex items-center gap-2">
-            <Cloud className="h-4 w-4 text-green-500" />
+            <Cloud className="h-4 w-4 text-bolt-elements-icon-success" />
             <span className="text-xs text-bolt-elements-textSecondary">Migrated</span>
           </div>
-          <div className="mt-1 text-2xl font-bold text-green-500">{migratedChats.length}</div>
+          <div className="mt-1 text-2xl font-bold text-bolt-elements-icon-success">{migratedChats.length}</div>
         </div>
         <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-4">
           <div className="flex items-center gap-2">
-            <Upload className="h-4 w-4 text-yellow-500" />
+            <Upload className="h-4 w-4 text-bolt-elements-item-contentAccent" />
             <span className="text-xs text-bolt-elements-textSecondary">Pending</span>
           </div>
-          <div className="mt-1 text-2xl font-bold text-yellow-500">{pendingChats.length}</div>
+          <div className="mt-1 text-2xl font-bold text-bolt-elements-item-contentAccent">{pendingChats.length}</div>
         </div>
       </div>
 
@@ -269,9 +269,9 @@ export function MigrationSettings() {
               key={chatStatus.chat.id}
               className={`flex items-center gap-3 rounded-lg border p-4 transition-colors ${
                 chatStatus.status === 'success'
-                  ? 'border-green-500/20 bg-green-500/5'
+                  ? 'border-bolt-elements-icon-success/25 bg-bolt-elements-icon-success/10'
                   : chatStatus.status === 'error'
-                    ? 'border-red-500/20 bg-red-500/5'
+                    ? 'border-bolt-elements-button-danger-text/25 bg-bolt-elements-button-danger-background'
                     : 'border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 hover:bg-bolt-elements-background-depth-3'
               }`}
             >
@@ -292,15 +292,19 @@ export function MigrationSettings() {
                   {chatStatus.chat.messages.length} message{chatStatus.chat.messages.length !== 1 ? 's' : ''} •{' '}
                   {new Date(chatStatus.chat.timestamp).toLocaleDateString()}
                 </p>
-                {chatStatus.error && <p className="mt-1 text-xs text-red-500">{chatStatus.error}</p>}
+                {chatStatus.error && (
+                  <p className="mt-1 text-xs text-bolt-elements-button-danger-text">{chatStatus.error}</p>
+                )}
               </div>
 
               <div className="flex-shrink-0">
                 {chatStatus.status === 'migrating' && (
                   <Loader2 className="h-5 w-5 animate-spin text-bolt-elements-textSecondary" />
                 )}
-                {chatStatus.status === 'success' && <CheckCircle2 className="h-5 w-5 text-green-500" />}
-                {chatStatus.status === 'error' && <XCircle className="h-5 w-5 text-red-500" />}
+                {chatStatus.status === 'success' && (
+                  <CheckCircle2 className="h-5 w-5 text-bolt-elements-icon-success" />
+                )}
+                {chatStatus.status === 'error' && <XCircle className="h-5 w-5 text-bolt-elements-button-danger-text" />}
               </div>
             </div>
           ))

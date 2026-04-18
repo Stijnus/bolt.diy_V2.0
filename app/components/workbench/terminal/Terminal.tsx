@@ -4,6 +4,7 @@ import { Terminal as XTerm } from '@xterm/xterm';
 import { forwardRef, memo, useEffect, useImperativeHandle, useRef } from 'react';
 import { getTerminalTheme } from './theme';
 import type { Theme } from '~/lib/stores/theme';
+import { BRAND_COLORS } from '~/utils/brand-colors';
 import { createScopedLogger } from '~/utils/logger';
 
 const logger = createScopedLogger('Terminal');
@@ -35,7 +36,7 @@ export const Terminal = memo(
         cursorBlink: true,
         convertEol: true,
         disableStdin: readonly,
-        theme: getTerminalTheme(readonly ? { cursor: '#00000000' } : {}),
+        theme: getTerminalTheme(readonly ? { cursor: BRAND_COLORS.TERMINAL.READONLY_CURSOR } : {}),
         fontSize: 12,
         fontFamily: 'Menlo, courier-new, courier, monospace',
       });
@@ -71,7 +72,7 @@ export const Terminal = memo(
       }
 
       // we render a transparent cursor in case the terminal is readonly
-      terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
+      terminal.options.theme = getTerminalTheme(readonly ? { cursor: BRAND_COLORS.TERMINAL.READONLY_CURSOR } : {});
 
       terminal.options.disableStdin = readonly;
     }, [theme, readonly]);
@@ -85,7 +86,7 @@ export const Terminal = memo(
             return;
           }
 
-          terminal.options.theme = getTerminalTheme(readonly ? { cursor: '#00000000' } : {});
+          terminal.options.theme = getTerminalTheme(readonly ? { cursor: BRAND_COLORS.TERMINAL.READONLY_CURSOR } : {});
         },
       };
     }, []);

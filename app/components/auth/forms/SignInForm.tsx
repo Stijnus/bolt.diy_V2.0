@@ -100,7 +100,7 @@ export function SignInForm({
                     <button
                       type="button"
                       onClick={() => setShowPassword((prev) => !prev)}
-                      className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textPrimary"
+                      className="absolute right-3 top-1/2 inline-flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-full text-bolt-elements-textTertiary transition-colors hover:text-bolt-elements-textPrimary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-bolt-elements-bg-depth-1"
                     >
                       {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
@@ -112,9 +112,9 @@ export function SignInForm({
           />
 
           {error && (
-            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm shadow-sm dark:border-red-400/40 dark:bg-red-500/15">
+            <div className="rounded-2xl border border-bolt-elements-button-danger-text/25 bg-bolt-elements-button-danger-background px-4 py-3 text-sm shadow-sm">
               <div className="flex items-start gap-3">
-                <AlertCircle className="h-5 w-5 flex-shrink-0 text-red-500 dark:text-red-400" />
+                <AlertCircle className="h-5 w-5 flex-shrink-0 text-bolt-elements-button-danger-text" />
                 <span className="text-bolt-elements-textPrimary">{error}</span>
               </div>
             </div>

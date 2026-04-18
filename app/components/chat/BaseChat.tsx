@@ -75,7 +75,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.6 }}
-                className="mx-auto mt-[12vh] flex w-full max-w-4xl flex-col items-center gap-10 px-6 text-center"
+                className="mx-auto mt-16 sm:mt-20 flex w-full max-w-4xl flex-col items-center gap-8 px-6 text-center"
               >
                 {/* Hero Badge */}
                 <AnimatedBadge variant="pulse" pulse size="md" className="animate-slideInFromBottom">
@@ -89,7 +89,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.1 }}
-                    className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
+                    className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl"
                   >
                     Prototype with
                     <br />
@@ -100,7 +100,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.2 }}
-                    className="mx-auto max-w-2xl text-lg text-bolt-elements-textSecondary sm:text-xl text-balance"
+                    className="mx-auto max-w-2xl text-base text-bolt-elements-textSecondary sm:text-lg text-balance"
                   >
                     A self-hosted-friendly browser workspace for technical users. Prompt an AI model, inspect files, run
                     commands, and iterate on prototypes with live preview in one place.
@@ -135,7 +135,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
               </motion.div>
             )}
             <div
-              className={classNames('px-6 pt-10 sm:pt-12', {
+              className={classNames('px-6 pt-8 sm:pt-10', {
                 'h-full flex flex-col': chatStarted,
               })}
             >
@@ -163,10 +163,10 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                   'sticky bottom-0': chatStarted,
                 })}
               >
-                <div className="rounded-3xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/90 shadow-lg backdrop-blur-xl">
+                <div className="rounded-2xl border border-bolt-elements-borderColor/70 bg-bolt-elements-background-depth-1/90 shadow-lg backdrop-blur-xl">
                   <textarea
                     ref={textareaRef}
-                    className="w-full resize-none rounded-3xl border-none bg-transparent px-5 pb-5 pt-5 text-base text-bolt-elements-textPrimary outline-none placeholder:text-bolt-elements-textTertiary"
+                    className="w-full resize-none rounded-2xl border-none bg-transparent p-5 text-base text-bolt-elements-textPrimary outline-none placeholder:text-bolt-elements-textTertiary"
                     onKeyDown={(event) => {
                       if (event.key === 'Enter') {
                         if (event.shiftKey) {

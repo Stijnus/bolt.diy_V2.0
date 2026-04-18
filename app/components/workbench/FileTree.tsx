@@ -215,7 +215,7 @@ function File({ file: { depth, name }, onClick, selected, unsavedChanges = false
         })}
       >
         <div className="flex-1 truncate pr-2">{name}</div>
-        {unsavedChanges && <Circle className="w-2 h-2 shrink-0 text-orange-500 fill-current" />}
+        {unsavedChanges && <Circle className="w-2 h-2 shrink-0 text-bolt-elements-item-contentAccent fill-current" />}
       </div>
     </NodeButton>
   );
