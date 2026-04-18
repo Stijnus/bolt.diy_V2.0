@@ -58,7 +58,7 @@ export function computeFileModifications(files: FileMap, modifiedFiles: Map<stri
  *
  * @see https://www.gnu.org/software/diffutils/manual/html_node/Unified-Format.html
  */
-export function diffFiles(fileName: string, oldFileContent: string, newFileContent: string) {
+function diffFiles(fileName: string, oldFileContent: string, newFileContent: string) {
   let unifiedDiff = createTwoFilesPatch(fileName, fileName, oldFileContent, newFileContent);
 
   const patchHeaderEnd = `--- ${fileName}\n+++ ${fileName}\n`;

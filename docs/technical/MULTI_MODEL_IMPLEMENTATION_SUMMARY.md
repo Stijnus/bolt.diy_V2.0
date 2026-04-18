@@ -12,14 +12,14 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 
 ### Supported Providers & Models
 
-| Provider | Models | Key Features |
-|----------|--------|--------------|
-| **Anthropic** | Claude Sonnet 4.5, Claude Sonnet 4 | Best overall coding, 30hr autonomy |
-| **OpenAI** | GPT-5, GPT-4.1, o3, o4-mini, GPT-4o | Strongest reasoning, specialized coding |
-| **Google** | Gemini 2.5 Pro, Gemini 2.5 Flash, Experimental | #1 WebDev Arena, 1M context |
-| **DeepSeek** | V3.2, Reasoner | Most cost-effective, MoE architecture |
-| **xAI** | Grok Code Fast 1, Grok 3, Grok 4 | Fast agentic coding, real-time search |
-| **Mistral** | Codestral 25.08, Large, Small | 80+ languages, ultra-fast |
+| Provider      | Models                                         | Key Features                            |
+| ------------- | ---------------------------------------------- | --------------------------------------- |
+| **Anthropic** | Claude Sonnet 4.5, Claude Sonnet 4             | Best overall coding, 30hr autonomy      |
+| **OpenAI**    | GPT-5, GPT-4.1, o3, o4-mini, GPT-4o            | Strongest reasoning, specialized coding |
+| **Google**    | Gemini 2.5 Pro, Gemini 2.5 Flash, Experimental | #1 WebDev Arena, 1M context             |
+| **DeepSeek**  | V3.2, Reasoner                                 | Most cost-effective, MoE architecture   |
+| **xAI**       | Grok Code Fast 1, Grok 3, Grok 4               | Fast agentic coding, real-time search   |
+| **Mistral**   | Codestral 25.08, Large, Small                  | 80+ languages, ultra-fast               |
 
 ---
 
@@ -28,7 +28,9 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 ### Phase 1: Core Infrastructure ✅
 
 #### 1. Provider Abstraction Layer
+
 **Files Created:**
+
 - `app/lib/.server/llm/providers/types.ts` - Type definitions for providers
 - `app/lib/.server/llm/providers/anthropic.ts` - Anthropic configuration
 - `app/lib/.server/llm/providers/deepseek.ts` - DeepSeek configuration
@@ -39,30 +41,35 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 - `app/lib/.server/llm/providers/index.ts` - Provider exports
 
 **Key Features:**
+
 - Type-safe provider definitions
 - Model metadata (pricing, capabilities, context windows)
 - Capability badges (vision, reasoning, tools, fast)
 - Default model selection per provider
 
 #### 2. Model Registry & Factory Pattern
+
 **Files Created:**
+
 - `app/lib/.server/llm/model-config.ts` - Centralized model registry
 - `app/lib/.server/llm/provider-factory.ts` - Factory pattern for model creation
 
 **Key Features:**
+
 - Dynamic model instantiation
 - API key management per provider
 - Model lookup by provider:modelId
 - Fallback to defaults
 
 #### 3. Core LLM Infrastructure Updates
+
 **Files Modified:**
-- `app/lib/.server/llm/model.ts` - Multi-provider model creation
+
 - `app/lib/.server/llm/stream-text.ts` - Dynamic model selection
-- `app/lib/.server/llm/api-key.ts` - Multi-provider API key support
 - `app/lib/.server/llm/constants.ts` - Model-specific token limits
 
 **Key Changes:**
+
 - Backward compatible with existing Claude implementation
 - Provider-specific headers and configuration
 - Model-specific max tokens
@@ -73,29 +80,38 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 ### Phase 2: Frontend & UI ✅
 
 #### 1. Frontend Type System
+
 **Files Created:**
+
 - `app/types/model.ts` - Frontend model types
 - `app/lib/models.client.ts` - Client-side model registry
 
 **Key Features:**
+
 - Mirror server-side model configuration
 - Type-safe model selection
 - Provider grouping
 
 #### 2. State Management
+
 **Files Created:**
+
 - `app/lib/stores/model.ts` - Nanostore for model selection
 
 **Key Features:**
+
 - Global current model state
 - Per-chat model preferences
 - Reactive model updates
 
 #### 3. UI Components
+
 **Files Created:**
+
 - `app/components/chat/ModelSelector.tsx` - Model selection dropdown
 
 **Key Features:**
+
 - Radix UI Select component
 - Grouped by provider
 - Model capability badges (⚡ Fast, 🧠 Reasoning, 👁️ Vision, 🔧 Tools)
@@ -108,10 +124,13 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 ### Phase 3: API Integration ⏳
 
 #### 1. Chat API Updates
+
 **Files Modified:**
+
 - `app/routes/api.chat.ts` - Accept model parameter from requests
 
 **Key Changes:**
+
 - Request body accepts `model` field (fullModelId format)
 - Passes model selection to `streamText`
 - Maintains backward compatibility (defaults to Claude Sonnet 4.5)
@@ -121,18 +140,20 @@ Successfully implemented multi-model AI support for Bolt.new, enabling users to 
 ## 🔧 Technical Architecture
 
 ### Model ID Format
+
 ```typescript
 // Full model ID format
 type FullModelId = `${AIProvider}:${string}`;
 
 // Examples
-"anthropic:claude-sonnet-4.5"
-"openai:gpt-5"
-"deepseek:deepseek-chat"
-"xai:grok-code-fast-1"
+('anthropic:claude-sonnet-4.5');
+('openai:gpt-5');
+('deepseek:deepseek-chat');
+('xai:grok-code-fast-1');
 ```
 
 ### Provider Factory Pattern
+
 ```typescript
 // Create model with provider and ID
 const model = createModel('anthropic', 'claude-sonnet-4.5', env);
@@ -145,6 +166,7 @@ const model = getDefaultModelInstance(env);
 ```
 
 ### Stream Text API
+
 ```typescript
 // Stream with specific model
 streamText(messages, env, {
@@ -270,12 +292,12 @@ import { streamText } from '~/lib/.server/llm/stream-text';
 
 // Use specific model
 const result = await streamText(messages, env, {
-  fullModelId: 'anthropic:claude-sonnet-4.5'
+  fullModelId: 'anthropic:claude-sonnet-4.5',
 });
 
 // Use provider default
 const result = await streamText(messages, env, {
-  provider: 'openai'  // Uses gpt-5 (default)
+  provider: 'openai', // Uses gpt-5 (default)
 });
 ```
 
@@ -318,6 +340,7 @@ const response = await fetch('/api/chat', {
 ### ModelSelector Component
 
 Features:
+
 - ✅ Provider grouping
 - ✅ Model capabilities badges
 - ✅ Pricing information
@@ -327,6 +350,7 @@ Features:
 - ✅ Accessible (Radix UI)
 
 Screenshot locations (when integrated):
+
 - Chat interface (bottom bar)
 - Settings page
 - Header (badge)
@@ -336,6 +360,7 @@ Screenshot locations (when integrated):
 ## 🔍 Files Changed Summary
 
 ### Created (19 files)
+
 ```
 app/lib/.server/llm/providers/
   ├── types.ts
@@ -364,16 +389,15 @@ app/components/chat/
   └── ModelSelector.tsx
 
 ./
-  ├── TODO.md
   └── MULTI_MODEL_IMPLEMENTATION_SUMMARY.md
 ```
 
 ### Modified (6 files)
+
 ```
 app/lib/.server/llm/
   ├── model.ts
   ├── stream-text.ts
-  ├── api-key.ts
   └── constants.ts
 
 app/routes/
@@ -408,18 +432,21 @@ app/routes/
 ## 🧪 Testing Strategy
 
 ### Unit Tests (TODO)
+
 - Provider factory creation
 - Model ID parsing
 - API key retrieval
 - Model config lookups
 
 ### Integration Tests (TODO)
+
 - Each provider's API
 - Model switching
 - Error scenarios
 - Fallback behavior
 
 ### E2E Tests (TODO)
+
 - Full chat flow with different models
 - Model persistence
 - UI interactions
@@ -429,21 +456,25 @@ app/routes/
 ## 📊 Model Comparison
 
 ### Best for Speed
+
 1. Grok Code Fast 1 (xAI) - $0.20/$1.50
 2. Gemini 2.5 Flash (Google) - $0.15/$0.60
 3. Codestral (Mistral) - $0.30/$0.90
 
 ### Best for Cost
+
 1. DeepSeek V3.2 - $0.28/$0.42
 2. Grok Code Fast 1 - $0.20/$1.50
 3. Gemini 2.5 Flash - $0.15/$0.60
 
 ### Best for Coding
+
 1. Claude Sonnet 4.5 (Anthropic) - SWE-bench leader
 2. GPT-5 (OpenAI) - 74.9% SWE-bench
 3. Grok Code Fast 1 - 70.8% SWE-bench
 
 ### Best for Context
+
 1. Gemini 2.5 Pro - 1M tokens
 2. Codestral - 256K tokens
 3. Claude Sonnet 4.5 - 200K tokens
@@ -489,16 +520,19 @@ Before deploying to production:
 ### Common Issues
 
 **"Missing API key" error:**
+
 - Check `.env.local` has the required key
 - Verify key is correct format
 - Ensure key is for correct provider
 
 **"Model not found" error:**
+
 - Check model ID is correct
 - Verify provider supports that model
 - Check model hasn't been deprecated
 
 **Slow responses:**
+
 - Some models are slower than others
 - Check network latency
 - Consider switching to "fast" models
@@ -508,6 +542,7 @@ Before deploying to production:
 ## 🎉 Success Metrics
 
 Once fully deployed, track:
+
 - Model usage distribution
 - Cost per model
 - User satisfaction by model

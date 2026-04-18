@@ -5,7 +5,7 @@ import React, { memo, type ReactNode } from 'react';
 import { IconButton } from './IconButton';
 import { classNames } from '~/utils/classNames';
 
-export { Close as DialogClose, Root as DialogRoot } from '@radix-ui/react-dialog';
+export { Root as DialogRoot } from '@radix-ui/react-dialog';
 
 interface DialogButtonProps {
   type: 'primary' | 'secondary' | 'danger';

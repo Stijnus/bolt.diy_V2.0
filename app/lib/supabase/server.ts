@@ -43,29 +43,3 @@ export function createSupabaseServerClient(request: Request, context: AppLoadCon
 
   return { supabase, headers };
 }
-
-// alternative simplified version for basic operations
-export function createSupabaseServerClientSimple(context: AppLoadContext) {
-  const env = (context.env as Env) || (process.env as any);
-
-  const supabaseUrl = env.SUPABASE_URL || env.VITE_SUPABASE_URL;
-  const supabaseAnonKey = env.SUPABASE_ANON_KEY || env.VITE_SUPABASE_ANON_KEY;
-
-  if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase environment variables for server client');
-  }
-
-  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      get() {
-        return undefined;
-      },
-      set() {
-        return;
-      },
-      remove() {
-        return;
-      },
-    },
-  });
-}

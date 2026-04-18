@@ -6,10 +6,11 @@ import { Header } from '~/components/header/Header';
 
 export const meta: MetaFunction = () => {
   return [
-    { title: 'BoltDIY V2.0 - AI-Powered Development Platform' },
+    { title: 'BoltDIY V2.0 - Self-Hosted BYO-Model Prototype Workspace' },
     {
       name: 'description',
-      content: 'BoltDIY V2.0: Build, iterate, and deploy with AI. Your intelligent development companion.',
+      content:
+        'BoltDIY V2.0: a browser workspace for technical users who want to prototype with their own AI providers.',
     },
   ];
 };

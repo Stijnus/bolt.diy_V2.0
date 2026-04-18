@@ -1,289 +1,179 @@
 ---
 layout: default
 title: Complete Setup Guide
-description: Step-by-step guide to set up BoltDIY V2.0 from scratch in just a few minutes
+description: Step-by-step guide to run BoltDIY locally and optionally connect Supabase
 ---
 
-# 🚀 BoltDIY V2.0 - Complete Setup Guide
+# BoltDIY V2.0 Setup Guide
 
-This guide will help you set up BoltDIY V2.0 from scratch in just a few minutes!
+This guide covers the current intended setup: local development first, own model keys, optional Supabase for auth and synced chat history.
 
-## 📋 Prerequisites
+## Prerequisites
 
-Before you begin, make sure you have:
+- Node.js `>= 20`
+- `pnpm` `10.18.0` or later
+- at least one model provider API key
+- optional: a Supabase project if you want auth and cloud sync
 
-- **Node.js** >= 20.0.0 ([Download here](https://nodejs.org/))
-- **pnpm** 10.18.0 or later (`npm install -g pnpm`)
-- A **Supabase account** (free tier works great!) - [Sign up here](https://supabase.com)
-- At least one **AI provider API key** (Anthropic required, others optional)
+## Quick Start
 
-## 🎯 Quick Start (5 Minutes)
-
-### Step 1: Clone and Install
+### 1. Clone And Install
 
 ```bash
-# Clone the repository
 git clone https://github.com/Stijnus/bolt.diy_V2.0.git
 cd bolt.diy_V2.0
-
-# Install dependencies
 pnpm install
-```
-
-### Step 2: Create Supabase Project
-
-1. Go to [supabase.com](https://supabase.com) and sign in
-2. Click "New Project"
-3. Fill in the details:
-   - **Name**: BoltDIY (or whatever you like)
-   - **Database Password**: Choose a strong password
-   - **Region**: Select closest to you
-4. Click "Create new project" and wait ~2 minutes for it to initialize
-
-### Step 3: Get Your Supabase Credentials
-
-1. In your Supabase project dashboard, click the **Settings** gear icon (bottom left)
-2. Go to **API** section
-3. Copy these values (you'll need them next):
-   - **Project URL** (looks like: `https://xxxxx.supabase.co`)
-   - **anon public** key (the shorter one)
-   - **service_role** key (the longer one - keep this secret!)
-
-### Step 4: Configure Environment Variables
-
-```bash
-# Create your environment file
 cp .env.example .env.local
-
-# Open .env.local in your editor
-# For macOS/Linux:
-nano .env.local
-
-# For Windows:
-notepad .env.local
 ```
 
-Fill in at minimum these **required** variables:
+### 2. Add Provider Keys
+
+Minimum local setup:
 
 ```bash
-# REQUIRED: Anthropic API (get from https://console.anthropic.com/)
 ANTHROPIC_API_KEY=sk-ant-api03-xxxxx
-
-# REQUIRED: Supabase (server-side)
-SUPABASE_URL=https://your-project.supabase.co
-SUPABASE_ANON_KEY=your-anon-key-here
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key-here
-
-# REQUIRED: Supabase (client-side - must have VITE_ prefix)
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key-here
 ```
 
-**Optional** - Add more AI providers if you want:
+Optional providers:
 
 ```bash
-# OpenAI (get from https://platform.openai.com/api-keys)
 OPENAI_API_KEY=sk-xxxxx
-
-# Google AI (get from https://makersuite.google.com/app/apikey)
 GOOGLE_API_KEY=xxxxx
-
-# DeepSeek (get from https://platform.deepseek.com/)
 DEEPSEEK_API_KEY=xxxxx
-
-# xAI (get from https://x.ai/api)
 XAI_API_KEY=xxxxx
-
-# Mistral (get from https://console.mistral.ai/)
 MISTRAL_API_KEY=xxxxx
 ```
 
-Save and close the file!
-
-### Step 5: Set Up Database (THE EASY WAY 🎉)
-
-We've made this super simple! Just run:
+### 3. Start The App
 
 ```bash
-# Make the setup script executable (macOS/Linux)
-chmod +x scripts/setup.sh
-
-# Run the setup script
-./scripts/setup.sh
-```
-
-**What this does:**
-- ✅ Validates your environment variables
-- ✅ Copies the database schema SQL to your clipboard
-- ✅ Opens your Supabase SQL Editor automatically
-- ✅ Gives you clear step-by-step instructions
-
-**Then just:**
-1. Paste the SQL (already in your clipboard!)
-2. Click "Run"
-3. Done! ✨
-
-### Step 6: Enable Email Authentication
-
-1. In your Supabase dashboard, go to **Authentication** → **Providers**
-2. Find **Email** in the list
-3. Make sure it's **enabled** (it should be by default)
-4. Click **Save**
-
-### Step 7: Configure Site URL
-
-1. Still in **Authentication**, go to **URL Configuration**
-2. Add these URLs:
-   - **Site URL**: `http://localhost:5173` (for development)
-   - **Redirect URLs**: Add `http://localhost:5173/**`
-3. Click **Save**
-
-### Step 8: Start Developing! 🚀
-
-```bash
-# Start the development server
 pnpm dev
 ```
 
-Open your browser to **http://localhost:5173**
+Open `http://localhost:5173`.
 
-You should see the BoltDIY landing page!
+At this point you can use the workspace locally without Supabase-backed auth.
 
-### Step 9: Create Your First Account
+## Optional Supabase Setup
 
-1. Click **Sign Up** in the top right
-2. Enter your email and password
-3. Check your email for the confirmation link
-4. Click the link to verify
-5. You're in! Start building! 🎉
+Add Supabase only if you want:
 
----
+- sign in and sign up
+- saved chats across devices
+- migration from browser-local history to Supabase
 
-## 🐛 Troubleshooting
+### 1. Create A Supabase Project
 
-### "Missing environment variables" error
+1. Go to [supabase.com](https://supabase.com).
+2. Create a new project.
+3. Copy the project URL, anon key, and service role key.
 
-**Problem**: The app can't find your API keys
+### 2. Add Supabase Variables
 
-**Solution**:
-1. Make sure `.env.local` exists in your project root
-2. Verify all required variables are set (see Step 4)
-3. Restart your development server (`pnpm dev`)
+```bash
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_ANON_KEY=your-anon-key
+SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-anon-key
+```
 
-### "Database error" or "relation does not exist"
+### 3. Install The Schema
 
-**Problem**: Database schema wasn't set up correctly
+Run the guided setup helper:
 
-**Solution**:
-1. Run the setup script again: `./scripts/setup.sh`
-2. Or manually run the SQL:
-   - Open `scripts/schema.sql`
-   - Copy all contents
-   - Go to Supabase SQL Editor
-   - Paste and run
+```bash
+pnpm run setup
+```
 
-### "Email not confirmed" message
+This uses `scripts/setup.sh` to help you apply `scripts/schema.sql`.
 
-**Problem**: You haven't verified your email yet
+If your database was created before the product-surface cleanup, also apply:
 
-**Solution**:
-1. Check your inbox (and spam folder!)
-2. Click the verification link in the email
-3. If you didn't receive it, click "Resend" on the login page
+- `scripts/migrations/001_fix_chats_unique_constraint.sql`
+- `scripts/migrations/002_remove_legacy_project_tables.sql`
 
-### "Could not connect to Supabase"
+### 4. Configure Auth URLs
 
-**Problem**: Your Supabase credentials might be wrong
+In the Supabase dashboard:
 
-**Solution**:
-1. Double-check your `.env.local` has the correct:
-   - `SUPABASE_URL` (must be from your project)
-   - `SUPABASE_ANON_KEY` (the public anon key)
-2. Make sure you have both regular and `VITE_` prefixed versions
-3. Restart your dev server
+1. Go to `Authentication -> URL Configuration`.
+2. Set the site URL to `http://localhost:5173`.
+3. Add `http://localhost:5173/**` as a redirect URL.
 
-### "Anthropic API error"
+### 5. Restart The App
 
-**Problem**: Your Anthropic API key is invalid or expired
+```bash
+pnpm dev
+```
 
-**Solution**:
-1. Get a new key from https://console.anthropic.com/
-2. Make sure you have credits available
-3. Update `ANTHROPIC_API_KEY` in `.env.local`
-4. Restart your dev server
+## Recommended Validation
 
----
+After setup:
 
-## 🎓 Next Steps
+```bash
+pnpm run typecheck
+pnpm test
+```
 
-Now that you're set up, here's what you can do:
+Then verify in the browser:
 
-### Try Different AI Models
+1. a chat opens correctly
+2. the model selector shows the providers you configured
+3. the workbench loads
+4. preview and terminal open
+5. if Supabase is configured, sign in works
 
-1. Click the **model selector** in the chat interface
-2. Choose from 19+ models across 6 providers
-3. Compare their performance for your use case!
+## First Things To Try
 
-### Create a Project
+### Compare Models
 
-1. Click **Projects** in the sidebar
-2. Click **New Project**
-3. Start building your application!
+Switch the active model in chat and use the same prompt against different providers.
 
-### Customize Settings
+### Build A Small Prototype
 
-1. Click your profile picture → **Settings**
-2. Configure:
-   - Default AI models
-   - Provider preferences
-   - Account details
+Ask the assistant to scaffold a simple React or Vite app, then inspect the generated files in the workbench.
 
-### Import Existing Chats
+### Import Old Local Chats
 
-If you have data in IndexedDB from another Bolt instance:
+If you previously used a browser-local Bolt-style setup:
 
-1. Go to **Settings** → **Migration**
-2. Click **Import from Local Storage**
-3. Your chats will be synced to Supabase!
+1. open `Settings`
+2. go to migration tools
+3. import local data into Supabase after signing in
 
----
+## Common Problems
 
-## 📚 Additional Resources
+### Missing Models
 
-- **Multi-Model Guide**: See `MULTI_MODEL_IMPLEMENTATION_SUMMARY.md` for details on each AI provider
-- **Environment Variables**: See `.env.example` for all available options
-- **TODO List**: See `TODO.md` for the roadmap and current status
-- **Main README**: See `README.md` for feature overview
+Usually caused by:
 
----
+- missing API keys
+- invalid key format
+- exhausted provider credits
 
-## 🆘 Still Having Issues?
+### Supabase Errors
 
-1. **Check the logs**: Look at your browser console and terminal for error messages
-2. **Search existing issues**: https://github.com/Stijnus/bolt.diy_V2.0/issues
-3. **Open a new issue**: Include:
-   - Your error message
-   - Steps to reproduce
-   - Your environment (OS, Node version, etc.)
-   - Screenshots if relevant
+Usually caused by:
 
----
+- incorrect env vars
+- schema not applied
+- missing redirect URL configuration
 
-## 🎉 Success!
+### WebContainer Problems
 
-If you made it here and everything is working, congratulations! 🎊
+Usually caused by:
 
-You now have a powerful AI development platform with:
-- ✅ Multi-model AI support (19+ models)
-- ✅ Secure authentication
-- ✅ Cloud-synced chat history
-- ✅ Project management
-- ✅ In-browser development environment
+- browser compatibility issues
+- blocked storage APIs
+- stale local browser data
 
-Happy coding! 🚀
+Use the [Troubleshooting Guide](./troubleshooting.md) for the deeper checklist.
 
----
+## Related Docs
 
-**Version**: 2.0.0  
-**Last Updated**: October 2025  
-**Maintained by**: [@Stijnus](https://github.com/Stijnus)
+- [Docker Guide](./DOCKER.md)
+- [AI Models Guide](./ai-models.md)
+- [FAQ](./faq.md)
+- [Troubleshooting](./troubleshooting.md)
+- [Codebase Readme](../../CODEBASE_README.md)

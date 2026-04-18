@@ -65,7 +65,7 @@ interface ChatProps {
   storeMessageHistory: (messages: UIMessage[], modelFullId?: FullModelId) => Promise<void>;
 }
 
-export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
+const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProps) => {
   useShortcuts();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -156,7 +156,7 @@ export const ChatImpl = memo(({ initialMessages, storeMessageHistory }: ChatProp
       return;
     }
 
-    // Check if elements exist before animating
+    // check if elements exist before animating
     const examplesEl = document.querySelector('#examples');
     const introEl = document.querySelector('#intro');
 

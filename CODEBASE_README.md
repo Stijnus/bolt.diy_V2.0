@@ -2,422 +2,285 @@
 
 ## What This Project Is
 
-BoltDIY V2.0 is an AI-powered development environment that runs mostly in the browser and is built as an enhanced fork of StackBlitz `bolt.new`.
+BoltDIY V2.0 is a chat-driven coding workspace built on top of Remix and StackBlitz WebContainer.
 
-In practical terms, it is:
+In practical terms, the current codebase is:
 
-- A chat-first coding interface where the user asks an AI model to build or change an app
-- A browser IDE with file tree, code editor, terminal, and live preview
-- A multi-model LLM gateway that can route requests to Anthropic, OpenAI, Google, DeepSeek, xAI, or Mistral
-- A persistence layer that stores chat history locally in IndexedDB and, when authenticated, syncs it to Supabase
-- A project/workspace shell around those chats, with user auth and basic project management
+- a browser IDE with chat, editor, terminal, file tree, and preview
+- a multi-provider LLM layer for Anthropic, OpenAI, Google, DeepSeek, xAI, and Mistral
+- a runtime that converts structured model output into file writes and shell commands
+- a local-first persistence layer with optional Supabase auth and chat sync
 
-The main product idea is: "describe what you want, let the model produce structured actions, execute those actions inside a WebContainer, and let the user watch/edit the result live."
+The current product direction is narrower than a general AI app-builder. The strongest path in the repo is: technical user, own provider keys, prototype inside one browser workspace, iterate quickly.
 
-## Short Product Summary
+## Product Summary
 
-The app gives a user one canvas with:
+The main user canvas combines:
 
-- Chat on the left/center
-- A collapsible workbench on the right
-- Code editor
-- Multi-tab terminal
-- Live preview iframe
-- Model picker
-- Conversation history
-- Supabase-backed auth and chat sync
+- chat for prompting the model
+- a workbench with editor, terminal, and preview
+- model selection per conversation
+- conversation history
+- optional auth and cross-device sync
 
-The AI does not directly mutate the host machine. Instead, it emits special tagged output that the frontend parses into:
+The assistant does not execute on the host machine. It emits structured actions that run inside WebContainer, which provides an in-browser Node.js sandbox.
 
-- file writes
-- shell commands
+## Core Runtime Loop
 
-Those actions run inside StackBlitz WebContainer, which acts like an in-browser Node.js sandbox.
+1. The user opens `/` and starts or resumes a chat.
+2. The frontend sends messages to `app/routes/api.chat.ts`.
+3. The server resolves the selected provider/model through `app/lib/.server/llm/provider-factory.ts`.
+4. The response streams back through the Vercel AI SDK wrappers.
+5. The app parses `<boltArtifact>` and `<boltAction>` tags from the streamed assistant output.
+6. The runtime queues file and shell actions.
+7. WebContainer executes those actions.
+8. File watchers and preview state update the workbench.
+9. Chat state is stored in IndexedDB and optionally synced to Supabase.
 
-## The Core User Flow
+That loop is the center of the product.
 
-1. The user opens `/` and lands on the chat interface.
-2. They pick a model and enter a prompt.
-3. The frontend sends chat messages to `app/routes/api.chat.ts`.
-4. The server selects the requested model/provider through the LLM provider factory.
-5. The model streams a response back.
-6. A custom parser strips special `<boltArtifact>` and `<boltAction>` tags from the visible assistant text and converts them into executable actions.
-7. The frontend creates an "artifact" card in the message stream and queues the parsed actions.
-8. The action runner executes shell/file actions inside WebContainer.
-9. File watchers refresh the in-browser file map.
-10. The editor, file tree, and preview update in real time.
-11. The conversation is stored in IndexedDB and optionally upserted to Supabase.
+## AI Layer
 
-That loop is the heart of the application.
-
-## How The AI Layer Works
-
-The server-side LLM code lives in `app/lib/.server/llm/`.
+Server-side LLM code lives in `app/lib/.server/llm/`.
 
 Important files:
 
-- `prompts.ts`: system prompt and runtime constraints for the model
-- `stream-text.ts`: main streaming wrapper around the Vercel AI SDK
-- `provider-factory.ts`: maps provider/model choice to the correct SDK model
-- `model-config.ts`: provider registry and model metadata
-- `providers/*.ts`: concrete provider definitions
-- `constants.ts`: token limits and segment limits
+- `prompts.ts`: model instructions and WebContainer constraints
+- `stream-text.ts`: streaming wrapper around provider calls
+- `provider-factory.ts`: provider/model resolution
+- `model-config.ts`: server-side model registry
+- `providers/*.ts`: provider definitions
+- `constants.ts`: token and response segment limits
 
-### Supported Providers
-
-The repo currently supports:
-
-- Anthropic
-- OpenAI
-- Google
-- DeepSeek
-- xAI
-- Mistral
-
-### Why The Prompting Layer Matters
-
-The system prompt is opinionated. It teaches the model:
+The prompt layer matters because it teaches the model that:
 
 - it is operating inside WebContainer
-- native binaries are not available
+- native binaries are unavailable
+- Git is unavailable inside the sandbox
 - Python is standard-library-only
-- Git is not available inside the container
-- it should respond with special `boltAction` structures for shell and file operations
+- file and shell actions must be emitted in the Bolt artifact protocol
 
-This is not a normal free-form chatbot. It is a controlled code-generation runtime.
+This is a controlled coding runtime, not a generic chatbot.
 
-## The Artifact/Action Protocol
+## Artifact And Action Protocol
 
-One of the most important pieces in the repo is the custom response format:
+The app relies on a custom streaming protocol:
 
 - `<boltArtifact ...>`
 - `<boltAction type="shell">`
 - `<boltAction type="file" filePath="...">`
 
-These tags are parsed by `app/lib/runtime/message-parser.ts`.
+Parsing happens in the runtime/message-parser layer and feeds the action runner. The parser is incremental because responses arrive as streamed chunks, not as one final message.
 
-What happens next:
+The action runner then:
 
-- artifact open -> create a UI container in the chat stream
-- action open/close -> register a pending action
-- action run -> hand off to `ActionRunner`
-- `ActionRunner` either writes a file or spawns a shell process in WebContainer
+- writes files into WebContainer
+- spawns shell commands in the sandbox
+- updates the workbench state so the UI reflects the new filesystem and preview output
 
-The parser is incremental and designed for streamed model output, not just whole responses. That is why it tracks message state by `messageId` and supports partial chunks.
+## Workbench
 
-## Browser IDE / Workbench
-
-The workbench is the in-browser IDE panel. It is backed by a `WorkbenchStore` that composes smaller stores:
-
-- `FilesStore`
-- `EditorStore`
-- `TerminalStore`
-- `PreviewsStore`
-
-### Files
-
-`app/lib/stores/files.ts` is responsible for:
-
-- exporting the current WebContainer filesystem as JSON
-- converting it into a repo-style file map
-- detecting text vs binary files
-- watching filesystem changes
-- writing saved file changes back to WebContainer
-- tracking file modifications made by the human user
-
-Human edits matter because they are converted into an HTML-wrapped diff payload and prepended to the next user prompt, so the model sees what changed locally.
-
-### Editor
-
-The editor stack uses CodeMirror 6. Main code is under:
-
-- `app/components/editor/codemirror/`
-- `app/lib/stores/editor.ts`
-
-It supports:
-
-- selected file state
-- scroll restoration per file
-- unsaved file tracking
-- save/reset actions
-
-### Terminal
-
-The terminal uses xterm.js and WebContainer shell processes.
-
-Key files:
-
-- `app/components/workbench/terminal/Terminal.tsx`
-- `app/lib/stores/terminal.ts`
-- `app/utils/shell.ts`
-
-The app can open multiple terminal tabs in the UI, but they all attach to WebContainer shell processes rather than to the host machine.
-
-### Preview
-
-`app/lib/stores/previews.ts` listens for WebContainer port events. When the app inside the container opens a port, the UI exposes it as a preview target and renders it in an iframe.
-
-## State Management
-
-The app uses Nanostores instead of Redux/Zustand.
+The workbench is the browser IDE side of the app. It is mostly orchestrated through Nanostores.
 
 Main stores:
 
-- `chat.ts`: chat UI state like started/aborted/showChat
-- `workbench.ts`: orchestrates the IDE panel and artifact runners
-- `files.ts`: file map and modification tracking
-- `editor.ts`: open document state
-- `terminal.ts`: terminal visibility and process attachment
-- `previews.ts`: active preview ports
-- `model.ts`: selected model globally and per chat
-- `connection.ts`: IndexedDB/Supabase sync status
-- `settings.ts`: local app/editor/AI settings
-- `theme.ts`: light/dark theme state
+- `app/lib/stores/workbench.ts`
+- `app/lib/stores/files.ts`
+- `app/lib/stores/editor.ts`
+- `app/lib/stores/terminal.ts`
+- `app/lib/stores/previews.ts`
+- `app/lib/stores/model.ts`
+- `app/lib/stores/chat.ts`
+- `app/lib/stores/settings.ts`
+- `app/lib/stores/connection.ts`
 
-The codebase leans on simple observable stores rather than a heavy centralized state framework.
+Key responsibilities:
 
-## Persistence And Data Model
+- `files.ts`: file map, filesystem sync, modified-file tracking
+- `editor.ts`: selected file, unsaved state, save/reset behavior
+- `terminal.ts`: terminal tabs and process attachment
+- `previews.ts`: preview ports and iframe targets
+- `workbench.ts`: high-level orchestration across the IDE surface
 
-There are two persistence modes.
+Human edits are fed back into the next prompt so the model can see what changed since its previous action batch.
 
-### 1. IndexedDB
+## Persistence And Auth
 
-Local-first chat history lives in:
+The app has two persistence paths.
 
-- `app/lib/persistence/db.ts`
-- `app/lib/persistence/useChatHistory.ts`
+### IndexedDB
 
-IndexedDB is used for:
+Local-first chat history lives under `app/lib/persistence/`.
 
-- fast local save/load
-- offline-ish fallback
-- restoring conversations by id/urlId
+This is the default resilience layer for:
 
-### 2. Supabase
+- quick save/load
+- browser-local history
+- restoring conversations even without auth
 
-Authenticated users also sync data to Supabase.
+### Supabase
 
-Relevant code:
+Supabase support lives under:
 
-- `app/lib/supabase/client.ts`
-- `app/lib/supabase/server.ts`
+- `app/lib/supabase/`
 - `app/lib/contexts/AuthContext.tsx`
-- `app/lib/services/projects.ts`
 - `app/lib/migration/migrate-to-supabase.ts`
 - `scripts/schema.sql`
 
-Database tables defined in the schema:
-
-- `users`
-- `projects`
-- `chats`
-- `project_collaborators`
-
-Important schema detail:
-
-- `chats` uses `UNIQUE(url_id, user_id)`
-
-That composite uniqueness is reflected in the app logic, which uses:
-
-- `.upsert(..., { onConflict: 'url_id,user_id' })`
-
-This is one of the key implementation details in the repo.
-
-## Authentication
-
-Authentication is implemented with Supabase Auth.
-
-Current capabilities visible in code:
+Current auth-related capabilities in code:
 
 - sign up
-- sign in with email/password
+- sign in
 - sign out
 - password reset
-- OAuth sign-in for GitHub and Google
-- callback flow via `app/routes/auth.callback.tsx`
-- session hydration in `AuthContext`
+- OAuth callback handling
+- sync of chat history for authenticated users
 
-The app is written to degrade if Supabase env vars are missing. In that case, auth-dependent features are effectively disabled rather than crashing the whole UI.
+Important detail:
 
-## Routes
+- chat upserts rely on `UNIQUE(url_id, user_id)` and use `.upsert(..., { onConflict: 'url_id,user_id' })`
+
+### Schema Note
+
+The active schema is now intentionally narrow:
+
+- `users`
+- `chats`
+
+Older databases may still contain legacy project tables until the migration in `scripts/migrations/002_remove_legacy_project_tables.sql` is applied.
+
+## Current Routes
 
 Important routes in `app/routes/`:
 
-- `_index.tsx`: home chat page
-- `chat.$id.tsx`: loads a specific chat session using the same main UI
+- `_index.tsx`: main workspace landing page
+- `chat.$id.tsx`: resume a specific chat session
+- `settings.tsx`: settings surface
 - `api.chat.ts`: chat streaming endpoint
 - `api.enhancer.ts`: prompt enhancement endpoint
-- `api.avatar.tsx`: avatar proxy with allowlisted domains
-- `api.supabase-test.ts`: connection test endpoint
-- `settings.tsx`: settings page, gated by auth
-- `projects.tsx`: project list/create/manage page, gated by auth
-- `auth.callback.tsx`: OAuth/email recovery callback handler
+- `api.avatar.tsx`: avatar proxy
+- `api.supabase-test.ts`: Supabase connectivity check
+- `auth.callback.tsx`: auth recovery and callback handling
+- `auth.signin.tsx`
+- `auth.signup.tsx`
 
-The route model is simple: one main app shell, one chat experience, and a small set of API endpoints.
+The route model is simple: one workspace, one chat flow, and a small API surface around it.
 
 ## UI Structure
 
-Main UI areas:
+Main UI domains:
 
-- `app/components/chat/`: messages, markdown, model selector, prompt entry, artifact card
-- `app/components/workbench/`: file tree, editor, preview, terminal
-- `app/components/auth/`: login/signup/reset flows
-- `app/components/header/`: top bar, connection status, model badge
-- `app/components/sidebar/`: conversation history and account panel
-- `app/components/settings/`: settings page
-- `app/components/projects/`: project management UI
-- `app/components/ui/`: Radix-based reusable primitives
+- `app/components/chat/`: prompt entry, messages, artifacts, model selection
+- `app/components/workbench/`: editor, preview, terminal, file tree
+- `app/components/auth/`: login and account flows
+- `app/components/header/`: top bar and status indicators
+- `app/components/sidebar/`: conversation history and user panel
+- `app/components/settings/`: settings UI
+- `app/components/ui/`: reusable primitives
 
-The visual design uses:
-
-- Tailwind CSS
-- custom theme tokens under `bolt-elements-*`
-- framer-motion for animation
-- Radix primitives for composable UI
+There is no longer an active `app/components/projects/` product surface.
 
 ## Directory Walkthrough
 
 ### Root
 
-- `README.md`: product/setup-oriented readme
-- `AGENTS.md`: repo-specific instructions for coding agents
-- `CLAUDE.md`, `WARP.md`: additional assistant/operator guidance
-- `package.json`: scripts, deps, platform definition
-- `vite.config.ts`: Remix + Vite config, Chrome 129 workaround, node polyfills
-- `wrangler.toml`: Cloudflare Pages config
-- `Dockerfile`, `docker-compose*.yml`: containerized local/prod workflows
+- `README.md`: product-level readme
+- `AGENTS.md`: repo instructions for coding agents
+- `package.json`: scripts and dependencies
+- `wrangler.toml`: Cloudflare Pages configuration
+- `Dockerfile` and `docker-compose*.yml`: containerized local and self-host flows
 
 ### `app/`
 
 Main Remix application.
 
-### `app/components/`
-
-User-facing UI split by domain:
-
-- auth
-- chat
-- editor
-- header
-- migration
-- projects
-- settings
-- sidebar
-- ui
-- workbench
-
 ### `app/lib/`
 
-Core non-visual logic:
+Core logic:
 
-- `.server/llm/`: server-only model/provider logic
-- `contexts/`: React auth context
-- `hooks/`: message parsing, prompt enhancement, shortcuts, scrolling
-- `migration/`: IndexedDB -> Supabase migration logic
-- `persistence/`: IndexedDB storage and chat-history hooks
+- `.server/llm/`: provider and prompt layer
+- `contexts/`: auth context
+- `hooks/`: prompt helpers, scrolling, keyboard shortcuts
+- `migration/`: IndexedDB to Supabase migration helpers
+- `persistence/`: IndexedDB storage and chat history
 - `runtime/`: parser and action runner
-- `services/`: project service methods
-- `stores/`: Nanostore state modules
-- `supabase/`: browser/server client setup and types
-- `webcontainer/`: WebContainer boot/auth wrappers
-
-### `app/routes/`
-
-Remix pages and API routes.
-
-### `docs/`
-
-Project docs, guides, planning docs, and technical notes.
-
-Important caution:
-
-- not every document here matches the current codebase
-- `docs/technical/CURRENT_ARCHITECTURE.md` is clearly stale and still describes a pre-Supabase/pre-auth version
+- `stores/`: Nanostore state
+- `supabase/`: browser/server clients and generated types
+- `webcontainer/`: WebContainer integration
 
 ### `scripts/`
 
-Operational scripts:
+Operational support:
 
-- schema/setup
-- migrations
-- cleanup
+- `setup.sh`: guided schema setup
+- `schema.sql`: baseline database schema
+- `migrations/`: targeted database fixes
 
 ### `functions/`
 
-Cloudflare Pages function entrypoint that mounts the Remix server build.
+Cloudflare Pages entrypoint mounting the Remix build.
 
-### `public/`, `icons/`, `assets/`
+## Build And Hosting Model
 
-Static assets and branding.
-
-## Build, Runtime, And Deployment Model
-
-### Local Development
-
-Core commands from `package.json`:
+Common commands:
 
 - `pnpm dev`
 - `pnpm build`
 - `pnpm preview`
-- `pnpm start`
 - `pnpm test`
 - `pnpm run typecheck`
 - `pnpm run lint`
+- `pnpm run setup`
 
-### Server/Hosting
+The app is structured for Cloudflare Pages and Workers, but the actual code execution experience happens inside WebContainer in the browser, not on the deployment server.
 
-The app is designed for Cloudflare Pages / Workers:
-
-- Remix Cloudflare adapter
-- Pages function entry in `functions/[[path]].ts`
-- Wrangler config in `wrangler.toml`
-
-### Browser Runtime Constraint
-
-The "real project execution" experience happens in WebContainer, not on the deployment server. That is why the app keeps repeating these constraints:
+That design imposes persistent runtime constraints:
 
 - no native binaries
-- browser-safe Node/WebAssembly only
-- no Git inside the container
-- prefer npm/Vite/browser-compatible tools
+- no Git inside the sandbox
+- browser-safe Node and WebAssembly only
+- prefer tooling that works without host-level system access
 
 ## Notable Engineering Decisions
 
-### 1. Local-first chat persistence
+### Local-first persistence
 
-The app saves to IndexedDB first, then syncs to Supabase when possible. That is a pragmatic design for resilience and speed.
+Chats save to IndexedDB first and sync outward when possible. That keeps the core workspace usable even when auth or network configuration is incomplete.
 
-### 2. Structured model output instead of tool calling
+### Structured actions instead of generic tool calling
 
-The AI is not using a generic server tool-calling interface. It emits a custom tagged protocol that the frontend parses and executes.
+The assistant emits a repo-specific protocol that the frontend parses and executes. That keeps the runtime coupled tightly to the workbench UI.
 
-### 3. UI model registry mirrors server model registry
+### Mirrored model registries
 
-There is a server-side provider registry and a client-side model list in `app/lib/models.client.ts`. This improves UX but also means model metadata can drift if only one side gets updated.
+The server and client both carry model metadata. This improves UX but creates drift risk if only one side is updated.
 
-### 4. Workbench state is heavily client-side
+### Graceful degradation
 
-Most of the actual IDE logic lives in browser state and browser runtime abstractions, not in backend services.
+If Supabase is not configured, the app still tries to operate as a local prototype workspace instead of failing completely.
 
-### 5. Degradation when services are missing
+## Current Caveats
 
-If Supabase config is missing, the app tries to keep working in a reduced mode instead of hard-failing.
+- Schema cleanup is incomplete because historical project tables still exist.
+- Some technical notes in the repo describe previous implementation phases rather than current product direction.
+- The strongest path is still chat plus workbench, not broader platform features.
 
-## Important Caveats And Mismatches
+## Bottom Line
 
-These are useful for anyone onboarding to the repo.
+This codebase is best understood as a self-hosted-friendly, BYO-model prototype workspace for technical users.
 
-### Documentation drift exists
+The parts worth building on are:
 
-Some docs describe older architecture. The code is the source of truth.
+- the chat-to-action runtime
+- the WebContainer workbench
+- the multi-provider model layer
+- the local-first persistence and optional auth sync
 
-### Project management is ahead of implementation in places
+The parts to treat as legacy are:
 
-The repo contains roadmap/sprint docs for features that are planned, partially built, or not yet wired through end-to-end.
-
-### "Projects" exist, but chat is still the center of gravity
-
-There is a project schema and project UI, but the most mature, central path in the app is still:
+- broader project-management ambitions
+- stale planning documentation
+- schema leftovers that no longer map cleanly to the active UI
 
 - prompt
 - streamed AI response

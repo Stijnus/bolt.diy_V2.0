@@ -1,6 +1,6 @@
 # 🛠️ BoltDIY V2.0 - Scripts Documentation
 
-This directory contains utility scripts to help with setup, maintenance, and troubleshooting of your BoltDIY project.
+This directory contains utility scripts to help with setup, maintenance, and troubleshooting of your BoltDIY workspace.
 
 ## 📜 Available Scripts
 
@@ -9,6 +9,7 @@ This directory contains utility scripts to help with setup, maintenance, and tro
 **Purpose**: Automates the Supabase database setup process
 
 **Usage**:
+
 ```bash
 npm run setup
 # or
@@ -16,6 +17,7 @@ npm run setup
 ```
 
 **What it does**:
+
 1. ✅ Validates your `.env.local` environment variables
 2. ✅ Checks for required Supabase credentials
 3. ✅ Copies the database schema SQL to your clipboard
@@ -23,11 +25,13 @@ npm run setup
 5. ✅ Provides step-by-step instructions
 
 **When to use**:
+
 - First time setting up the project
 - After creating a new Supabase project
 - When you need to recreate the database schema
 
 **Requirements**:
+
 - `.env.local` file must exist with Supabase credentials
 - Internet connection to access Supabase
 - macOS/Linux (uses bash)
@@ -39,6 +43,7 @@ npm run setup
 **Purpose**: Performs a complete cleanup and rebuild of the project
 
 **Usage**:
+
 ```bash
 npm run clean
 # or
@@ -46,6 +51,7 @@ node scripts/clean.js
 ```
 
 **What it does**:
+
 1. 🗑️ Removes all build artifacts (`dist`, `build`, `.remix`, `.wrangler`)
 2. 🧹 Clears all caches (Vite, Remix, Wrangler, ESLint)
 3. 📦 Removes `node_modules` directory
@@ -56,6 +62,7 @@ node scripts/clean.js
 8. ✅ Verifies types and build
 
 **When to use**:
+
 - Build errors that won't go away
 - Dependency conflicts
 - After switching branches with different dependencies
@@ -66,6 +73,7 @@ node scripts/clean.js
 **Time**: Typically takes 3-5 minutes
 
 **Requirements**:
+
 - Node.js >= 20.0.0
 - pnpm installed
 - Internet connection (to download packages)
@@ -77,27 +85,29 @@ node scripts/clean.js
 **Purpose**: Complete SQL schema for Supabase database (for NEW installations)
 
 **Contains**:
-- **Tables**: users, projects, chats, project_collaborators
+
+- **Tables**: users, chats
 - **Row Level Security (RLS)**: Policies for data access
 - **Triggers**: Auto-update timestamps
 - **Functions**: User profile creation on signup
 - **Indexes**: Performance optimizations
 
 **Usage**:
+
 1. Copy the entire file contents
 2. Go to Supabase SQL Editor: https://app.supabase.com/project/_/sql
 3. Paste and run
 
 **Or use the setup script** (recommended):
+
 ```bash
 npm run setup
 ```
 
 **Schema includes**:
+
 - ✅ User authentication integration
 - ✅ Chat history storage
-- ✅ Project management
-- ✅ Collaboration features
 - ✅ Secure access policies
 
 **Note**: For existing databases that need updates, see `migrations/` folder instead.
@@ -109,27 +119,33 @@ npm run setup
 **Purpose**: Incremental SQL updates for existing Supabase databases
 
 **When to use**:
+
 - You already have a database set up with the old schema
 - You encounter constraint errors when syncing chats
 - You need to update specific tables without recreating everything
 - You want to apply schema changes to production databases safely
 
 **When NOT to use**:
+
 - Fresh Supabase project → Use `schema.sql` instead
 - First-time setup → Use `npm run setup` instead
 
 **How to apply**:
+
 1. Navigate to `scripts/migrations/` folder
 2. Read the migration's README for instructions
 3. Apply migrations in order (001, 002, etc.)
 4. Verify changes in Supabase dashboard
 
 **Current migrations**:
+
 - `001_fix_chats_unique_constraint.sql` - Fixes chat table constraint mismatch
+- `002_remove_legacy_project_tables.sql` - Removes old project tables and chat project references
 
 **Detailed instructions**: See `migrations/README.md`
 
 **Example**:
+
 ```bash
 # Manual application (recommended)
 # 1. Copy migration file contents
@@ -142,64 +158,45 @@ supabase db execute --file scripts/migrations/001_fix_chats_unique_constraint.sq
 
 ---
 
-### 🖥️ setup-database.js - Node.js Setup Script
-
-**Purpose**: Alternative Node.js version of the setup script
-
-**Usage**:
-```bash
-node scripts/setup-database.js
-```
-
-**What it does**:
-1. Validates environment variables
-2. Connects to Supabase
-3. Attempts to execute schema (with fallback instructions)
-4. Verifies table creation
-5. Provides next steps
-
-**When to use**:
-- When bash scripts don't work (Windows)
-- Automated CI/CD pipelines
-- Programmatic setup
-
-**Note**: Due to Supabase API limitations, you'll still need to manually run the SQL in most cases. The script provides clear instructions.
-
----
-
 ## 🎯 Quick Reference
 
-| Command | Purpose | Time | Risk |
-|---------|---------|------|------|
-| `npm run setup` | Initial database setup (new installs) | 1-2 min | Low |
-| `migrations/*.sql` | Update existing database schema | 1-2 min | Medium* |
-| `npm run clean` | Deep clean & rebuild | 3-5 min | Low |
-| `npm run clean:cache` | Quick cache clear | <1 min | None |
-| `npm run clean:build` | Remove build files only | <1 min | None |
-| `npm run setup:help` | View setup guide | Instant | None |
+| Command               | Purpose                               | Time    | Risk     |
+| --------------------- | ------------------------------------- | ------- | -------- |
+| `npm run setup`       | Initial database setup (new installs) | 1-2 min | Low      |
+| `migrations/*.sql`    | Update existing database schema       | 1-2 min | Medium\* |
+| `npm run clean`       | Deep clean & rebuild                  | 3-5 min | Low      |
+| `npm run clean:cache` | Quick cache clear                     | <1 min  | None     |
+| `npm run clean:build` | Remove build files only               | <1 min  | None     |
+| `npm run setup:help`  | View setup guide                      | Instant | None     |
 
-\* *Always backup before running migrations on production databases*
+\* _Always backup before running migrations on production databases_
 
 ---
 
 ## 🔧 Additional Commands
 
 ### Quick Cache Clear
+
 ```bash
 npm run clean:cache
 ```
+
 Removes only cache directories without reinstalling dependencies.
 
 ### Clean Build Only
+
 ```bash
 npm run clean:build
 ```
+
 Removes only build output directories.
 
 ### View Setup Guide
+
 ```bash
 npm run setup:help
 ```
+
 Displays the complete setup guide in your terminal.
 
 ---
@@ -265,6 +262,7 @@ Displays the complete setup guide in your terminal.
 ### "Permission denied" when running scripts
 
 **Solution**:
+
 ```bash
 chmod +x scripts/*.sh
 ```
@@ -274,6 +272,7 @@ chmod +x scripts/*.sh
 **Problem**: Script path or Node.js not found
 
 **Solution**:
+
 ```bash
 # Make sure you're in project root
 cd /path/to/bolt.diy_V2.0
@@ -290,6 +289,7 @@ node scripts/clean.js
 **Problem**: Network issues or corrupted pnpm cache
 
 **Solution**:
+
 ```bash
 # Clear pnpm cache manually
 pnpm store prune
@@ -304,6 +304,7 @@ npm run clean
 **Problem**: Environment file not created
 
 **Solution**:
+
 ```bash
 # Create from example
 cp .env.example .env.local
@@ -340,11 +341,13 @@ If you improve these scripts or add new ones:
 ### Destructive Operations
 
 The `clean.js` script is **destructive** - it will:
+
 - Delete your `node_modules` (safe - will be reinstalled)
 - Remove all build output (safe - will be rebuilt)
 - Clear all caches (safe)
 
 It will **NOT** delete:
+
 - Your source code
 - Your `.env.local` file
 - Your git history
@@ -353,6 +356,7 @@ It will **NOT** delete:
 ### Windows Compatibility
 
 The bash scripts (`.sh`) may not work on Windows. Use:
+
 - **Git Bash** (comes with Git for Windows)
 - **WSL (Windows Subsystem for Linux)**
 - Or the Node.js alternatives (`.js` files)
@@ -364,7 +368,7 @@ These scripts work great in CI/CD pipelines:
 ```yaml
 # Example GitHub Actions
 - name: Setup Database
-  run: node scripts/setup-database.js
+  run: ./scripts/setup.sh
   env:
     SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
     SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}

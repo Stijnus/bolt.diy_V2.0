@@ -16,7 +16,6 @@ export type Database = {
           description: string | null;
           id: string;
           messages: Json;
-          project_id: string | null;
           updated_at: string | null;
           url_id: string;
           user_id: string;
@@ -26,7 +25,6 @@ export type Database = {
           description?: string | null;
           id?: string;
           messages?: Json;
-          project_id?: string | null;
           updated_at?: string | null;
           url_id: string;
           user_id: string;
@@ -36,104 +34,13 @@ export type Database = {
           description?: string | null;
           id?: string;
           messages?: Json;
-          project_id?: string | null;
           updated_at?: string | null;
           url_id?: string;
           user_id?: string;
         };
         Relationships: [
           {
-            foreignKeyName: 'chats_project_id_fkey';
-            columns: ['project_id'];
-            isOneToOne: false;
-            referencedRelation: 'projects';
-            referencedColumns: ['id'];
-          },
-          {
             foreignKeyName: 'chats_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      project_collaborators: {
-        Row: {
-          created_at: string | null;
-          id: string;
-          project_id: string;
-          role: string;
-          user_id: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          id?: string;
-          project_id: string;
-          role?: string;
-          user_id: string;
-        };
-        Update: {
-          created_at?: string | null;
-          id?: string;
-          project_id?: string;
-          role?: string;
-          user_id?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'project_collaborators_project_id_fkey';
-            columns: ['project_id'];
-            isOneToOne: false;
-            referencedRelation: 'projects';
-            referencedColumns: ['id'];
-          },
-          {
-            foreignKeyName: 'project_collaborators_user_id_fkey';
-            columns: ['user_id'];
-            isOneToOne: false;
-            referencedRelation: 'users';
-            referencedColumns: ['id'];
-          },
-        ];
-      };
-      projects: {
-        Row: {
-          created_at: string | null;
-          description: string | null;
-          files: Json | null;
-          id: string;
-          name: string;
-          settings: Json | null;
-          updated_at: string | null;
-          user_id: string;
-          visibility: string;
-        };
-        Insert: {
-          created_at?: string | null;
-          description?: string | null;
-          files?: Json | null;
-          id?: string;
-          name: string;
-          settings?: Json | null;
-          updated_at?: string | null;
-          user_id: string;
-          visibility?: string;
-        };
-        Update: {
-          created_at?: string | null;
-          description?: string | null;
-          files?: Json | null;
-          id?: string;
-          name?: string;
-          settings?: Json | null;
-          updated_at?: string | null;
-          user_id?: string;
-          visibility?: string;
-        };
-        Relationships: [
-          {
-            foreignKeyName: 'projects_user_id_fkey';
             columns: ['user_id'];
             isOneToOne: false;
             referencedRelation: 'users';
@@ -292,9 +199,3 @@ export type CompositeTypes<
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema['CompositeTypes']
     ? DefaultSchema['CompositeTypes'][PublicCompositeTypeNameOrOptions]
     : never;
-
-export const SUPABASE_CONSTANTS = {
-  public: {
-    Enums: {},
-  },
-} as const;

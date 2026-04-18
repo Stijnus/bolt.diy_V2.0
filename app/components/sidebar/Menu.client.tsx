@@ -1,5 +1,5 @@
 import { motion, type Variants } from 'framer-motion';
-import { MessageSquarePlus, FolderKanban } from 'lucide-react';
+import { MessageSquarePlus } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'react-toastify';
 
@@ -216,7 +216,7 @@ export function Menu() {
               </div>
               <div>
                 <h2 className="text-base font-semibold tracking-tight text-bolt-elements-textPrimary">Conversations</h2>
-                <p className="text-[11px] text-bolt-elements-textSecondary">Workspace</p>
+                <p className="text-[11px] text-bolt-elements-textSecondary">Local workspace</p>
               </div>
             </div>
             <div className="flex items-center gap-2 rounded-full border border-bolt-elements-borderColor/80 bg-bolt-elements-background-depth-2/80 px-1.5 py-1.5 shadow-sm">
@@ -245,21 +245,6 @@ export function Menu() {
                 Start new chat
               </a>
             </Button>
-
-            {/* My Projects Button */}
-            {user ? (
-              <Button
-                asChild
-                variant="outline"
-                className="w-full justify-center shadow-sm hover:shadow-md border-bolt-elements-borderColor btn-ripple transition-smooth hover:scale-[1.02]"
-                size="lg"
-              >
-                <a href="/projects" className="flex items-center gap-2.5 text-sm font-semibold">
-                  <FolderKanban className="h-5 w-5" />
-                  My Projects
-                </a>
-              </Button>
-            ) : null}
           </div>
 
           {/* History Section Header */}

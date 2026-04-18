@@ -91,9 +91,9 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     transition={{ duration: 0.6, delay: 0.1 }}
                     className="text-5xl font-bold tracking-tight sm:text-6xl lg:text-7xl"
                   >
-                    Where <GradientText>ideas begin</GradientText>
+                    Prototype with
                     <br />
-                    and launch
+                    <GradientText>your own models</GradientText>
                   </motion.h1>
 
                   <motion.p
@@ -102,8 +102,8 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                     transition={{ duration: 0.6, delay: 0.2 }}
                     className="mx-auto max-w-2xl text-lg text-bolt-elements-textSecondary sm:text-xl text-balance"
                   >
-                    Design, develop, and deploy in one canvas. Craft a prompt, hand off tasks to AI, and iterate
-                    together in real time with BoltDIY V2.0.
+                    A self-hosted-friendly browser workspace for technical users. Prompt an AI model, inspect files, run
+                    commands, and iterate on prototypes with live preview in one place.
                   </motion.p>
                 </div>
 
@@ -111,22 +111,22 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                 <div className="grid w-full gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   <FeatureCard
                     icon={Zap}
-                    title="Instant Previews"
-                    description="See every change in real-time without leaving the chat. Deploy with a single command."
+                    title="Live Preview"
+                    description="See changes immediately while you iterate inside the same browser workspace."
                     gradient
                     delay={0.3}
                   />
                   <FeatureCard
                     icon={Code2}
-                    title="Smart Context"
-                    description="BoltDIY remembers your project, tracks files, and suggests next steps intelligently."
+                    title="Workspace Context"
+                    description="Keep chat, files, terminal, and preview together so the model works with visible context."
                     gradient
                     delay={0.4}
                   />
                   <FeatureCard
                     icon={Rocket}
-                    title="Ship Faster"
-                    description="From idea to deployment in minutes. AI handles the heavy lifting while you focus on creativity."
+                    title="BYO Models"
+                    description="Use the provider that fits the task instead of being locked into one hosted model stack."
                     gradient
                     delay={0.5}
                     className="sm:col-span-2 lg:col-span-1"
@@ -186,7 +186,7 @@ export const BaseChat = React.forwardRef<HTMLDivElement, BaseChatProps>(
                       minHeight: TEXTAREA_MIN_HEIGHT,
                       maxHeight: TEXTAREA_MAX_HEIGHT,
                     }}
-                    placeholder="How can BoltDIY help you today?"
+                    placeholder="What do you want to prototype?"
                     translate="no"
                   />
                   <ClientOnly>

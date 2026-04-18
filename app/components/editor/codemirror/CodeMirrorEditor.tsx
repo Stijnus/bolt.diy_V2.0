@@ -262,8 +262,6 @@ export const CodeMirrorEditor = memo(
   },
 );
 
-export default CodeMirrorEditor;
-
 CodeMirrorEditor.displayName = 'CodeMirrorEditor';
 
 function newEditorState(

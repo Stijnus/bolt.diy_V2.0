@@ -44,9 +44,8 @@ export function SettingsPage() {
     setIsSaving(true);
 
     try {
-      // here you would save to Supabase or localStorage
       await new Promise((resolve) => setTimeout(resolve, 500)); // simulated delay
-      toast.success('Settings saved successfully');
+      toast.success('Settings updated for this session');
     } catch (error) {
       toast.error('Failed to save settings');
       console.error('Error saving settings:', error);
@@ -56,7 +55,7 @@ export function SettingsPage() {
   };
 
   const profileSection = user && (
-    <SettingsSection title="Profile" description="Manage your account information" status="partial">
+    <SettingsSection title="Profile" description="Manage your account information" status="limited">
       <div className="rounded-lg border border-bolt-elements-borderColor bg-bolt-elements-background-depth-2 p-6">
         <div className="flex items-center gap-4">
           <img
@@ -80,7 +79,7 @@ export function SettingsPage() {
   );
 
   const editorSection = (
-    <SettingsSection title="Editor" description="Customize your code editor preferences" status="coming-soon">
+    <SettingsSection title="Editor" description="Customize your code editor preferences" status="session-only">
       <SettingItem
         label="Tab Size"
         description="Number of spaces per tab"
@@ -158,7 +157,11 @@ export function SettingsPage() {
   );
 
   const aiSection = (
-    <SettingsSection title="AI Assistant" description="Configure AI model and behavior" status="coming-soon">
+    <SettingsSection
+      title="AI Assistant"
+      description="Configure response behavior for this workspace session"
+      status="session-only"
+    >
       <SettingItem
         label="Temperature"
         description="Controls randomness (0-1)"
@@ -203,7 +206,11 @@ export function SettingsPage() {
   );
 
   const preferencesSection = (
-    <SettingsSection title="Preferences" description="General application settings" status="coming-soon">
+    <SettingsSection
+      title="Preferences"
+      description="General application settings for the current browser session"
+      status="session-only"
+    >
       <SettingItem
         label="Notifications"
         description="Enable browser notifications"
@@ -246,15 +253,15 @@ export function SettingsPage() {
   const migrationSection = (
     <SettingsSection
       title="Data Migration"
-      description="Migrate your local chats to cloud storage"
-      status="implemented"
+      description="Import local chat history into your signed-in workspace"
+      status="active"
     >
       <MigrationSettings />
     </SettingsSection>
   );
 
   const accountSection = (
-    <SettingsSection title="Account" description="Manage your account" status="coming-soon">
+    <SettingsSection title="Account" description="Manage your account" status="limited">
       <div className="rounded-lg border border-bolt-elements-button-danger-background/20 bg-bolt-elements-button-danger-background/5 p-6">
         <h3 className="mb-2 text-base font-semibold text-bolt-elements-textPrimary">Danger Zone</h3>
         <p className="mb-4 text-sm text-bolt-elements-textSecondary">
@@ -297,10 +304,10 @@ export function SettingsPage() {
                 <ArrowLeft className="h-4 w-4" />
                 Back
               </a>
-              <h1 className="text-xl font-bold text-bolt-elements-textPrimary">Settings</h1>
+              <h1 className="text-xl font-bold text-bolt-elements-textPrimary">Workspace Settings</h1>
             </div>
             <Button onClick={handleSaveSettings} disabled={isSaving}>
-              {isSaving ? 'Saving...' : 'Save Changes'}
+              {isSaving ? 'Applying...' : 'Apply'}
             </Button>
           </div>
         </div>
@@ -308,7 +315,7 @@ export function SettingsPage() {
 
       {/* Content */}
       <div className="mx-auto max-w-4xl px-6 py-8">
-        {/* Implementation Status Notice */}
+        {/* Status Notice */}
         <div className="mb-6 rounded-lg border border-blue-500/20 bg-blue-500/10 p-4">
           <div className="flex items-start gap-3">
             <div className="flex-shrink-0">
@@ -327,11 +334,10 @@ export function SettingsPage() {
               </svg>
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-500">Settings Implementation Status</h3>
+              <h3 className="text-sm font-semibold text-blue-600 dark:text-blue-500">Settings Scope</h3>
               <p className="mt-1 text-xs text-blue-600/80 dark:text-blue-500/80">
-                The settings UI is complete and functional. Settings marked as "Coming Soon" are saved to your session
-                but not yet connected to the application features. Settings marked as "Partial" have limited
-                functionality. We're actively working on connecting all settings to their respective features.
+                This page is intentionally narrow. Active sections affect the workspace now, session-only sections tune
+                the current browser session, and limited sections are account scaffolding that is not fully built out.
               </p>
             </div>
           </div>

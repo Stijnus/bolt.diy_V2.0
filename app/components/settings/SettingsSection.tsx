@@ -5,7 +5,7 @@ import { Badge } from '~/components/ui/Badge';
 interface SettingsSectionProps {
   title: string;
   description?: string;
-  status?: 'implemented' | 'coming-soon' | 'partial';
+  status?: 'active' | 'session-only' | 'limited';
   children: ReactNode;
 }
 
@@ -15,26 +15,26 @@ export function SettingsSection({ title, description, status, children }: Settin
       <div className="mb-6">
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-bolt-elements-textPrimary">{title}</h2>
-          {status === 'coming-soon' && (
+          {status === 'session-only' && (
             <Badge variant="warning" className="text-xs">
-              Coming Soon
+              Session Only
             </Badge>
           )}
-          {status === 'partial' && (
+          {status === 'limited' && (
             <Badge variant="outline" className="text-xs">
-              Partially Implemented
+              Limited
             </Badge>
           )}
-          {status === 'implemented' && (
+          {status === 'active' && (
             <Badge variant="success" className="text-xs">
               Active
             </Badge>
           )}
         </div>
         {description && <p className="mt-1 text-sm text-bolt-elements-textSecondary">{description}</p>}
-        {status === 'coming-soon' && (
+        {status === 'session-only' && (
           <p className="mt-2 text-xs text-bolt-elements-textTertiary italic">
-            These settings are saved but not yet connected to functionality.
+            These preferences affect the current browser session and are not fully persisted yet.
           </p>
         )}
       </div>

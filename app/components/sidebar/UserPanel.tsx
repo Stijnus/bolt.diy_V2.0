@@ -46,10 +46,10 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
               </div>
 
               <h3 className="mb-2 text-center text-sm font-semibold text-bolt-elements-textPrimary">
-                Unlock the full experience
+                Save your workspace
               </h3>
               <p className="mb-4 text-center text-xs leading-relaxed text-bolt-elements-textSecondary">
-                Sign in to save your conversations, sync projects across devices, and collaborate with your team.
+                Sign in to sync conversations across devices and keep your prototype history attached to your account.
               </p>
 
               <Button onClick={handleAuthRequest} className="w-full shadow-sm" size="md">
@@ -138,7 +138,7 @@ export function UserPanel({ onRequestAuth }: UserPanelProps) {
             className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-sm font-medium text-bolt-elements-textSecondary transition-all hover:bg-bolt-elements-background-depth-2 hover:text-bolt-elements-textPrimary"
           >
             <Settings className="h-4 w-4" />
-            Settings
+            Workspace Settings
           </a>
           <a
             href="https://stijnus.github.io/bolt.diy_V2.0/"

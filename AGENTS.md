@@ -127,7 +127,7 @@ Nanostores in `app/lib/stores/`:
 - **Server-side:** Supabase (PostgreSQL) - Full implementation complete
   - Database schema: `scripts/schema.sql` (apply via `pnpm run setup`)
   - Migrations: `scripts/migrations/` for schema updates
-  - Tables: users, projects, chats, project_collaborators
+  - Tables: users, chats
   - Client setup: `app/lib/supabase/client.ts` - Browser client with session handling
   - Server setup: `app/lib/supabase/server.ts` - SSR-safe Supabase client
   - Types: `app/lib/supabase/types.ts` - Auto-generated TypeScript types

@@ -524,8 +524,8 @@ The logo features:
   </div>
   
   <div className="nav-links">
-    <a href="/projects">Projects</a>
-    <a href="/templates">Templates</a>
+    <a href="/chat">Workspace</a>
+    <a href="/settings">Settings</a>
     <a href="/docs">Docs</a>
   </div>
   

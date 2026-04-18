@@ -2,8 +2,8 @@ import { streamText as _streamText, type ModelMessage } from 'ai';
 import { MAX_TOKENS } from './constants';
 import { DEFAULT_MODEL_ID, DEFAULT_PROVIDER, getDefaultModel, getModel as getModelInfo } from './model-config';
 import { getSystemPrompt } from './prompts';
+import { createModel } from './provider-factory';
 import type { AIProvider } from './providers/types';
-import { getModel } from '~/lib/.server/llm/model';
 
 export type Messages = ModelMessage[];
 
@@ -41,7 +41,7 @@ export function streamText(messages: Messages, env: Env, options?: StreamTextOpt
     getDefaultModel(resolvedProvider)?.id ??
     (resolvedProvider === DEFAULT_PROVIDER ? DEFAULT_MODEL_ID : undefined);
 
-  const model = getModel(env, selectedProvider, selectedModelId);
+  const model = createModel(resolvedProvider, resolvedModelId, env);
 
   const modelInfo = resolvedModelId ? getModelInfo(resolvedProvider, resolvedModelId) : undefined;
 

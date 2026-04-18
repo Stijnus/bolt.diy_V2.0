@@ -76,7 +76,7 @@ export async function getMessages(db: IDBDatabase, id: string): Promise<ChatHist
   return (await getMessagesById(db, id)) || (await getMessagesByUrlId(db, id));
 }
 
-export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');
@@ -88,7 +88,7 @@ export async function getMessagesByUrlId(db: IDBDatabase, id: string): Promise<C
   });
 }
 
-export async function getMessagesById(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
+async function getMessagesById(db: IDBDatabase, id: string): Promise<ChatHistoryItem> {
   return new Promise((resolve, reject) => {
     const transaction = db.transaction('chats', 'readonly');
     const store = transaction.objectStore('chats');

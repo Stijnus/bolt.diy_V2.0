@@ -1,5 +1,5 @@
 import type { LanguageModel } from 'ai';
-import { DEFAULT_PROVIDER, DEFAULT_MODEL_ID, getModel } from './model-config';
+import { DEFAULT_PROVIDER, getModel } from './model-config';
 import {
   anthropicProvider,
   deepseekProvider,
@@ -25,7 +25,7 @@ const PROVIDERS = {
 /**
  * Get API key for a specific provider from environment.
  */
-export function getProviderApiKey(provider: AIProvider, env: Env): string | undefined {
+function getProviderApiKey(provider: AIProvider, env: Env): string | undefined {
   const providerConfig = PROVIDERS[provider]?.config;
 
   if (!providerConfig) {
@@ -69,24 +69,4 @@ export function createModel(provider: AIProvider = DEFAULT_PROVIDER, modelId?: s
 
   // create and return the model
   return providerImpl.createModel(apiKey, modelId);
-}
-
-/**
- * Create a model instance with full ID (provider:modelId format).
- */
-export function createModelFromFullId(fullId: string, env: Env): LanguageModel {
-  const [provider, modelId] = fullId.split(':') as [AIProvider, string];
-
-  if (!provider) {
-    return createModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID, env);
-  }
-
-  return createModel(provider, modelId, env);
-}
-
-/**
- * Get the default model instance.
- */
-export function getDefaultModelInstance(env: Env): LanguageModel {
-  return createModel(DEFAULT_PROVIDER, DEFAULT_MODEL_ID, env);
 }

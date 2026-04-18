@@ -4,7 +4,7 @@
  */
 import type { AIProvider, ModelInfo, ProviderInfo } from '~/types/model';
 
-export const MODELS: Record<AIProvider, ModelInfo[]> = {
+const MODELS: Record<AIProvider, ModelInfo[]> = {
   anthropic: [
     {
       id: 'claude-sonnet-4-5-20250929',
@@ -224,19 +224,6 @@ export const PROVIDERS: ProviderInfo[] = [
   { id: 'mistral', name: 'Mistral', models: MODELS.mistral },
 ];
 
-export function getAllModels(): ModelInfo[] {
-  return Object.values(MODELS).flat();
-}
-
-export function getProviderModels(provider: AIProvider): ModelInfo[] {
-  return MODELS[provider] || [];
-}
-
 export function getModel(provider: AIProvider, modelId: string): ModelInfo | undefined {
   return MODELS[provider]?.find((m) => m.id === modelId);
-}
-
-export function getDefaultModel(provider: AIProvider): ModelInfo | undefined {
-  const models = MODELS[provider] || [];
-  return models.find((m) => m.isDefault) || models[0];
 }

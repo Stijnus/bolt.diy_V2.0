@@ -161,8 +161,6 @@ export const FileTree = memo(
   },
 );
 
-export default FileTree;
-
 interface FolderProps {
   folder: FolderNode;
   collapsed: boolean;

@@ -44,5 +44,3 @@ export function Tooltip({ content, children, delayDuration = 200, side = 'top' }
     </TooltipProvider>
   );
 }
-
-export { TooltipProvider, TooltipRoot, TooltipTrigger, TooltipContent };

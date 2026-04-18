@@ -16,10 +16,6 @@ export const connectionStore = map<ConnectionState>({
   error: null,
 });
 
-export function setConnectionStatus(status: ConnectionStatus) {
-  connectionStore.setKey('status', status);
-}
-
 export function setConnected(userId: string | null) {
   if (userId) {
     connectionStore.setKey('status', 'supabase');

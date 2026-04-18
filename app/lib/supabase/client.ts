@@ -16,6 +16,3 @@ export function createClient() {
 
   return createBrowserClient<Database>(supabaseUrl, supabaseAnonKey);
 }
-
-// export a singleton instance for convenience
-export const supabase = createClient();

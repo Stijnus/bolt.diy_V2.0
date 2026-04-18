@@ -99,17 +99,18 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
     if (mode === 'signup') {
       return {
         heading: 'Create your BoltDIY account',
-        subheading: 'Set up your workspace to save prompts, collaborate, and sync projects across devices.',
-        badge: 'Join the builders',
-        sideTitle: 'Build faster together',
+        subheading:
+          'Save your conversations, keep your workspace attached to your account, and use your own model providers.',
+        badge: 'Self-hosted ready',
+        sideTitle: 'Bring your own models',
         sideSubtitle:
-          'Collaborate with your team, keep conversations versioned, and deploy updates with a single command.',
+          'BoltDIY is built for technical users who want a browser IDE, live preview, and control over which providers power the workflow.',
         bullets: [
-          'Save chats with full repo context so you never lose track of decisions.',
-          'Generate boilerplate, migrations, and docs in seconds with AI copilots.',
-          'Invite teammates to co-edit prompts inside shared BoltDIY workspaces.',
+          'Save chat history so you can come back to the same prototype later.',
+          'Use one workspace to prompt, inspect files, run commands, and preview changes.',
+          'Keep the setup compatible with self-hosted and bring-your-own-key workflows.',
         ],
-        tip: 'Pro tip: Use your work email to auto-discover team workspaces.',
+        tip: 'Tip: You can start locally first and add account sync only when you want it.',
         switchPrompt: 'Already have an account?',
         switchAction: 'Sign in',
         switchTarget: 'signin' as const,
@@ -120,15 +121,15 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
       return {
         heading: 'Reset your password',
         subheading: 'We’ll email you a secure link so you can create a new password right away.',
-        badge: 'Need a hand?',
-        sideTitle: 'Recover access securely',
-        sideSubtitle: 'We protect your projects with single-use reset links and security notifications.',
+        badge: 'Recover access',
+        sideTitle: 'Get back into your workspace',
+        sideSubtitle: 'Reset links are single use and intended to get you back to your saved conversations quickly.',
         bullets: [
           'Reset links expire after 10 minutes to keep access protected.',
           'Choose a brand new password immediately after opening the email.',
-          'Still stuck? Reach out at support@boltdiy.app for direct help.',
+          'If the email does not arrive, resend the request and check spam.',
         ],
-        tip: 'If the email hasn’t arrived within a few minutes, check spam or resend the request.',
+        tip: 'This only affects account access. Local browser state remains separate until you sync it.',
         switchPrompt: 'Remembered your password?',
         switchAction: 'Back to sign in',
         switchTarget: 'signin' as const,
@@ -137,16 +138,18 @@ export function LoginModal({ open, onClose }: LoginModalProps) {
 
     return {
       heading: 'Welcome back',
-      subheading: 'Sign in to unlock saved chats, shared workspaces, and synced projects.',
-      badge: 'Trusted by builders',
-      sideTitle: 'Your progress, everywhere',
-      sideSubtitle: 'Resume conversations with context, ship updates faster, and keep teammates aligned in real time.',
+      subheading:
+        'Sign in to reopen saved conversations, sync workspace history, and keep using your preferred provider setup.',
+      badge: 'Technical workspace',
+      sideTitle: 'Resume where you left off',
+      sideSubtitle:
+        'BoltDIY keeps chat, files, terminal, and preview in one browser workspace for fast prototype iteration.',
       bullets: [
-        'Persistent chat history with code-aware memory whenever you return.',
-        'Deploy Supabase projects with preconfigured environments in seconds.',
-        'Pair program in shared canvases that stay perfectly in sync.',
+        'Persistent conversation history whenever you come back.',
+        'One place to prompt, inspect file changes, and run commands.',
+        'Model selection stays visible so you can choose the right provider for the job.',
       ],
-      tip: 'Tip: Enable two-factor authentication in Settings for an extra layer of security.',
+      tip: 'Tip: treat this as a prototype workspace first, not a full deployment platform.',
       switchPrompt: 'New to BoltDIY?',
       switchAction: 'Create an account',
       switchTarget: 'signup' as const,

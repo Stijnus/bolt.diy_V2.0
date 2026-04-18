@@ -2,7 +2,7 @@ import * as DropdownMenu from '@radix-ui/react-dropdown-menu';
 import { AnimatePresence, motion, type Variants } from 'framer-motion';
 import { File as FileIcon, ChevronRight } from 'lucide-react';
 import { memo, useEffect, useRef, useState } from 'react';
-import FileTree from './FileTree';
+import { FileTree } from './FileTree';
 import type { FileMap } from '~/lib/stores/files';
 import { classNames } from '~/utils/classNames';
 import { WORK_DIR } from '~/utils/constants';

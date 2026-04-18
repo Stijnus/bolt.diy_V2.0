@@ -40,13 +40,6 @@ export function setChatModel(chatId: string, provider: AIProvider, modelId: stri
 }
 
 /**
- * Get model for a specific chat, or fall back to current model.
- */
-export function getChatModel(chatId: string): ModelSelection {
-  return chatModels.get()[chatId] || currentModel.get();
-}
-
-/**
  * Parse full model ID.
  */
 export function parseFullModelId(fullId: FullModelId): { provider: AIProvider; modelId: string } {
