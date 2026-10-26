@@ -1,6 +1,10 @@
 # BoltDIY V2.0
 
-A self-hosted-friendly, BYO-model prototype workspace for technical users.
+A browser-based AI coding workspace for technical users: bring your own model API keys, generate a prototype, and inspect it in the editor, terminal, and live preview.
+
+[Quick start](#quick-start) · [Local demo](#try-a-local-demo) · [Architecture](#architecture) · [Contributing](docs/project/CONTRIBUTING.md)
+
+**Status:** a self-hosted-friendly prototype workspace. See [Status](#status) for the current direction and documentation caveats.
 
 BoltDIY combines:
 
@@ -115,6 +119,14 @@ pnpm dev
 ```
 
 Open `http://localhost:5173`.
+
+## Try a local demo
+
+After completing the quick start, open `http://localhost:5173` and select a model whose provider key you configured. Try a small prompt such as:
+
+> Build a responsive task list with add, complete, and delete actions. Keep tasks in browser local storage.
+
+Inspect the generated files, terminal output, and live preview, then ask for one change. This is a suggested local walkthrough, not a hosted demo or a guaranteed model output. Provider usage may incur charges.
 
 ## Main Commands
 
